@@ -2,7 +2,7 @@
 
 迫り来るゾンビの大群を、マシンガンとロケットランチャーで吹き飛ばす15秒1本勝負のブラウザゲームです。舞台は夜の大通り、トゲ付き鉄線フェンスが最終防衛ラインです。
 
-**遊ぶ: https://kzk1122.github.io/zombie-bakusan/**
+**遊ぶ: https://zombie-bakusan.pages.dev/**
 
 ![ゲーム画面](screenshot.jpg)
 
