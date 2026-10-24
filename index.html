@@ -91,13 +91,13 @@ canvas { display: block; width: 100%; height: 100%; }
 
 .overlay {
   position: absolute; inset: 0;
-  display: grid; place-items: center;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
   background: color-mix(in srgb, var(--night) 66%, transparent);
   cursor: default;
+  overflow-y: auto; touch-action: pan-y;   /* a short phone can scroll the result card */
 }
-.card { max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: 14px; text-align: center; align-items: center; }
+.card { max-width: 480px; width: 100%; margin: auto; display: flex; flex-direction: column; gap: 14px; text-align: center; align-items: center; }
 .logo {
   font-family: var(--display); font-size: clamp(48px, min(21vw, 15vh), 104px); line-height: 1;
   color: var(--flare);
@@ -140,6 +140,24 @@ canvas { display: block; width: 100%; height: 100%; }
 .badges:empty { display: none; }
 .badges span { font-family: var(--display); font-size: 13px; color: var(--ink); background: var(--flare); padding: 4px 10px; border-radius: 999px; }
 .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.share { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.share .k { font-size: 12px; font-weight: 700; letter-spacing: .14em; opacity: .7; width: 100%; }
+.sbtn {
+  font: 700 14px var(--body); color: #fff; text-decoration: none;
+  border: 0; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+  transition: transform .08s;
+}
+.sbtn:hover { transform: translateY(-1px); }
+.sbtn:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+.sbtn.x { background: #000; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #fff 35%, transparent); }
+.sbtn.line { background: #06c755; }
+.sbtn.img { background: var(--flare); color: var(--ink); }
+.sbtn:disabled { opacity: .55; cursor: wait; transform: none; }
+.share-msg { margin: -4px 0 0; font-size: 12px; opacity: .8; }
+@media (max-height: 700px) {
+  .card { gap: 10px; }
+  .rank { font-size: clamp(64px, 17vh, 120px); }
+}
 /* problem notes, shown only when something went wrong; selectable so they can be copied into a report */
 .diag {
   position: absolute; left: 0; right: 0; bottom: 0; margin: 0;
@@ -199,6 +217,13 @@ canvas { display: block; width: 100%; height: 100%; }
       <div class="row">
         <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
       </div>
+      <div class="share">
+        <span class="k">結果をシェア</span>
+        <a class="sbtn x" id="shareX" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener">Xでポスト</a>
+        <a class="sbtn line" id="shareLine" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener">LINEで送る</a>
+        <button class="sbtn img" id="shareImg" type="button" disabled>画像で共有</button>
+      </div>
+      <p class="share-msg" id="shareMsg" hidden></p>
     </div>
   </div>
   <p class="diag" id="diag" hidden></p>
@@ -2599,7 +2624,7 @@ function reset() {
   combo = 0; comboTimer = 0; maxCombo = 0; fever = 0; feverT = 0; comboPulse = 0; lastLabelT = -9;
   longestFlight = 0; headshots = 0; juggles = 0; carsBlown = 0;
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
-  pointers.clear(); endT = 0; groanT = 0.6;
+  pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false;
   resetBoss(); resetMoon(); resetBuildings();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
@@ -2610,6 +2635,7 @@ const GORE_TXT = ['グチャァ!!', 'ブシャー!!', 'ベチャッ!!'];
 const BOOM_TXT = ['ドカーン!!', 'ズドーン!!', 'ボガーン!!', 'ドゴォ!!', 'バゴーン!!', 'ドガガーン!!', 'ズガァン!!', 'ドッカーン!!'];
 const MILESTONES = [[10, 'NICE!!', 'nice'], [25, 'GREAT!!', 'great'], [50, 'BRAVO!!', 'bravo'], [100, 'EXCELLENT!!', 'excellent'], [150, 'UNSTOPPABLE!!', 'unstoppable'], [200, 'LEGENDARY!!', 'legendary']];
 function registerKills(k, x, z, label, blast) {
+  if (!running) return;   // the finale and the title demo score nothing
   const prev = combo;
   combo += k; comboTimer = 1.5; maxCombo = Math.max(maxCombo, combo);
   score += k * 100 * Math.min(combo, 50);
@@ -2658,7 +2684,7 @@ function hitZombie(hit, dmg, D) {
   if (z.state === 'fly') {
     // juggle bodies in the air
     z.vh = Math.max(z.vh, 7); z.vz += 0.8; z.vx += rand(-1, 1); z.w.x -= rand(2, 5);
-    score += 50; juggles++;
+    if (running) { score += 50; juggles++; }
     if (Math.random() < 0.3) squelch(false);
     return;
   }
@@ -2703,7 +2729,7 @@ function killZombie(zb, o) {
   }
   // tumble backwards, away from us, with some twist
   zb.w.set(-spin * rand(0.6, 1), rand(-1, 1) * spin * 0.5, rand(-1, 1) * spin * 0.45);
-  kills++;
+  if (running) kills++;
   bloodBurst(zb.x, zb.z, 1.2 * s, 14, 5, 7);
   addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: 1.1 * s, vx: 0, vz: 0, vh: 0.4, r: 0.3, grow: 2.6, drag: 3, life: 0.45, a: 0.6 });
   for (let i = 0; i < (o.gun ? 2 : 4); i++) meatChunk(zb, 1);
@@ -2733,7 +2759,7 @@ function burstZombie(zb, o) {
   addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: s, vx: 0, vz: 0, vh: 0.5, r: 0.5, grow: 4, drag: 3, life: 0.7, a: 0.7 });
   addDecal(zb.x, zb.z, 1.3 * s, 'splat', 16);
   squelch(true);
-  if (performance.now() - lastSfxT > 420) {
+  if ((running || endT > 0) && performance.now() - lastSfxT > 420) {
     lastSfxT = performance.now();
     const sp = toScreen(zb.x, zb.z, 2.4);
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(GORE_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(26 * Math.min(1.6, 14 / zb.z), 26, 60) });
@@ -2748,10 +2774,10 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
   blastLight(x, z, hh, power);
   if (hh < 1.5) addDecal(x, z, R * 0.42, 'scorch', 22);
   // fewer extras when the street is already full of them
-  const fx = (parts.length > 1900 * LOD ? 0.45 : parts.length > 1300 * LOD ? 0.7 : 1) * (coarse ? 0.8 : 1), n = c => Math.max(1, Math.round(c * fx));
+  const fx = fxFull ? 1 : (parts.length > 1900 * LOD ? 0.45 : parts.length > 1300 * LOD ? 0.7 : 1) * (coarse ? 0.8 : 1), n = c => Math.max(1, Math.round(c * fx));
   addPart({ k: 'core', x, z, h: hh + 0.6, vx: 0, vz: 0, vh: 0, r: 1.8 * power * (0.55 + 0.45 * low), life: 0.3, fade: 0.5 + 0.5 * low });
-  addPart({ k: 'flash', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: R * 1.3, life: 0.35 });
-  addPart({ k: 'shock', x, z, h: Math.min(hh, 0.6), vx: 0, vz: 0, vh: 0, r: 0.3, R: R * 1.6, life: 0.3 });
+  addPart({ k: 'flash', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: R * 1.3, life: 0.35, a: fxSoft ? 0.4 : 1 });
+  addPart({ k: 'shock', x, z, h: Math.min(hh, 0.6), vx: 0, vz: 0, vh: 0, r: 0.3, R: R * 1.6, life: 0.3, a: fxSoft ? 0.35 : 1 });
   for (let i = 0, N = n(26 * power); i < N; i++) {   // the fireball
     const a = rand(0, 6.28), e = rand(0.1, 1.3), sp = rand(3, 8.5) * power;
     addPart({ k: 'fire', x, z, h: hh + 0.3, vx: Math.cos(a) * Math.cos(e) * sp, vz: Math.sin(a) * Math.cos(e) * sp * 0.8, vh: Math.sin(e) * sp * low + 1.5, r: rand(0.4, 0.85) * power * (0.6 + 0.4 * low), grow: rand(0.6, 1.4), drag: 3.2, life: rand(0.5, 0.95), heat: rand(0.8, 1.3) * (0.6 + 0.4 * low), f: 1 + (Math.random() * 2 | 0), cool: rand(0.9, 1.3) });
@@ -2769,7 +2795,7 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
     const a = rand(0, 6.28), sp = rand(0.8, 2.4);
     addPart({ k: 'cap', x, z, h: hh + 0.6, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.6, vh: top * 1.8 * rand(0.9, 1.15), r: rand(0.55, 0.9) * power * sk, grow: 1.1 * sk, drag: 1.2, life: rand(1.6, 2.4), a: 0.5, warm: 0.8, f: 3 + (i % 2) });
   }
-  for (let i = 0, N = n(12); i < N; i++) {   // the shock kicks grit out along the road
+  for (let i = 0, N = n(fxSoft ? 4 : 12); i < N; i++) {   // the shock kicks grit out along the road
     const a = i / N * 6.283 + rand(-0.2, 0.2), sp = rand(7, 11) * power;
     addPart({ k: 'dust', x, z, h: 0.2, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.8, vh: rand(0.2, 1), r: rand(0.3, 0.45), grow: 1.4, drag: 3.5, life: rand(0.6, 0.9), a: 0.42 });
   }
@@ -2791,7 +2817,7 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
     const a = rand(0, 6.28), d = rand(0.6, 1.6) * power;
     explosionsQ.push({ pop: true, x: x + Math.cos(a) * d, z: Math.max(Z_WALL + 0.3, z + Math.sin(a) * d * 0.7), h: hh, t: rand(0.08, 0.42), power: rand(0.45, 0.65) * power });
   }
-  if (performance.now() - lastSfxT > 420) {
+  if ((running || endT > 0) && performance.now() - lastSfxT > 420) {
     lastSfxT = performance.now();
     const sp = toScreen(x, z, hh + 2.4);
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(BOOM_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(24 * near * power, 26, 64) });
@@ -2828,7 +2854,7 @@ function blastDamage(x, z, power, R) {
     if (d < R) { const f = 1 - d / R; g.vh = Math.max(g.vh, 8 * f * power + 3); g.vx += dx / (d + 0.01) * 6 * f; g.vz += dz / (d + 0.01) * 6 * f + 2; g.life = Math.max(g.life, 2); }
   }
   for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.hypot(c.x - x, c.z - z) < R + 1.2) carBoom(c, 0.12);
-  if (k > 0) {
+  if (k > 0 && running) {
     registerKills(k, x, z, null, true);
     if (k >= 3 && !reduceMotion) hitstop = 0.05 + Math.min(k, 8) * 0.012;
     if (k >= 5 && !reduceMotion) slowmo = Math.max(slowmo, 0.5);
@@ -2849,6 +2875,7 @@ function pop(x, z, s, h = 0.5) {
 // a body launched past the camera: bonus text only, nothing covers the screen
 function flyPast(px, big) {
   whoosh();
+  if (!running) return;
   if (big) say('homerun', 1);
   score += big ? 500 : 200;
   const kind = big ? 'hr' : 'neck', name = big ? '場外ホームラン!' : 'ナイス首!', f = floaters.find(o => o.fly === kind);
@@ -2944,8 +2971,8 @@ function carBoom(c, delay) {
     if (f) { f.n++; f.life = 1.1; f.text = `車ごとドカン!! ×${f.n}`; f.sub = `+${(5000 * f.n).toLocaleString()}`; }
     else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: '車ごとドカン!!', sub: '+5000', life: 1.1, big: true });
     say('kaboom', 2);
+    carRespawn.push(rand(3.5, 5.5));   // after the whistle no new cars roll in
   }
-  carRespawn.push(rand(3.5, 5.5));
 }
 // a car comes apart when it goes up: wheels bounce down the road, panels and glass spin away
 function carParts(c) {
@@ -3087,7 +3114,7 @@ let booted = false;
 function start() {
   if (!booted) return;
   initAudio();
-  reset(); running = true;
+  reset(); resetShare(); running = true;
   spawnWave(12); spawnWave(16.5); spawnTimer = 0.6;
   $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false;
   hudH = $('hud').offsetHeight + 10;
@@ -3096,12 +3123,13 @@ function start() {
   sayWhenReady('go', 3);
 }
 function timeUp() {
-  running = false; endT = 1.5; pointers.clear(); firing = false; feverT = 0; fever = 0;
+  running = false; endT = FIN_END; pointers.clear(); firing = false; feverT = 0; fever = 0;
   musicOn = false; endSting();
   showBanner('FINISH!!', 'TIME UP', C.bone, 1.4, true); say('finish', 3);
+  startFinale();
 }
 function finish() {
-  endT = 0;
+  endT = 0; floaters = []; bannerObj = null;
   const i = RANKS.findIndex(r => score >= r.min);
   $('resRank').textContent = RANKS[i].r;
   say(['incredible', 'excellent', 'great', 'nice'][i], 3);
@@ -3119,6 +3147,7 @@ function finish() {
   if (carsBlown) badges.push(`車ごとドカン ×${carsBlown}`);
   if (juggles >= 10) badges.push(`空中コンボ ×${juggles}`);
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
+  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled, badges });
   let best = '';
   try {
     const prev = JSON.parse(localStorage.getItem('zb3d-best') || 'null');
@@ -3183,9 +3212,13 @@ function update(dt, raw) {
     if (!bossSpawned && elapsed >= BOSS_AT) spawnBoss();
     if (elapsed >= DURATION) timeUp();
   } else if (endT > 0) {
+    finaleTick(raw);
     endT -= raw;
-    // a giant on its way to the moon gets there before the results come up
-    if (endT <= 0) { if (bossBusy()) endT = 0.15; else finish(); }
+    if (endT <= 0) {
+      if (bossBusy()) endT = 0.15;   // a giant on its way to the moon gets there before the results come up
+      else if (moonBroken && !moonWait && moonBreakT < 1.6) { moonWait = true; endT = 1.6 - moonBreakT; }   // and the moon is seen breaking
+      else finish();
+    }
   }
 
   for (const q of explosionsQ) q.t -= dt;
@@ -3208,7 +3241,8 @@ function update(dt, raw) {
       const slow = z.stagger > 0 ? 0.25 : 1;
       z.stagger = Math.max(0, z.stagger - dt);
       const wz = wallZ(z), x0 = z.x;
-      if (z.z > wz && !z.blocked) {
+      if (over) z.phase += dt * 1.2;   // the whistle has gone: they sway where they stand until the chain reaches them
+      else if (z.z > wz && !z.blocked) {
         z.atWall = false;
         z.z -= z.speed * slow * dt;
         z.phase += dt * z.speed * (z.type === 'runner' ? 2.3 : 3.0) * slow;
@@ -3223,7 +3257,7 @@ function update(dt, raw) {
     } else if (z.state === 'fly') {
       z.x += z.vx * dt; z.z += z.vz * dt; z.vh -= BODY_G * dt; z.h += z.vh * dt;
       const wl = z.w.length(); if (wl > 0.01) { _ax.copy(z.w).divideScalar(wl); _q.setFromAxisAngle(_ax, wl * dt); z.q.premultiply(_q); }
-      longestFlight = Math.max(longestFlight, Math.hypot(z.x - z.launchX, z.z - z.launchZ));
+      if (running) longestFlight = Math.max(longestFlight, Math.hypot(z.x - z.launchX, z.z - z.launchZ));
       if (Math.random() < dt * 10) addPart({ k: 'blood', x: z.x, z: z.z, h: z.h + 0.8 * z.size, vx: z.vx * 0.15, vz: z.vz * 0.15, vh: rand(0, 2), g: 14, r: rand(0.04, 0.08), life: 0.9 });
       if (z.headless && Math.random() < dt * 14) addPart({ k: 'blood', x: z.x, z: z.z, h: z.h + 1.0 * z.size, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(3, 7), g: 14, r: rand(0.05, 0.09), life: 0.9 });
       // a body thrown low at us slams into the wire and drops; a high one sails over for the home run
@@ -3235,7 +3269,7 @@ function update(dt, raw) {
         if (!s.behind && Math.hypot(s.X - moonNow.X, s.Y - moonNow.Y) < moonNow.r * 0.45) { moonHit(z, s.X, s.Y); continue; }
       }
       if (z.h <= 0 && z.vh < 0) {
-        if (z.bounces === 0) {
+        if (z.bounces === 0 && running) {
           const d = Math.hypot(z.x - z.launchX, z.z - z.launchZ);
           if (d >= 30 && z.z < Z_FAR + 10) floaters.push({ x: z.x, z: z.z, h: 1.5, text: `${d | 0}m!`, sub: '', life: 0.9, big: false });
         }
@@ -3280,7 +3314,7 @@ function update(dt, raw) {
       const dx = wz.x - fz.x, dz = wz.z - fz.z, d = Math.hypot(dx, dz);
       if (d > 0.9) continue;
       killZombie(wz, { dx: dx + fz.vx * 0.05, dz: dz + fz.vz * 0.05, d: d + 0.01, f: 0.55, power: 0.9 });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false); say('strike', 1);
+      registerKills(1, wz.x, wz.z, 'ストライク!', false); if (running) say('strike', 1);
     }
   }
   // a flying car flattens whatever it comes down on
@@ -3291,7 +3325,7 @@ function update(dt, raw) {
       const dx = wz.x - c.x, dz = wz.z - c.z, d = Math.hypot(dx, dz);
       if (d > 1.8) continue;
       killZombie(wz, { dx, dz, d: d + 0.01, f: 0.6, power: 1 });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false); say('strike', 1);
+      registerKills(1, wz.x, wz.z, 'ストライク!', false); if (running) say('strike', 1);
     }
   }
   // bodies stay down for a while; the oldest go first when the street is full
@@ -3412,6 +3446,7 @@ function tick(now) {
   const t1 = performance.now();
   renderer.info.reset();
   renderPicture(raw);
+  shotTick(raw);
   if (window.ZB_GLFAIL === 'all' || (window.ZB_GLFAIL === 'msaa' && GLQ.level === 0)) fakeBlack();
   checkPicture(ms);
   const t2 = performance.now();
@@ -3457,6 +3492,15 @@ async function bootInner() {
     window.__boss = () => { if (!bossSpawned) { elapsed = Math.max(elapsed, BOSS_AT); spawnBoss(); } };
     window.__killBoss = () => { if (boss && boss.state === 'walk') damageBoss(999); };
     window.__toMoon = () => { const z = zombies.find(o => o.state === 'walk' && o.type !== 'boss'); if (z) moonHit(z, moonNow.X + rand(-0.4, 0.4) * moonNow.r, moonNow.Y + rand(-0.4, 0.4) * moonNow.r); return !!z; };
+    let idc = 0;
+    window.__fin = () => {
+      const w = zombies.filter(z => z.state === 'walk' && z.type !== 'boss');
+      for (const z of w) z.__id = z.__id || ++idc;
+      return { walkers: w.length, walkerZ: w.map(z => ({ id: z.__id, z: z.z })), ev: fin ? fin.ev.length : -1, endT, over, result: !$('result').hidden, resScore: $('resScore').textContent, banner: bannerObj && bannerObj.text };
+    };
+    window.__share = () => ({ x: $('shareX').href, line: $('shareLine').href, img: $('shareImg').textContent, ready: !!cardBlob, disabled: $('shareImg').disabled, shot: shotHave, shotSize: [shotCv.width, shotCv.height] });
+    window.__card = () => cardBlob && new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(cardBlob); });
+    window.__clear = () => { for (const z of zombies) if (z.state === 'walk' && z.type !== 'boss') killZombie(z, { gun: true }); if (boss) { boss.gone = true; boss.state = 'gone'; } };
     window.__dropBlock = i => { const b = city.blocks.filter(o => o.group && !o.ruined)[i || 0]; if (b) { b.hp = 0.01; damageBlock(b, 1, (b.z0 + b.z1) / 2, 4, true); } return !!b; };
   }
   if (window.ZB_DEBUG) window.__zb = () => ({
@@ -3829,7 +3873,7 @@ function resetBoss() {
   BOSS_U.fogK.value = 1; BOSS_U.flash.value.setRGB(0, 0, 0);
   if (bossM) bossM.R.root.visible = false;
 }
-const bossBusy = () => boss && (boss.state === 'drop' || boss.state === 'dying' || boss.state === 'moonshot');
+const bossBusy = () => boss && (boss.state === 'drop' || boss.state === 'dying' || boss.state === 'moonshot' || boss.state === 'final');
 function spawnBoss() {
   bossSpawned = true;
   const z = makeZombie('boss', 0, Z_FAR - 7);
@@ -3896,7 +3940,7 @@ function bossSlam(z) {
   bossShove(z, z.x, fz, 3);
 }
 function damageBoss(d) {
-  if (!boss || boss.state !== 'walk') return;
+  if (!boss || boss.state !== 'walk' || !running) return;
   boss.hp -= d;
   if (d >= 5 || elapsed - (boss.flT || -1) > 0.25) { boss.flash = 0.06; boss.flT = elapsed; }
   if (boss.hp <= 0) bossDeath();
@@ -3909,6 +3953,29 @@ function bossDeath() {
   score += 30000;
   showBanner('BOSS撃破!!', '+30000', C.flare, 1.4, true, true);
   speedLines = 1; roar(); say('knockout', 4);
+}
+// time ran out with it still standing: no points and no trip to the moon, it shudders under the finale's blasts...
+function bossFinal(z) {
+  z.state = 'final'; z.atWall = false;
+  roar();
+}
+// ...and comes apart: slabs of meat and bone rain down the avenue
+function bossBurst(z) {
+  if (z.gone) return;
+  z.gone = true; z.state = 'gone'; bossM.R.root.visible = false;
+  const x = z.x, zz = z.z;
+  explode(x, zz, 1.7, 2.4);
+  for (let i = 0; i < 3; i++) explosionsQ.push({ x: x + rand(-1.6, 1.6), z: zz + rand(-0.6, 0.6), h: rand(1.5, 4.8), t: 0.05 + i * 0.07, power: 1.0 });
+  for (let i = 0; i < 26; i++) {
+    const a = rand(0, 6.28), sp = rand(3, 11), r = rand(0.3, 0.7);
+    addChunk({ m: 'meat', x: x + rand(-0.8, 0.8), z: zz + rand(-0.5, 0.5), h: rand(1, 4.5), vx: Math.cos(a) * sp, vz: Math.abs(Math.sin(a)) * sp * 0.8 + 1, vh: rand(7, 16), sx: r, sy: r * 0.8, sz: r * 1.1, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(3, 4.5), blood: true, bounce: 0.15 });
+  }
+  for (let i = 0; i < 8; i++) addChunk({ x, z: zz, h: rand(2, 4), vx: rand(-7, 7), vz: rand(-1, 7), vh: rand(8, 15), sx: 0.08, sy: rand(0.5, 0.9), sz: 0.08, c: CH.bone, life: 3 });
+  bloodBurst(x, zz, 3, 40, 9, 12);
+  addPart({ k: 'mist', x, z: zz - 0.2, h: 2.8, vx: 0, vz: 0, vh: 0.5, r: 1.2, grow: 5, drag: 3, life: 0.9, a: 0.7 });
+  addDecal(x, zz, 3.2, 'splat', 20);
+  roar(); squelch(true);
+  shake = 24;
 }
 function startMoonshot(z) {
   z.state = 'moonshot';
@@ -3953,6 +4020,10 @@ function updateBoss(dt, raw) {
       const k1 = (z.attackT / SLAM_T) % 1;
       if ((k0 < 0.68 && k1 >= 0.68) || (k1 < k0 && k0 < 0.68)) bossSlam(z);
     }
+  } else if (z.state === 'final') {
+    z.flash = (performance.now() / 60 | 0) % 2 ? 0.05 : 0;
+    z.x += rand(-0.04, 0.04);
+    if (Math.random() < 0.6) addPart({ k: 'fire', x: z.x + rand(-1, 1), z: z.z, h: rand(1, 5), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.8), grow: 0.6, drag: 2, life: rand(0.4, 0.6), heat: 1, f: 1 });
   } else if (z.state === 'dying') {
     z.dyingT += raw;
     z.flash = (z.dyingT * 16 | 0) % 2 ? 0.05 : 0;
@@ -4003,19 +4074,19 @@ function poseBoss(z, R) {
     setR(R.jaw, 0.3 + k * 0.5);
     lift = -(0.1 + hit * 0.06) * (1 - k);
   } else {
-    // blowing apart, and tumbling all the way to the moon
+    // blowing apart (shot dead, or shaken to pieces by the finale), and tumbling all the way to the moon
     const f = now * 15;
     for (let i = 0; i < 2; i++) {
       const sg = i ? 1 : -1, g = f + i * 2.1;
       setR(R.sh[i], Math.sin(g) * 1.4 - 1.4, 0, sg * (0.7 + Math.sin(g * 0.7) * 0.5)); setR(R.el[i], -0.4 - Math.max(0, Math.sin(g * 1.3)) * 1.1); setR(R.wr[i], 0.3);
       setR(R.hp[i], Math.sin(g * 0.9) * 0.8 - 0.3, 0, sg * 0.3); setR(R.kn[i], 0.4 + Math.max(0, Math.sin(g + 2)) * 1.1); setR(R.an[i], 0.3);
     }
-    setR(R.spine, z.state === 'dying' ? -0.25 + Math.sin(f * 0.6) * 0.2 : Math.sin(f * 0.6) * 0.4);
+    setR(R.spine, z.state !== 'moonshot' ? -0.25 + Math.sin(f * 0.6) * 0.2 : Math.sin(f * 0.6) * 0.4);
     setR(R.neck, 0.35 + Math.sin(f * 0.8) * 0.3); setR(R.jaw, 0.8);
   }
   if (z.state !== 'moonshot') {
     R.root.position.set(z.x, z.h + (0.95 + bob + lift) * s, -z.z);
-    R.root.quaternion.setFromEuler(_eu.set(z.state === 'dying' ? -0.15 : 0, 0, roll));
+    R.root.quaternion.setFromEuler(_eu.set(z.state === 'dying' || z.state === 'final' ? -0.15 : 0, 0, roll));
   }
 }
 const _eyeL = new THREE.Vector3(), _eyeR = new THREE.Vector3();
@@ -4123,6 +4194,7 @@ function moonShatter(z) {
   if (!reduceMotion) zoom = Math.min(1.15, zoom + 0.12);
   score += 50000;
   showBanner('PERFECT!!!', '月まで飛んだ!! +50000', C.flare, 2.2, true, true); say('perfect', 5);
+  if (!running) requestShot(0.3);   // broken after the whistle: that is the picture to share
   moonLight.intensity = 0.55;
 }
 // per frame: where the moon is on screen now, its hit flash, the pieces drifting apart
@@ -4147,6 +4219,96 @@ function drawMoonFx(raw) {
   // the hot core where it split, fading
   const k = Math.max(0, 1 - moonBreakT / 3);
   if (k > 0) ADD.push(mp.x, mp.y, mp.z, moonMesh.scale.x * 0.85, 0, 0, 10, 3 * k, 2.2 * k, 1.2 * k, 1);
+}
+
+// ===== 73-finale.js
+// ---------- the finale: at the whistle everything still standing goes up in one chain, then the street falls quiet ----------
+// Nothing scores after time-up (registerKills and friends check `running`); the result comes up once the smoke climbs.
+const FIN_END = 2.9;   // seconds from the whistle to the result
+let fin = null, over = false, moonWait = false, fxFull = false, fxSoft = false;
+// a chain blast near us goes easy on the glow and grit along the ground, which would wash out the whole screen
+function chainBlast(x, z, power, h) { fxSoft = z < 10; explode(x, z, power, h); fxSoft = false; }
+function startFinale() {
+  over = true; carRespawn = [];
+  fin = { t: 0, ev: [] };
+  const toMoon = boss && (boss.state === 'dying' || boss.state === 'moonshot');
+  const at = (t, f) => fin.ev.push({ t, f });
+  // blast sites: walkers nearest first, one blast per bunch, so the chain rolls away down the avenue.
+  // Fewer at the wire and set back a little from it: the dust of a blast right there would fog the whole screen
+  const maxN = coarse ? 6 : 9, sites = [];
+  for (const z of zombies.filter(o => o.state === 'walk' && o.type !== 'boss' && o.z < Z_FAR).sort((a, b) => a.z - b.z)) {
+    if (sites.length >= maxN) break;
+    const zz = Math.max(z.z, 7);
+    if (!sites.some(s => Math.hypot(s.x - z.x, s.z - zz) < (zz < 9 ? 3 : 2))) sites.push({ x: z.x, z: zz });
+  }
+  // a street already cleared still gets its fireworks
+  for (let i = 0; sites.length < Math.min(maxN, 7) && i < 14; i++) {
+    const zz = 6.5 + i * 2.6;
+    if (!sites.some(s => Math.abs(s.z - zz) < 1.6)) sites.push({ x: (i % 2 ? 1 : -1) * rand(0.4, halfX * 0.9), z: zz });
+  }
+  sites.sort((a, b) => a.z - b.z);
+  sites.forEach((s, i) => at(0.3 + i * 0.1, () => chainBlast(s.x, s.z, s.z < 8 ? 0.85 : rand(0.9, 1.05), 0.35)));
+  const tEnd = 0.3 + (sites.length - 1) * 0.1;
+  // the cars go up as the chain passes them
+  for (const c of cars) if (c.state === 'park' || c.state === 'roll') at(0.3 + clamp((c.z - 6) / 22, 0, 1) * (tEnd - 0.3) + rand(0, 0.06), () => carBoom(c, 0));
+  // a giant still on its feet shudders under the blasts and bursts
+  if (boss && boss.state === 'walk') {
+    bossFinal(boss);
+    const z = boss;
+    for (const [t, h] of [[0.45, 1.6], [0.72, 3.4], [0.98, 5.2]]) at(t, () => explode(z.x + rand(-1.2, 1.2), z.z - 0.4, 1.0, h));
+    at(1.2, () => bossBurst(z));
+  }
+  // and the big one, right down the middle; unless the giant is already on its way to the moon:
+  // then the moon breaking is the finale, and a column of smoke must not hide it
+  const tMega = Math.max(tEnd + 0.25, 1.4);
+  if (!toMoon) at(tMega, () => megaBlast(0, 16));
+  at(tMega + 0.35, sweepLeftovers);
+  fin.ev.sort((a, b) => a.t - b.t);
+}
+function finaleTick(raw) {
+  if (!fin) return;
+  fin.t += raw;
+  while (fin.ev.length && fin.ev[0].t <= fin.t) fin.ev.shift().f();
+  // a giant that only just landed is not left walking at us either
+  if (boss && boss.state === 'walk') { bossFinal(boss); const z = boss; fin.ev.push({ t: fin.t + 0.5, f: () => bossBurst(z) }); fin.ev.sort((a, b) => a.t - b.t); }
+  if (!fin.ev.length) fin = null;
+}
+// the shock rolls across the whole street, a pillar of fire climbs past the top of the screen
+function megaBlast(x, z) {
+  fxFull = true; explode(x, z, 2.2, 0.5); fxFull = false;   // in full even with the street already full of smoke
+  for (let i = 0; i < 6; i++) {
+    const a = i / 6 * 6.283 + rand(-0.3, 0.3), d = rand(3, 5);
+    explosionsQ.push({ x: clamp(x + Math.cos(a) * d * 0.8, -halfX * 1.1, halfX * 1.1), z: z + Math.sin(a) * d, h: rand(0.3, 2.6), t: 0.05 + i * 0.05, power: rand(0.9, 1.15) });
+  }
+  addPart({ k: 'shock', x, z, h: 0.4, vx: 0, vz: 0, vh: 0, r: 1, R: 12, life: 0.6, a: 0.45 });
+  for (let i = 0; i < 10; i++) {
+    const u = i / 10;
+    addPart({ k: 'plume', x: x + rand(-0.6, 0.6), z: z + rand(-0.6, 0.6), h: 0.6, vx: rand(-0.6, 0.6), vz: rand(-0.6, 0.6), vh: 18 + 16 * u, r: 1.7 - u * 0.6, grow: 0.7, drag: 2.2, life: rand(0.8, 1.1), heat: 1.2, f: 1 + (i % 2) });
+  }
+  groundBlow(x, z, 6, 26);
+  megaSnd();
+  shake = 24; flashScreen = Math.max(flashScreen, 0.14); speedLines = Math.max(speedLines, 1.3);
+  if (!reduceMotion) { zoom = Math.min(1.16, zoom + 0.12); slowmo = Math.max(slowmo, 0.45); }
+  // the word goes under the fireball, not over it
+  floaters.push({ sfx: true, nudged: true, x: W / 2, y: H * 0.68, text: 'ドガガガーン!!!', rot: rand(-0.1, 0.1), life: 1.2, max: 1.2, size: Math.min(72, W * 0.085) });
+  say('kaboom', 4);
+  requestShot(0.45);   // the picture for sharing: the fireball at its biggest
+}
+// whatever is still on its feet goes now: the near ones with a blast of their own
+function sweepLeftovers() {
+  const left = zombies.filter(o => o.state === 'walk' && o.type !== 'boss').sort((a, b) => a.z - b.z);
+  left.forEach((z, i) => {
+    if (i < 4 && z.z < 30) explosionsQ.push({ x: z.x, z: z.z, t: i * 0.06, power: 0.8 });
+    else killZombie(z, { dx: rand(-0.5, 0.5), dz: 1, d: 1, f: 0.7, power: 1 });
+  });
+}
+function megaSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  boom(1.6, 6); boom(1.2, 12);
+  const o = osc('sine', 90, t); o.frequency.exponentialRampToValueAtTime(18, t + 2.2);
+  o.connect(gain(t, 1.3, 0.004, 2.4)).connect(master); o.start(t); o.stop(t + 2.5);
+  noiseSrc(t, 3.4).connect(filt('lowpass', 160)).connect(gain(t + 0.05, 1.0, 0.2, 3.0)).connect(master);
 }
 
 // ===== 75-overlay.js
@@ -4299,6 +4461,129 @@ function drawOverlays() {
   }
   drawBanner();
 }
+
+// ===== 78-share.js
+// ---------- sharing the result: X and LINE links, and a picture of the finale with the score on it ----------
+const SITE_URL = 'https://zombie-bakusan.pages.dev/';
+const shotCv = document.createElement('canvas');
+let shotT = -1, shotHave = false, cardBlob = null, cardJob = 0, shareInfo = null, dlNS = null;
+// inside the claude.ai viewer a file is saved through the viewer, which asks the player first; on the site there is no window.claude
+try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(ns => { dlNS = ns; }, () => {}); } catch (e) {}
+// a frame of the finale for the picture: asked for a moment ahead, taken right after that frame is drawn
+function requestShot(delay) { shotT = delay; }
+function shotTick(raw) {
+  if (shotT < 0 || (shotT -= raw) >= 0) return;
+  shotT = -1;
+  try {
+    // only the 3D view: no reticle, callouts or HUD in the picture
+    shotCv.width = glCv.width; shotCv.height = glCv.height;
+    shotCv.getContext('2d').drawImage(glCv, 0, 0);
+    shotHave = true;
+  } catch (e) {}
+}
+function resetShare() {
+  shotT = -1; shotHave = false; cardBlob = null; cardJob++; shareInfo = null;
+  $('shareImg').disabled = true; $('shareMsg').hidden = true;
+}
+function shareText(o) {
+  const bits = [`撃破${o.kills}体`, `最大${o.combo}コンボ`];
+  if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push('巨大ゾンビ撃破');
+  return `ゾンビ爆散で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n#ゾンビ爆散`;
+}
+const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'z.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; } };
+// called when the result comes up
+function setupShare(o) {
+  shareInfo = o;
+  const text = shareText(o);
+  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(SITE_URL);
+  $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(text + '\n' + SITE_URL);
+  $('shareImg').textContent = !dlNS && canShareFiles() ? '画像で共有' : '画像を保存';
+  if (!shotHave) requestShot(0);   // no finale frame (it can happen): the street as it is now
+  buildCard(o);
+}
+// the picture: 1200x630, the finale on the right, the score on a dark panel on the left
+async function buildCard(o) {
+  const job = ++cardJob;
+  const D = '"Dela Gothic One", sans-serif', B = '"Zen Kaku Gothic New", sans-serif';
+  const stats = `撃破 ${o.kills}体 ・ 最大 ${o.combo}コンボ ・ 最長 ${o.flight}m`;
+  try {
+    if (document.fonts && document.fonts.load) await Promise.race([Promise.all([
+      document.fonts.load(`80px ${D}`, 'ゾンビ爆散SCORE0123456789,' + o.rank + o.badges.join('')),
+      document.fonts.load(`700 30px ${B}`, stats + '#ゾンビ爆散 zombie-bakusan.pages.dev'),
+    ]), new Promise(r => setTimeout(r, 1500))]);
+  } catch (e) {}
+  // the frame is taken on the next draw if it was not there yet
+  for (let i = 0; i < 20 && !shotHave; i++) await new Promise(r => setTimeout(r, 50));
+  if (job !== cardJob) return;
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1d1426'; g.fillRect(0, 0, 1200, 630);
+  if (shotHave) {
+    // a phone's tall frame fills the right part only; a wide one fills it all
+    const w = shotCv.width, h = shotCv.height, rx = w < h ? 470 : 0, rw = 1200 - rx, s = Math.max(rw / w, 630 / h);
+    g.save(); g.beginPath(); g.rect(rx, 0, rw, 630); g.clip();
+    g.drawImage(shotCv, rx + (rw - w * s) / 2, (630 - h * s) * 0.45, w * s, h * s);
+    g.restore();
+    if (rx) { const eg = g.createLinearGradient(rx, 0, rx + 260, 0); eg.addColorStop(0, '#1d1426'); eg.addColorStop(1, 'rgba(29,20,38,0)'); g.fillStyle = eg; g.fillRect(rx, 0, 260, 630); }
+  }
+  const gr = g.createLinearGradient(0, 0, 860, 0);
+  gr.addColorStop(0, 'rgba(18,12,23,.94)'); gr.addColorStop(0.58, 'rgba(18,12,23,.8)'); gr.addColorStop(1, 'rgba(18,12,23,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 1200, 630);
+  const text = (t, x, y, size, font, fill, stroke, shadow, weight = '') => {
+    g.font = `${weight} ${size}px ${font}`; g.lineJoin = 'round';
+    if (shadow) { g.fillStyle = shadow; g.fillText(t, x, y + size * 0.07); }
+    if (stroke) { g.lineWidth = size * 0.16; g.strokeStyle = stroke; g.strokeText(t, x, y); }
+    g.fillStyle = fill; g.fillText(t, x, y);
+  };
+  g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  text('ゾンビ爆散', 60, 122, 78, D, '#ffd25e', '#120c17', '#ff7a2f');
+  text(o.rank, 60, 420, 250, D, '#ffd25e', '#120c17', '#ff7a2f');
+  g.font = `250px ${D}`;
+  const col = 60 + g.measureText(o.rank).width + 44, room = 1160 - col;
+  text('SCORE', col, 258, 26, B, 'rgba(243,233,220,.75)');
+  g.font = `96px ${D}`;
+  const ss = o.score.toLocaleString(), sz = Math.min(96, 96 * room / g.measureText(ss).width);
+  text(ss, col, 350, sz, D, '#f3e9dc', '#120c17');
+  g.font = `700 28px ${B}`;
+  const stz = Math.min(28, 28 * room / g.measureText(stats).width);
+  text(stats, col, 400, stz, B, '#f3e9dc', null, null, 700);
+  // the badges as pills, two rows at most
+  let x = 60, y = 468;
+  g.font = `24px ${D}`;
+  for (const b of o.badges) {
+    const w = g.measureText(b).width + 32;
+    if (x + w > 820) { x = 60; y += 56; if (y > 530) break; }
+    g.fillStyle = '#ffd25e'; g.beginPath(); g.arc(x + 21, y + 1, 21, Math.PI / 2, Math.PI * 1.5); g.arc(x + w - 21, y + 1, 21, -Math.PI / 2, Math.PI / 2); g.closePath(); g.fill();
+    g.fillStyle = '#120c17'; g.fillText(b, x + 16, y + 9);
+    x += w + 10;
+  }
+  text('#ゾンビ爆散   zombie-bakusan.pages.dev', 60, 600, 26, B, 'rgba(243,233,220,.85)', null, null, 700);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+  if (job !== cardJob || !blob) return;
+  cardBlob = blob;
+  $('shareImg').disabled = false;
+}
+$('shareImg').addEventListener('click', async () => {
+  if (!cardBlob || !shareInfo) return;
+  const file = new File([cardBlob], 'zombie-bakusan.jpg', { type: 'image/jpeg' });
+  const msg = t => { $('shareMsg').textContent = t; $('shareMsg').hidden = !t; };
+  msg('');
+  if (dlNS) {
+    try { await dlNS.save({ filename: 'zombie-bakusan.jpg', data: cardBlob }); msg('画像を保存しました。Xに貼ってポストできます'); }
+    catch (e) { if (!e || e.code !== 'declined') msg('ここでは保存できませんでした。XかLINEのボタンを使ってください'); }
+    return;
+  }
+  if (canShareFiles()) {
+    try { await navigator.share({ files: [file], text: shareText(shareInfo) + '\n' + SITE_URL }); }
+    catch (e) { if (!e || e.name !== 'AbortError') msg('ここでは共有できませんでした。XかLINEのボタンを使ってください'); }
+    return;
+  }
+  // no share sheet (most PCs): save the picture instead
+  const a = document.createElement('a'), url = URL.createObjectURL(cardBlob);
+  a.href = url; a.download = 'zombie-bakusan.jpg'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  msg('画像を保存しました。Xに貼ってポストできます');
+});
 
 boot();
 </script>
