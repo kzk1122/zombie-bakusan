@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
 <style>
-/* Layout: a full-screen 3D view down a night avenue at the horde, gun at the bottom; a 2D canvas on top for the reticle and callouts; HUD strip on top, overlays centered. Single night look by design. */
+/* Layout: a 3D view down a night avenue at the horde in a tall column (the whole screen on a phone, centred on a wide one), gun at the bottom; a 2D canvas on top for the reticle and callouts; HUD strip on top, overlays centered. Single night look by design. */
 :root {
   --night: #1d1426;
   --dusk: #4a2340;
@@ -34,7 +34,7 @@ html, body { height: 100%; }
 [hidden] { display: none !important; }
 body {
   margin: 0;
-  background: var(--night);
+  background: radial-gradient(70vh 90vh at 50% 45%, color-mix(in srgb, var(--dusk) 45%, transparent), transparent), var(--ink);
   color: var(--bone);
   font-family: var(--body);
   overflow: hidden;
@@ -43,7 +43,13 @@ body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-#stage { position: relative; width: 100%; height: 100%; }
+/* a wide screen keeps the game to a column about the shape of a phone held upright, so the horde fills the width there too
+   (2026-10-24, kazu: the PC view felt too wide); never under 440px, so a short window still has room to play */
+#stage {
+  position: relative; height: 100%; width: min(100%, max(56.25vh, 440px)); margin: 0 auto;
+  container-type: inline-size; background: var(--night);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bone) 8%, transparent), 0 0 90px rgba(0, 0, 0, .65);
+}
 canvas { display: block; width: 100%; height: 100%; }
 #gl { position: absolute; inset: 0; pointer-events: none; }
 #cv { position: absolute; inset: 0; cursor: none; }
@@ -71,6 +77,9 @@ canvas { display: block; width: 100%; height: 100%; }
 .gauge { display: block; width: 110px; height: 12px; margin-top: 6px; border: 2px solid var(--bone); border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ink) 60%, transparent); }
 .gauge b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ember), var(--flare)); }
 .fever.on .k { color: var(--flare); opacity: 1; animation: blink .25s steps(2) infinite; }
+.gauge.reload { width: 64px; }
+.reload b { background: linear-gradient(90deg, #6d7350, #c9c08a); }
+.reload.ready b { background: linear-gradient(90deg, var(--ember), var(--flare)); }
 .fever.on .gauge b { background: linear-gradient(90deg, #ff4a3d, #ffd25e, #9aae5c, #5ac8ff, #c86bff, #ff4a3d); background-size: 200% 100%; animation: slide .6s linear infinite; }
 @keyframes blink { 50% { opacity: .45; } }
 @keyframes slide { to { background-position: 200% 0; } }
@@ -82,11 +91,12 @@ canvas { display: block; width: 100%; height: 100%; }
   padding: 4px 10px; cursor: pointer; opacity: .8;
 }
 .mute:focus-visible, .btn:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
-@media (max-width: 440px) {
+@container (max-width: 440px) {
   .hud { gap: 6px 12px; }
   .stat .v { font-size: 18px; }
   .stat.time .v { font-size: 24px; }
   .gauge { width: 76px; }
+  .gauge.reload { width: 52px; }
 }
 
 .overlay {
@@ -99,7 +109,7 @@ canvas { display: block; width: 100%; height: 100%; }
 }
 .card { max-width: 480px; width: 100%; margin: auto; display: flex; flex-direction: column; gap: 14px; text-align: center; align-items: center; }
 .logo {
-  font-family: var(--display); font-size: clamp(48px, min(21vw, 15vh), 104px); line-height: 1;
+  font-family: var(--display); font-size: clamp(48px, min(21cqw, 15vh), 104px); line-height: 1;
   color: var(--flare);
   text-shadow: 0 4px 0 var(--ember), 0 10px 30px color-mix(in srgb, var(--ember) 60%, transparent);
   text-wrap: balance; margin: 0;
@@ -121,16 +131,33 @@ canvas { display: block; width: 100%; height: 100%; }
 .btn:disabled { opacity: .6; cursor: wait; transform: none; }
 .btn.small .t { font-size: 17px; }
 .controls { display: flex; gap: 10px 18px; flex-wrap: wrap; justify-content: center; }
+/* the weapon: the rocket launcher or the tank */
+.pick { display: flex; gap: 10px; justify-content: center; }
+.pk {
+  font: inherit; color: var(--bone); cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  border: 2px solid color-mix(in srgb, var(--bone) 35%, transparent); border-radius: 10px;
+  padding: 8px 14px; min-width: 124px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  transition: transform .08s;
+}
+.pk:hover { transform: translateY(-1px); }
+.pk .t { font-family: var(--display); font-size: 19px; }
+.pk .d { font-size: 12px; font-weight: 500; opacity: .75; }
+.pk[aria-pressed="true"] { background: var(--flare); color: var(--ink); border-color: var(--flare); box-shadow: 0 4px 0 var(--ember); }
+.pk:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+.pick.small .pk { padding: 5px 12px; min-width: 100px; }
+.pick.small .pk .t { font-size: 16px; }
 .ctl { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
 .key { font-family: var(--display); font-size: 13px; color: var(--ink); background: var(--flare); border-radius: 6px; padding: 3px 8px; box-shadow: 0 3px 0 var(--ember); }
 .how { font-size: 13px; opacity: .75; margin: 0; line-height: 1.7; text-wrap: balance; }
 .tag span, .how span { display: inline-block; }
 .rank {
-  font-family: var(--display); font-size: clamp(80px, 26vw, 140px); line-height: 1; margin: 0;
+  font-family: var(--display); font-size: clamp(80px, 26cqw, 140px); line-height: 1; margin: 0;
   color: var(--flare); text-shadow: 0 6px 0 var(--ember), 0 0 40px color-mix(in srgb, var(--ember) 70%, transparent);
 }
 .rank-note { font-family: var(--display); font-size: 18px; margin: -6px 0 0; }
-.score-big { font-family: var(--display); font-size: clamp(30px, 9vw, 46px); margin: 0; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.score-big { font-family: var(--display); font-size: clamp(30px, 9cqw, 46px); margin: 0; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .score-big small { display: block; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .14em; opacity: .7; }
 .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
 .result-grid div { background: color-mix(in srgb, var(--bone) 10%, transparent); border-radius: 8px; padding: 8px 4px; min-width: 0; }
@@ -179,7 +206,7 @@ canvas { display: block; width: 100%; height: 100%; }
   <div class="hud" id="hud" hidden>
     <div class="stat time"><span class="k">残り</span><span class="v" id="time">15.0</span></div>
     <div class="stat"><span class="k">スコア</span><span class="v" id="score">0</span></div>
-    <div class="stat"><span class="k">ロケット</span><span class="ammo" id="ammo"></span></div>
+    <div class="stat"><span class="k" id="ammoLabel">ロケット</span><span class="ammo" id="ammo"></span></div>
     <div class="stat fever" id="feverWrap"><span class="k" id="feverLabel">FEVER</span><span class="gauge"><b id="feverBar"></b></span></div>
     <span class="spacer"></span>
     <button class="mute" id="mute" type="button">音: ON</button>
@@ -190,15 +217,19 @@ canvas { display: block; width: 100%; height: 100%; }
       <h1 class="logo">ゾンビ<br>爆散</h1>
       <p class="tag"><span class="badge3d">3D版</span></p>
       <p class="tag"><span>ここが最終防衛ライン。</span><span>15秒で全部ぶっ飛ばせ。</span></p>
+      <div class="pick" role="group" aria-label="武器を選ぶ">
+        <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span><span class="d">マシンガン＋ロケット</span></button>
+        <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span><span class="d">機銃＋主砲</span></button>
+      </div>
       <button class="btn" id="startBtn" type="button" disabled>
         <span class="t">スタート</span>
         <span class="d" id="startSub">3Dを準備中…</span>
       </button>
       <div class="controls">
-        <div class="ctl"><span class="key">長押し</span>マシンガン</div>
-        <div class="ctl"><span class="key">タップ</span>ロケット</div>
+        <div class="ctl"><span class="key">長押し</span><span id="ctlHold">マシンガン</span></div>
+        <div class="ctl"><span class="key">タップ</span><span id="ctlTap">ロケット</span></div>
       </div>
-      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けるとFEVER。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCは右クリックかスペースでもロケット。</p>
+      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けるとFEVER。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCは右クリックかスペースでも<span id="ctlPc">ロケット</span>。</p>
     </div>
   </div>
 
@@ -215,6 +246,10 @@ canvas { display: block; width: 100%; height: 100%; }
       <div class="badges" id="resBadges"></div>
       <p class="tag" id="resBest"></p>
       <div class="row">
+        <div class="pick small" role="group" aria-label="武器を選ぶ">
+          <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span></button>
+          <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span></button>
+        </div>
         <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
       </div>
       <div class="share">
@@ -2364,15 +2399,19 @@ function shootBullet() {
   const A = aimHit(px, py, aim.touch ? 60 : 40);
   gunRecoil = 1; muzzleT = 0.05; spinV = Math.max(spinV, 1);
   gunShot(fev);
-  gunTip.getWorldPosition(_wp);
+  // the tank's machine gun sits beside its main gun and throws its cases inside the turret
+  const tank = weapon === 'tank', tip = tank ? coaxTip : gunTip;
+  tip.getWorldPosition(_wp);
   // muzzle flash, light and a spent case kicked out to the right
   const fc = fev ? hueRGB((performance.now() / 1400) % 1, 6) : [7, 4.6, 1.6];
   addPart({ k: 'muzzle', x: _wp.x, z: -_wp.z, h: _wp.y, vx: 0, vz: 0, vh: 0, r: rand(0.09, 0.14) * (fev ? 1.4 : 1), life: 0.045, c: fc });
   addPart({ k: 'glow', x: _wp.x, z: -_wp.z, h: _wp.y, vx: 0, vz: 0, vh: 0, r: 0.35, life: 0.06, c: [3, 1.6, 0.5], a: 1 });
   muzzleLight.position.copy(_wp); muzzleLight.intensity = 5;
-  ejectPt.getWorldPosition(_wp2);
-  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-  addChunk({ x: _wp2.x, z: -_wp2.z, h: _wp2.y, vx: right.x * rand(1.5, 2.5), vz: -right.z * rand(1.5, 2.5), vh: rand(1.5, 2.6), sx: 0.012, sy: 0.012, sz: 0.04, c: CH.brass, life: 0.9, bounce: 0.4, g: 14, near: true });
+  if (!tank) {
+    ejectPt.getWorldPosition(_wp2);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    addChunk({ x: _wp2.x, z: -_wp2.z, h: _wp2.y, vx: right.x * rand(1.5, 2.5), vz: -right.z * rand(1.5, 2.5), vh: rand(1.5, 2.6), sx: 0.012, sy: 0.012, sz: 0.04, c: CH.brass, life: 0.9, bounce: 0.4, g: 14, near: true });
+  }
   // tracer from the muzzle to the hit
   const end = A.p, dx = end.x - _wp.x, dy = end.y - _wp.y, dz = end.z - _wp.z;
   const tc = fev ? hueRGB(((performance.now() / 1400) + 0.3) % 1, 5) : [5, 3, 1.1];
@@ -2394,7 +2433,7 @@ function shootBullet() {
     dadadaT -= fev ? 1 / 26 : 1 / 13;
     if (dadadaT <= 0) {
       dadadaT = 0.45;
-      gunTip.getWorldPosition(_wp);
+      tip.getWorldPosition(_wp);
       const s = toScreen(_wp.x, -_wp.z, _wp.y);
       floaters.push({ sfx: true, x: clamp(s.X + rand(-50, 50), 60, W - 60), y: clamp(s.Y - rand(40, 90), hudH + 30, H - 40), text: pick(['ダダダ', 'ドドド', 'ズガガ']), rot: rand(-0.3, 0.3), life: 0.45, max: 0.45, size: 28 });
     }
@@ -2491,6 +2530,195 @@ function poseGun(dt) {
   muzzleLight.intensity *= Math.exp(-dt * 40);
 }
 
+// ===== 52-tank.js
+// ---------- the tank, picked instead of the rocket launcher (2026-10-24, kazu: a tank to pick as well would widen the game) ----------
+// Hold: the coaxial machine gun. Tap: the main gun, one round at a time. Its shell skewers every body on its way,
+// flinging them down the road, and blows up where it lands.
+let weapon = 'rocket';
+try { if (localStorage.getItem('zb3d-weapon') === 'tank') weapon = 'tank'; } catch (e) {}
+const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 1.5;
+const tankRoot = new THREE.Group(), tankAim = new THREE.Group(), tankKick = new THREE.Group();
+camera.add(tankRoot); tankRoot.add(tankAim); tankAim.add(tankKick);
+const cannonTip = new THREE.Object3D(), coaxTip = new THREE.Object3D();
+let cannonT = 0, cannonRecoil = 0, camKick = 0, shells = [], tankSnap = true;
+const _tp = new THREE.Vector3(), _tq = new THREE.Vector3();
+function buildTank() {
+  const armor = new THREE.MeshStandardMaterial({ color: 0x4d5733, metalness: 0.35, roughness: 0.55, envMap, envMapIntensity: 0.7 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x34333a, metalness: 0.8, roughness: 0.4, envMap, envMapIntensity: 0.8 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x121115, metalness: 0.2, roughness: 0.8 });
+  // merged per material like the gun: a few draw calls
+  const bins = new Map();
+  const add = (geo, mat, x, y, z, along) => {
+    const g = geo.toNonIndexed(); g.deleteAttribute('uv');
+    g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(along ? Math.PI / 2 : 0, 0, 0)), new THREE.Vector3(1, 1, 1)));
+    if (!bins.has(mat)) bins.set(mat, []);
+    bins.get(mat).push(g);
+  };
+  // a slim gun drawn close: the muzzle brake ends 3 m out, well short of the zombies at the wire, and the long lens makes it a
+  // big gun on screen (+z points down the barrel from the pivot; +x is on our left)
+  add(new THREE.CylinderGeometry(0.028, 0.034, 2.5, 20), steel, 0, 0, 1.6, true);
+  for (const z of [1.15, 1.6, 2.68]) add(new THREE.CylinderGeometry(0.037, 0.037, 0.03, 20), black, 0, 0, z, true);
+  // the fume extractor, a fat collar near the end
+  add(new THREE.CylinderGeometry(0.047, 0.047, 0.34, 20), armor, 0, 0, 2.14, true);
+  add(new THREE.CylinderGeometry(0.031, 0.047, 0.06, 20), armor, 0, 0, 2.34, true);
+  add(new THREE.CylinderGeometry(0.047, 0.032, 0.06, 20), armor, 0, 0, 1.94, true);
+  // the muzzle brake, with its side ports
+  add(new THREE.BoxGeometry(0.094, 0.058, 0.15), steel, 0, 0, 2.93);
+  for (const z of [2.9, 2.96]) add(new THREE.BoxGeometry(0.098, 0.019, 0.022), black, 0, 0, z);
+  // the coaxial machine gun, a thin barrel along the right of the gun
+  add(new THREE.CylinderGeometry(0.009, 0.011, 1.6, 10), steel, -0.072, -0.022, 1.15, true);
+  for (const [mat, list] of bins) tankKick.add(new THREE.Mesh(mergeGeometries(list), mat));
+  cannonTip.position.set(0, 0, 3.02); tankKick.add(cannonTip);
+  coaxTip.position.set(-0.072, -0.022, 1.96); tankKick.add(coaxTip);
+}
+// The gun turns on a pivot just under us and lies along the line of sight through the reticle, so the muzzle keeps to one spot
+// on screen beside the reticle: a little right of it and well below, about where the minigun's muzzle is, with the barrel running
+// from there down out of the bottom of the screen. The pivot shifts with the reticle so the gun never leaves the screen: the
+// muzzle comes left of the reticle near the right edge, and up a little when aiming low.
+function tankPivot(out) {
+  const rx = aim.x / W * 2 - 1, ry = 1 - aim.y / H * 2, L = 3.0;
+  const ox = 0.24 - 0.36 * Math.max(0, rx), oy = -0.55 + 0.25 * Math.max(0, -0.2 - ry);
+  return out.set(ox * tanV * (W / H) * L, oy * tanV * L, 0);
+}
+function placeTank() { tankSnap = true; }
+function poseTank(dt) {
+  // a heavy turret: it follows the reticle a beat behind (it snaps into place when it first shows)
+  const k = tankSnap ? 1 : 1 - Math.exp(-dt * 10);
+  tankSnap = false;
+  tankRoot.position.lerp(tankPivot(_tp), k);
+  camera.updateMatrixWorld();
+  const q0 = tankAim.quaternion.clone();
+  // parallel to the line of sight, not at the aim point itself: aimed at a near zombie the muzzle would come up right under the
+  // reticle and cover it. On screen the barrel still points at the reticle, and the shell flies out along it
+  camera.getWorldPosition(_tq);
+  tankAim.getWorldPosition(_tp).add(_tq.subVectors(aimPt, _tq).normalize());
+  tankAim.lookAt(_tp);
+  const q1 = tankAim.quaternion.clone();
+  tankAim.quaternion.copy(q0).slerp(q1, k);
+  // the gun runs back into the turret when it fires and creeps out again; the machine gun shivers it a little
+  tankKick.position.set(rand(-1, 1) * gunRecoil * 0.0015, rand(-1, 1) * gunRecoil * 0.0015, -cannonRecoil * cannonRecoil * 0.25);
+  muzzleLight.intensity *= Math.exp(-dt * 30);
+}
+function setWeapon(w) {
+  weapon = w === 'tank' ? 'tank' : 'rocket';
+  try { localStorage.setItem('zb3d-weapon', weapon); } catch (e) {}
+  const tank = weapon === 'tank';
+  gunRoot.visible = !tank; tankRoot.visible = tank; tankSnap = true;
+  for (const b of document.querySelectorAll('.pk')) b.setAttribute('aria-pressed', String(b.dataset.w === weapon));
+  $('ctlHold').textContent = tank ? '機銃' : 'マシンガン';
+  $('ctlTap').textContent = $('ctlPc').textContent = tank ? '主砲' : 'ロケット';
+  $('ammoLabel').textContent = tank ? '主砲' : 'ロケット';
+  hudKey = '';
+}
+for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', () => setWeapon(b.dataset.w));
+// a quick tap (or right click, or space) fires the heavy weapon
+function tapFire() { if (weapon === 'tank') tryCannon(); else tryRocket(); }
+function tryCannon() {
+  if (!running) return;
+  if (cannonT > 0) { softClick(); return; }
+  cannonT = feverT > 0 ? CANNON_RELOAD_FEVER : CANNON_RELOAD;
+  fireCannon(aimHit(aim.x, aim.y, aim.touch ? 60 : 40));
+}
+function fireCannon(A) {
+  cannonTip.getWorldPosition(_wp);
+  const M = _wp.clone(), S = A.solid;
+  // it flies from the muzzle to the first solid thing behind the reticle (the ground, a car, a wall; far off in the air if nothing)
+  const dir = S.p.clone().sub(M), L = dir.length();
+  dir.divideScalar(L || 1);
+  shells.push({ p: M.clone(), dir, left: L, kind: S.kind, block: S.block, hit: new Set(), n: 0 });
+  muzzleBlast(M, dir);
+}
+function muzzleBlast(M, dir) {
+  const x = M.x, z = -M.z, h = M.y, fx = feverT > 0 ? 0.5 : 1;
+  cannonSnd();
+  cannonRecoil = 1; camKick = 1;
+  shake = Math.min(shake + 9, 24);
+  if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.04);
+  muzzleLight.position.copy(M); muzzleLight.intensity = 45;
+  // (the muzzle is only 3 m out: the fire and smoke are sized for that, or one shot would fill the screen)
+  addPart({ k: 'muzzle', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.24, life: 0.07, c: [9, 6, 2.4] });
+  addPart({ k: 'glow', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.65, life: 0.16, c: [5, 2.6, 0.8], a: 1 });
+  // the muzzle brake throws the blast out to both sides
+  for (const s of [-1, 1]) for (let i = 0; i < 7; i++) addPart({ k: 'fire', x, z: z + rand(-0.04, 0.08), h: h + rand(-0.02, 0.04), vx: s * rand(1.6, 3.2), vz: rand(-0.2, 0.8), vh: rand(-0.1, 0.5), r: rand(0.07, 0.12), grow: 1.2, drag: 6, life: rand(0.18, 0.3), heat: 1.3, f: 1 + (i % 2) });
+  // a ring of smoke rolls off the muzzle, and the street out by the wire is blasted with grit
+  for (let i = 0, N = 16 * fx; i < N; i++) {
+    const a = i / N * 6.283;
+    addPart({ k: 'smoke', x, z: z + 0.1, h, vx: Math.cos(a) * rand(0.8, 1.2) + dir.x, vz: -dir.z * rand(1.5, 3), vh: Math.sin(a) * rand(0.6, 0.9), r: 0.12, grow: 1.3, drag: 2.4, life: rand(1.1, 1.7), a: 0.4, warm: 0.4 });
+  }
+  for (let i = 0, N = 12 * fx; i < N; i++) {
+    const a = rand(-1.4, 1.4) + Math.PI / 2, sp = rand(2, 5);
+    addPart({ k: 'dust', x: x + rand(-0.3, 0.3), z: z + rand(1.6, 2.6), h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(0.2, 1), r: rand(0.3, 0.45), grow: 1.6, drag: 3, life: rand(0.7, 1.1), a: 0.4 });
+  }
+  for (let i = 0; i < 10; i++) addPart({ k: 'spark', x, z, h, vx: rand(-3, 3) + dir.x * 12, vz: -dir.z * rand(10, 18), vh: rand(-1, 3), g: 10, r: 0.03, life: rand(0.2, 0.45) });
+  if (!running) return;
+  const s = toScreen(x, z, h);
+  floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(40, 90), hudH + 40, H - 50), text: pick(['ドォン!!', 'ズドン!!', 'ドンッ!!']), rot: rand(-0.25, 0.25), life: 0.5, max: 0.5, size: 44 });
+}
+function updateShells(dt) {
+  for (const s of shells) {
+    const a = s.p.clone();
+    let go = SHELL_SPEED * dt;
+    while (go > 0 && !s.done) {
+      const d = Math.min(0.25, go, s.left);
+      go -= d; s.left -= d;
+      s.p.addScaledVector(s.dir, d);
+      shellTouch(s);
+      if (s.left <= 1e-4) s.done = true;
+    }
+    // a white-hot streak with fire trailing off it
+    const dx = s.p.x - a.x, dy = s.p.y - a.y, dz = s.p.z - a.z;
+    addPart({ k: 'tracer', x: a.x + dx * 0.5, z: -(a.z + dz * 0.5), h: a.y + dy * 0.5, vx: 0, vz: 0, vh: 0, r: 0.13, life: 0.07, dx: dx * 0.5, dy: dy * 0.5, dz: dz * 0.5, c: [9, 5.5, 2] });
+    for (let i = 0; i < 2; i++) { const u = Math.random(); addPart({ k: 'fire', x: a.x + dx * u, z: -(a.z + dz * u), h: a.y + dy * u, vx: 0, vz: 0, vh: 0.5, r: rand(0.08, 0.14), life: 0.12, heat: 1.4, f: 1 }); }
+    if (s.done) shellBlast(s);
+  }
+  shells = shells.filter(s => !s.done);
+}
+// what the shell meets on its way: walkers are skewered, bodies in the air knocked higher, the giant or a car stops it
+function shellTouch(s) {
+  const gx = s.p.x, gz = -s.p.z, gh = s.p.y;
+  for (const zb of zombies) {
+    if (s.hit.has(zb)) continue;
+    const sz = zb.size;
+    if (zb.type === 'boss') {
+      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(40); s.done = true; return; }
+      continue;
+    }
+    if (zb.state === 'walk') {
+      if (Math.abs(zb.z - gz) < 0.4 && Math.abs(zb.x - gx) < 0.4 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); skewer(zb, s); }
+    } else if (zb.state === 'fly' && Math.abs(zb.z - gz) < 0.7 && Math.abs(zb.x - gx) < 0.7 && Math.abs(zb.h - gh) < 1) {
+      s.hit.add(zb);
+      zb.vh = Math.max(zb.vh, 12); zb.vz += 6; zb.w.x -= rand(3, 7);
+      if (running) { score += 50; juggles++; }
+      bloodBurst(zb.x, zb.z, zb.h + 0.4, 6, 3, 4);
+    }
+  }
+  for (const c of cars) {
+    if ((c.state === 'park' || c.state === 'roll') && Math.abs(c.x - gx) < 0.95 && Math.abs(c.z - gz) < 2.2 && gh < 1.5) { s.kind = 'car'; s.done = true; return; }
+  }
+}
+function skewer(zb, s) {
+  const dx = s.dir.x, dz = -s.dir.z, d = Math.hypot(dx, dz) || 1;
+  s.n++;
+  // torn apart, or flung far down the road the way the shell was going
+  killZombie(zb, { dx: dx / d, dz: dz / d, d: 1, f: 0.85, power: 1.1 });
+  registerKills(1, zb.x, zb.z, null, false);
+  for (let i = 0; i < 8; i++) addPart({ k: 'blood', x: zb.x, z: zb.z + 0.2, h: s.p.y, vx: s.dir.x * rand(4, 9) + rand(-1.5, 1.5), vz: -s.dir.z * rand(4, 9), vh: rand(0.5, 3), g: 14, r: rand(0.04, 0.09), life: 1.3, dark: Math.random() < 0.3 });
+  squelch(true);
+}
+function shellBlast(s) {
+  const gx = s.p.x, gz = -s.p.z, gh = Math.max(0.15, s.p.y);
+  // a wall takes it all: the block comes down with one round
+  if (s.kind === 'facade' && s.block && !s.block.ruined) { facadeBlast(s.block, gz, gh, SHELL_POWER); damageBlock(s.block, s.block.hp, gz, gh, false); }
+  else explode(gx, gz, SHELL_POWER, gh);
+  if (s.n >= 2 && running) {
+    // several on one shell: a bonus that grows fast with the count
+    const bonus = 200 * s.n * (s.n - 1);
+    score += bonus;
+    floaters.push({ x: gx, z: Math.max(gz, Z_WALL + 1), h: 2.8, text: `串刺し ×${s.n}!!`, sub: `+${bonus.toLocaleString()}`, life: 1.1, big: true });
+    if (s.n >= 4) say(pick(['awesome', 'amazing', 'incredible']), 1);
+  }
+}
+
 // ===== 60-audio.js
 
 // ---------- audio: same synth and voices as the 2D game ----------
@@ -2560,6 +2788,27 @@ function rocketSnd() {
   noiseSrc(t, 0.45).connect(bp).connect(gain(t, 0.45, 0.01, 0.4)).connect(master);
   const o = osc('sine', 120, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
   o.connect(gain(t, 0.6, 0.003, 0.15)).connect(master); o.start(t); o.stop(t + 0.2);
+}
+// the tank's main gun: a hard crack, a deep distorted body and a sub-bass punch that slaps back off the buildings
+function cannonSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  noiseSrc(t, 0.08).connect(filt('highpass', 2200)).connect(gain(t, 1.0, 0.001, 0.07)).connect(master);
+  const lp = filt('lowpass', 3200, 1.2); lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(110, t + 0.7);
+  const sh = actx.createWaveShaper(); sh.curve = distCurve;
+  const body = gain(t, 1.1, 0.004, 0.8);
+  noiseSrc(t, 0.9).connect(sh).connect(lp).connect(body).connect(master);
+  if (echoIn) body.connect(echoIn);
+  const o = osc('sine', 95, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.45);
+  o.connect(gain(t, 1.5, 0.002, 0.5)).connect(master); o.start(t); o.stop(t + 0.55);
+}
+// the next round rammed home: two metal clacks over a short ring
+function clank() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (const [d, f, g] of [[0, 2600, 0.22], [0.07, 3400, 0.16]]) noiseSrc(t + d, 0.06).connect(filt('bandpass', f, 8)).connect(gain(t + d, g, 0.001, 0.05)).connect(master);
+  const o = osc('triangle', 520, t); o.frequency.exponentialRampToValueAtTime(380, t + 0.12);
+  o.connect(gain(t, 0.12, 0.002, 0.12)).connect(master); o.start(t); o.stop(t + 0.15);
 }
 // layered explosion: crack + distorted body + two sub thumps + rumble tail + crackling debris; the body
 // also goes into the street echo. Quieter when far away.
@@ -2829,6 +3078,7 @@ function reset() {
   combo = 0; comboTimer = 0; maxCombo = 0; fever = 0; feverT = 0; comboPulse = 0; lastLabelT = -9;
   longestFlight = 0; headshots = 0; juggles = 0; carsBlown = 0;
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
+  cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
   resetBoss(); resetMoon(); resetBuildings();
   placeCars(); seedHaze();
@@ -2859,8 +3109,8 @@ function addFever(v) {
   if (fever >= 100) startFever();
 }
 function startFever() {
-  feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS;
-  showBanner('FEVER!!', 'マシンガン2倍 ・ ロケット撃ち放題', C.flare, 1.4);
+  feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
+  showBanner('FEVER!!', weapon === 'tank' ? '機銃2倍 ・ 主砲連射' : 'マシンガン2倍 ・ ロケット撃ち放題', C.flare, 1.4);
   speedLines = 0.9;
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.08);
   sting(); say('fever', 3);
@@ -3291,14 +3541,15 @@ function ambientFx(dt) {
 // ---------- input: hold = machine gun, quick tap = rocket ----------
 function pt(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function setAim(p, touch) {
-  aim.x = p.x; aim.y = touch ? p.y - 50 : p.y;   // keep the reticle above the finger
+  // held down, the mouse can wander off the game's column on a wide screen: the reticle stays on its edge
+  aim.x = clamp(p.x, 0, W); aim.y = clamp(touch ? p.y - 50 : p.y, 0, H);   // keep the reticle above the finger
   aim.touch = touch; aim.show = true;
 }
 cv.addEventListener('pointerdown', e => {
   initAudio();
   if (!running) return;
   const p = pt(e), touch = e.pointerType !== 'mouse';
-  if (e.button === 2) { setAim(p, false); tryRocket(); return; }
+  if (e.button === 2) { setAim(p, false); tapFire(); return; }
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   pointers.set(e.pointerId, { sx: p.x, sy: p.y, t: performance.now(), moved: 0, fire: true });
   setAim(p, touch);
@@ -3313,14 +3564,14 @@ function endPointer(e) {
   const ptr = pointers.get(e.pointerId);
   if (!ptr) return;
   pointers.delete(e.pointerId);
-  if (running && performance.now() - ptr.t < 220 && ptr.moved < 28) tryRocket();
+  if (running && performance.now() - ptr.t < 220 && ptr.moved < 28) tapFire();
 }
 cv.addEventListener('pointerup', endPointer);
 cv.addEventListener('pointercancel', e => pointers.delete(e.pointerId));
 cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !pointers.size) aim.show = false; });
 cv.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {
-  if (e.code === 'Space' && running) { e.preventDefault(); if (!e.repeat) tryRocket(); }
+  if (e.code === 'Space' && running) { e.preventDefault(); if (!e.repeat) tapFire(); }
 });
 function setMuted(m) {
   muted = m;
@@ -3368,13 +3619,14 @@ function finish() {
   if (headshots) badges.push(`HEADSHOT ×${headshots}`);
   if (carsBlown) badges.push(`車ごとドカン ×${carsBlown}`);
   if (juggles >= 10) badges.push(`空中コンボ ×${juggles}`);
+  if (weapon === 'tank') badges.unshift('戦車モード');
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
-  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled, badges });
+  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled, badges, weapon });
   let best = '';
   try {
-    const prev = JSON.parse(localStorage.getItem('zb3d-best') || 'null');
+    const bestKey = weapon === 'tank' ? 'zb3d-best-tank' : 'zb3d-best', prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
     if (!prev || score > prev.score) {
-      localStorage.setItem('zb3d-best', JSON.stringify({ score }));
+      localStorage.setItem(bestKey, JSON.stringify({ score }));
       best = prev ? 'ベスト更新!' : '';
     } else best = `ベスト: ${prev.score.toLocaleString()}`;
   } catch (e) {}
@@ -3395,6 +3647,7 @@ function fxDecay(raw) {
   look.tilt += (bossTiltGoal() - look.tilt) * Math.min(1, raw * 2.2);
   gunRecoil = Math.max(0, gunRecoil - raw * 14);
   tubeRecoil = Math.max(0, tubeRecoil - raw * 4);
+  cannonRecoil = Math.max(0, cannonRecoil - raw * 2.2); camKick = Math.max(0, camKick - raw * 5);
   comboPulse = Math.max(0, comboPulse - raw * 6);
   bangCD -= raw; thudCD -= raw; gurgleT -= raw;
   if (slowmo > 0) slowmo -= raw;
@@ -3426,6 +3679,7 @@ function update(dt, raw) {
       }
     }
     if (rocketsLeft < MAX_ROCKETS) { rocketTimer += dt; if (rocketTimer >= ROCKET_REFILL) { rocketTimer = 0; rocketsLeft++; } } else rocketTimer = 0;
+    if (cannonT > 0 && (cannonT -= dt) <= 0) { cannonT = 0; if (weapon === 'tank' && feverT <= 0) clank(); }
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
     if (feverT > 0) { feverT -= dt; fever = Math.max(0, feverT / FEVER_TIME * 100); if (feverT <= 0) { feverT = 0; fever = 0; } }
     firing = false;
@@ -3452,6 +3706,7 @@ function update(dt, raw) {
     if (q.car) { carParts(q.car); burnCar(q.car); }
   }
   updateRockets(dt);
+  updateShells(dt);
   updateCars(dt);
   updateBuildings(dt);
   updateBoss(dt, raw);
@@ -3579,13 +3834,15 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const key = [tv.toFixed(1), score, rocketsLeft, feverT > 0 ? 'F' : fever | 0].join('|');
+  const tank = weapon === 'tank', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
+  const key = [tv.toFixed(1), score, tank ? 'T' + Math.round(load * 24) : rocketsLeft, feverT > 0 ? 'F' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
   $('time').textContent = tv.toFixed(1);
   $('time').classList.toggle('warn', tv < 5);
   $('score').textContent = score.toLocaleString();
-  $('ammo').innerHTML = Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
+  $('ammo').innerHTML = tank ? `<span class="gauge reload${load >= 1 ? ' ready' : ''}"><b style="width:${(load * 100).toFixed(0)}%"></b></span>`
+    : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
   $('feverBar').style.width = fever + '%';
   $('feverWrap').classList.toggle('on', feverT > 0);
   $('feverLabel').textContent = feverT > 0 ? 'FEVER!!' : 'FEVER';
@@ -3611,7 +3868,7 @@ function demoTick(dt) {
     if (walking.length) {
       const z = pick(walking);
       aimAt(z);
-      if (Math.random() < 0.5) { fireRocket(aimHit(aim.x, aim.y, 40), 0); tubeRecoil = 1; }
+      if (Math.random() < 0.5) { if (weapon === 'tank') fireCannon(aimHit(aim.x, aim.y, 40)); else { fireRocket(aimHit(aim.x, aim.y, 40), 0); tubeRecoil = 1; } }
       else { demoFire = 0.7; demoTarget = z; }
     }
     demoTimer = rand(0.9, 1.6);
@@ -3628,11 +3885,11 @@ function render(raw) {
   look.y += (ny * 0.008 - look.y) * Math.min(1, raw * 4);
   const sh = reduceMotion ? 0 : shake;
   camera.position.set(rand(-1, 1) * sh * 0.004, CAM_H + rand(-1, 1) * sh * 0.004, 0);
-  camera.rotation.set(-pitch0 + look.tilt + look.y + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
+  camera.rotation.set(-pitch0 + look.tilt + look.y + camKick * camKick * 0.03 + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
   camera.zoom = zoom; camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
-  poseGun(raw);
+  if (weapon === 'tank') poseTank(raw); else poseGun(raw);
   drawZombies(); drawBoss(raw); drawChunks(); drawCars(); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawParts();
   updateLights(raw);
 }
@@ -3695,7 +3952,7 @@ function fakeBlack() {
   const c = renderer.getClearColor(new THREE.Color()), a = renderer.getClearAlpha();
   renderer.setRenderTarget(null); renderer.setClearColor(0x000000, 1); renderer.clear(true, false, false); renderer.setClearColor(c, a);
 }
-function onResize() { placeMoon(); placeGun(); }
+function onResize() { placeMoon(); placeGun(); placeTank(); }
 const CANVAS_GLYPHS = '巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
 async function boot() {
   try { await bootInner(); }
@@ -3707,7 +3964,7 @@ async function boot() {
 }
 async function bootInner() {
   try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
-  buildCity(); initZombieMeshes(); buildGun(); buildBoss();
+  buildCity(); initZombieMeshes(); buildGun(); buildTank(); buildBoss(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); placeScenery();
   if (window.ZB_DEBUG) {
@@ -3716,7 +3973,8 @@ async function bootInner() {
     window.__step = (n, dt = 1 / 60) => { const t = performance.now(); for (let i = 0; i < n; i++) { demoTick(dt); update(slowmo > 0 ? dt * 0.35 : dt, dt); } return performance.now() - t; };
     window.__perf = () => { const o = { n: perf.n, js: +(perf.js / Math.max(1, perf.n)).toFixed(2), gl: +(perf.gl / Math.max(1, perf.n)).toFixed(1), worst: +perf.worst.toFixed(1), calls: perf.calls, tris: perf.tris }; perf.n = perf.js = perf.gl = perf.worst = 0; return o; };
     window.__aim = (x, y) => { aim.x = x; aim.y = y; aim.show = true; };
-    window.__rocket = () => tryRocket();
+    window.__rocket = () => tapFire();
+    window.__weapon = w => setWeapon(w);
     window.__fire = v => { pointers.clear(); if (v) pointers.set(-1, { sx: aim.x, sy: aim.y, t: performance.now(), moved: 99, fire: true }); };
     window.__fever = () => startFever();
     window.__fcount = () => frameCount;
@@ -3749,7 +4007,7 @@ async function bootInner() {
     window.__dropBlock = i => { const b = city.blocks.filter(o => o.group && !o.ruined)[i || 0]; if (b) { b.hp = 0.01; damageBlock(b, 1, (b.z0 + b.z1) / 2, 4, true); } return !!b; };
   }
   if (window.ZB_DEBUG) window.__zb = () => ({
-    running, elapsed, score, kills, feverT, maxCombo, zombies: zombies.length, parts: parts.length, chunks: chunks.length, gibs: gibs.length, pr,
+    running, elapsed, score, kills, feverT, maxCombo, aim: { x: aim.x, y: aim.y }, W, H, zombies: zombies.length, parts: parts.length, chunks: chunks.length, gibs: gibs.length, pr,
     calls: renderer.info.render.calls, tris: renderer.info.render.triangles,
     targets: zombies.filter(z => z.state === 'walk').map(z => { const s = toScreen(z.x, z.z, 1.1 * z.size); return { x: s.X, y: s.Y, z: z.z, type: z.type }; }),
     cars: cars.map(c => { const s = toScreen(c.x, c.z, 0.8); return { x: s.X, y: s.Y, z: c.z, s: c.state }; }),
@@ -4740,7 +4998,7 @@ function resetShare() {
 function shareText(o) {
   const bits = [`撃破${o.kills}体`, `最大${o.combo}コンボ`];
   if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push('巨大ゾンビ撃破');
-  return `ゾンビ爆散で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n#ゾンビ爆散`;
+  return `ゾンビ爆散${o.weapon === 'tank' ? '（戦車）' : ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n#ゾンビ爆散`;
 }
 const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'z.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; } };
 // called when the result comes up
