@@ -537,15 +537,16 @@ function maskedTex(w, h, paint) {
 
 // ---------- particle atlas: 4x4 white shapes, coloured per particle ----------
 function makeAtlas() {
-  const S = 128, [c, g] = canvas(S * 4, S * 4);
-  const cell = (i, fn) => { g.save(); g.translate((i % 4) * S, ((i / 4) | 0) * S); g.beginPath(); g.rect(0, 0, S, S); g.clip(); fn(g); g.restore(); };
+  // 8 x 4 cells (frame i at column i % 8, row i / 8; see the UV in PVS)
+  const S = 128, [c, g] = canvas(S * 8, S * 4);
+  const cell = (i, fn) => { g.save(); g.translate((i % 8) * S, ((i / 8) | 0) * S); g.beginPath(); g.rect(0, 0, S, S); g.clip(); fn(g); g.restore(); };
   const img = (i, f) => {   // per-pixel alpha shape
     const id = g.createImageData(S, S), d = id.data, ox = Math.random() * 50, oy = Math.random() * 50;
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
       const u = (x + 0.5) / S * 2 - 1, v = (y + 0.5) / S * 2 - 1, k = (y * S + x) * 4;
       d[k] = d[k + 1] = d[k + 2] = 255; d[k + 3] = clamp(f(u, v, ox, oy) * 255, 0, 255);
     }
-    g.putImageData(id, (i % 4) * S, ((i / 4) | 0) * S);
+    g.putImageData(id, (i % 8) * S, ((i / 8) | 0) * S);
   };
   const sm = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   img(0, (u, v) => Math.pow(Math.max(0, 1 - Math.hypot(u, v)), 2.2));
@@ -582,6 +583,25 @@ function makeAtlas() {
   img(13, (u, v) => Math.pow(Math.max(0, 1 - Math.max(Math.abs(u), Math.abs(v))), 0.7));
   img(14, (u, v) => Math.exp(-v * v * 18) * sm(1, 0.6, Math.abs(u)));
   img(15, (u, v) => Math.pow(Math.max(0, 1 - Math.hypot(u, v)), 1.2));
+  img(16, (u, v, ox, oy) => {   // a crater blown in the road: a ragged black hole
+    const r = Math.hypot(u, v), a = Math.atan2(v, u), n = fbm(u * 3.2 + ox, v * 3.2 + oy, 4);
+    const edge = 0.64 + (n - 0.5) * 0.36 + Math.sin(a * 5 + ox) * 0.05;
+    return sm(edge + 0.05, edge - 0.03, r) * (0.86 + 0.14 * n);
+  });
+  cell(17, g => {   // the cracks running out from it, thinning as they go
+    const C = S / 2;
+    g.strokeStyle = '#fff'; g.lineCap = 'round';
+    const crack = (a, r, w, depth) => {
+      let x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
+      while (r < S * 0.47 && w > 0.4) {
+        const r2 = r + rand(4, 9), a2 = a + rand(-0.3, 0.3), x2 = C + Math.cos(a2) * r2, y2 = C + Math.sin(a2) * r2;
+        g.lineWidth = w; g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
+        if (depth < 2 && Math.random() < 0.18) crack(a2 + rand(-0.6, 0.6), r2, w * 0.6, depth + 1);
+        x = x2; y = y2; r = r2; a = a2; w *= 0.88;
+      }
+    };
+    for (let k = 0; k < 12; k++) crack(k / 12 * 6.283 + rand(-0.2, 0.2), S * 0.2, rand(2.6, 4), 0);
+  });
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.NoColorSpace;
   return t;
@@ -1478,7 +1498,7 @@ function blastLight(x, z, h, power) {
   for (const l of blastLights) if (l.userData.t / l.userData.life > L.userData.t / L.userData.life) L = l;
   // above the fireball, so the street around it lights up without a white-hot spot right under it
   L.position.set(x, h + 2.2, -z);
-  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power };
+  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power * (fxSoft ? 0.6 : 1) };
 }
 let blastLoad = 0;
 function updateLights(dt) {
@@ -1533,7 +1553,7 @@ const PVS = `
       mv = modelViewMatrix * vec4(iPos + vec3(0.0, rc.y * size, rc.x * size), 1.0);
     }
     gl_Position = projectionMatrix * mv;
-    vUv = (vec2(mod(frame, 4.0), 3.0 - floor(frame / 4.0)) + c + 0.5) / 4.0;
+    vUv = (vec2(mod(frame, 8.0), 3.0 - floor(frame / 8.0)) + c + 0.5) / vec2(8.0, 4.0);
     vCol = vec4(iCol.rgb, alpha);
     float dist = length(mv.xyz);
     vFog = nofog > 0.5 ? 1.0 : exp(-fogD * fogD * dist * dist);
@@ -1595,7 +1615,7 @@ class PBuf {
 }
 const ADD = new PBuf(2400, true, 7), FIRE = new PBuf(1800, 'fire', 7), ALPHA = new PBuf(2200, false, 6), DECAL = new PBuf(700, false, 2);
 
-let parts = [], decals = [];
+let parts = [], decals = [], craters = [];
 const PART_CAP = Math.round(2600 * LOD);
 // fire colour over its life, in linear HDR
 const FIRE_STOPS = [[0, 3.4, 2.1, 0.8], [0.12, 3.0, 0.95, 0.14], [0.4, 2.0, 0.38, 0.05], [0.7, 0.8, 0.13, 0.03], [1, 0.1, 0.02, 0.01]];
@@ -1618,6 +1638,11 @@ function addPart(p) {
   p.max = p.max || p.life;
   if (p.rot === undefined) p.rot = Math.random() * 6.28;
   parts.push(p);
+}
+// a crater blown in the road stays for the rest of the round (2026-10-24, kazu: the road blowing up too would be even better)
+function addCrater(x, z, r) {
+  craters.push({ x, z, r, rot: rand(0, 6.28), life: 40 });
+  if (craters.length > 24) craters.shift();
 }
 function addDecal(x, z, r, kind, life = 14) {
   decals.push({ x, z, r, kind, rot: rand(0, 6.28), life, max: life, a: kind === 'scorch' ? 0.85 : 0.8, y: 0.008 + decals.length % 7 * 0.0006 });
@@ -1663,6 +1688,8 @@ function updateParts(dt) {
   parts = parts.filter(p => p.life > 0);
   for (const d of decals) d.life -= dt;
   decals = decals.filter(d => d.life > 0);
+  for (const c of craters) c.life -= dt;
+  if (craters.length && craters[0].life <= 0) craters = craters.filter(c => c.life > 0);
 }
 // write every live particle into the two batches
 const _sortBuf = [];
@@ -1715,6 +1742,17 @@ function drawParts() {
       case 'shadow': ALPHA.push(X, 0.02, Z, p.r * 2, 0, 0, 2, 0, 0, 0, p.a); break;
     }
   }
+  // craters under everything else on the road: the cracks, then the hole. For their first seconds the hole and the cracks glow
+  // red-hot, so they show in the dark street, then cool to black
+  for (const c of craters) {
+    const k = Math.min(1, c.life / 2), hot = Math.max(0, 1 - (40 - c.life) / 4.5), h2 = hot * hot;
+    DECAL.push(c.x, 0.006, -c.z, c.r * 3.8, c.rot, 17, 2, 0.004, 0.003, 0.005, 0.8 * k);
+    DECAL.push(c.x, 0.007, -c.z, c.r * 2, c.rot + 1.3, 16, 2, 0.003, 0.002, 0.004, 0.96 * k);
+    if (hot > 0) {
+      ADD.push(c.x, 0.012, -c.z, c.r * 3.8, c.rot, 17, 2, 2.6 * h2, 0.7 * h2, 0.12 * h2, 1);
+      ADD.push(c.x, 0.012, -c.z, c.r * 1.6, c.rot + 1.3, 16, 2, 1.8 * hot, 0.42 * hot, 0.06 * hot, 1);
+    }
+  }
   for (const d of decals) {
     const k = Math.min(1, d.life / 2.5) * d.a;
     if (d.kind === 'scorch') DECAL.push(d.x, d.y, -d.z, d.r * 2, d.rot, 10, 2, 0.008, 0.006, 0.008, k);
@@ -1736,7 +1774,7 @@ function chunkMesh(geo, mat, max) {
   scene.add(m);
   return m;
 }
-const CHUNK_MAX = 520;
+const CHUNK_MAX = 700;
 const chunkM = { box: chunkMesh(new THREE.BoxGeometry(1, 1, 1), chunkMat, CHUNK_MAX), meat: chunkMesh(new THREE.IcosahedronGeometry(0.5, 0), meatMat, 380) };
 let chunks = [];
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _ax = new THREE.Vector3();
@@ -1783,7 +1821,7 @@ function drawChunks() {
     m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
   }
 }
-const CH = { asphalt: new THREE.Color('#3a3440'), asphalt2: new THREE.Color('#5a5060'), glass: new THREE.Color('#9ab8d8'), brass: new THREE.Color('#d89a3a'), meat: new THREE.Color('#8a1a22'), meat2: new THREE.Color('#b44a55'), bone: new THREE.Color('#e3dccb'), conc: new THREE.Color('#8a8090'), brain: new THREE.Color('#d4949a'), eye: new THREE.Color('#e8e4d8') };
+const CH = { asphalt: new THREE.Color('#3a3440'), asphalt2: new THREE.Color('#5a5060'), paint: new THREE.Color('#cfcabd'), glass: new THREE.Color('#9ab8d8'), brass: new THREE.Color('#d89a3a'), meat: new THREE.Color('#8a1a22'), meat2: new THREE.Color('#b44a55'), bone: new THREE.Color('#e3dccb'), conc: new THREE.Color('#8a8090'), brain: new THREE.Color('#d4949a'), eye: new THREE.Color('#e8e4d8') };
 
 // ===== 40-zombies.js
 
@@ -2536,7 +2574,8 @@ function poseGun(dt) {
 // flinging them down the road, and blows up where it lands.
 let weapon = 'rocket';
 try { if (localStorage.getItem('zb3d-weapon') === 'tank') weapon = 'tank'; } catch (e) {}
-const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 1.5;
+// (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25)
+const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
 const tankRoot = new THREE.Group(), tankAim = new THREE.Group(), tankKick = new THREE.Group();
 camera.add(tankRoot); tankRoot.add(tankAim); tankAim.add(tankKick);
 const cannonTip = new THREE.Object3D(), coaxTip = new THREE.Object3D();
@@ -2554,22 +2593,22 @@ function buildTank() {
     if (!bins.has(mat)) bins.set(mat, []);
     bins.get(mat).push(g);
   };
-  // a slim gun drawn close: the muzzle brake ends 3 m out, well short of the zombies at the wire, and the long lens makes it a
+  // a fat gun drawn close: the muzzle brake ends 3 m out, well short of the zombies at the wire, and the long lens makes it a
   // big gun on screen (+z points down the barrel from the pivot; +x is on our left)
-  add(new THREE.CylinderGeometry(0.028, 0.034, 2.5, 20), steel, 0, 0, 1.6, true);
-  for (const z of [1.15, 1.6, 2.68]) add(new THREE.CylinderGeometry(0.037, 0.037, 0.03, 20), black, 0, 0, z, true);
+  add(new THREE.CylinderGeometry(0.045, 0.056, 2.5, 24), steel, 0, 0, 1.6, true);
+  for (const z of [1.15, 1.6, 2.68]) add(new THREE.CylinderGeometry(0.06, 0.06, 0.035, 24), black, 0, 0, z, true);
   // the fume extractor, a fat collar near the end
-  add(new THREE.CylinderGeometry(0.047, 0.047, 0.34, 20), armor, 0, 0, 2.14, true);
-  add(new THREE.CylinderGeometry(0.031, 0.047, 0.06, 20), armor, 0, 0, 2.34, true);
-  add(new THREE.CylinderGeometry(0.047, 0.032, 0.06, 20), armor, 0, 0, 1.94, true);
+  add(new THREE.CylinderGeometry(0.077, 0.077, 0.36, 24), armor, 0, 0, 2.14, true);
+  add(new THREE.CylinderGeometry(0.05, 0.077, 0.07, 24), armor, 0, 0, 2.355, true);
+  add(new THREE.CylinderGeometry(0.077, 0.053, 0.07, 24), armor, 0, 0, 1.925, true);
   // the muzzle brake, with its side ports
-  add(new THREE.BoxGeometry(0.094, 0.058, 0.15), steel, 0, 0, 2.93);
-  for (const z of [2.9, 2.96]) add(new THREE.BoxGeometry(0.098, 0.019, 0.022), black, 0, 0, z);
+  add(new THREE.BoxGeometry(0.15, 0.092, 0.17), steel, 0, 0, 2.94);
+  for (const z of [2.9, 2.98]) add(new THREE.BoxGeometry(0.156, 0.03, 0.026), black, 0, 0, z);
   // the coaxial machine gun, a thin barrel along the right of the gun
-  add(new THREE.CylinderGeometry(0.009, 0.011, 1.6, 10), steel, -0.072, -0.022, 1.15, true);
+  add(new THREE.CylinderGeometry(0.011, 0.013, 1.6, 10), steel, -0.105, -0.035, 1.15, true);
   for (const [mat, list] of bins) tankKick.add(new THREE.Mesh(mergeGeometries(list), mat));
-  cannonTip.position.set(0, 0, 3.02); tankKick.add(cannonTip);
-  coaxTip.position.set(-0.072, -0.022, 1.96); tankKick.add(coaxTip);
+  cannonTip.position.set(0, 0, 3.05); tankKick.add(cannonTip);
+  coaxTip.position.set(-0.105, -0.035, 1.96); tankKick.add(coaxTip);
 }
 // The gun turns on a pivot just under us and lies along the line of sight through the reticle, so the muzzle keeps to one spot
 // on screen beside the reticle: a little right of it and well below, about where the minigun's muzzle is, with the barrel running
@@ -2596,7 +2635,7 @@ function poseTank(dt) {
   const q1 = tankAim.quaternion.clone();
   tankAim.quaternion.copy(q0).slerp(q1, k);
   // the gun runs back into the turret when it fires and creeps out again; the machine gun shivers it a little
-  tankKick.position.set(rand(-1, 1) * gunRecoil * 0.0015, rand(-1, 1) * gunRecoil * 0.0015, -cannonRecoil * cannonRecoil * 0.25);
+  tankKick.position.set(rand(-1, 1) * gunRecoil * 0.0015, rand(-1, 1) * gunRecoil * 0.0015, -cannonRecoil * cannonRecoil * 0.32);
   muzzleLight.intensity *= Math.exp(-dt * 30);
 }
 function setWeapon(w) {
@@ -2632,22 +2671,22 @@ function muzzleBlast(M, dir) {
   const x = M.x, z = -M.z, h = M.y, fx = feverT > 0 ? 0.5 : 1;
   cannonSnd();
   cannonRecoil = 1; camKick = 1;
-  shake = Math.min(shake + 9, 24);
-  if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.04);
-  muzzleLight.position.copy(M); muzzleLight.intensity = 45;
+  shake = Math.min(shake + 13, 24);
+  if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.06);
+  muzzleLight.position.copy(M); muzzleLight.intensity = 60;
   // (the muzzle is only 3 m out: the fire and smoke are sized for that, or one shot would fill the screen)
-  addPart({ k: 'muzzle', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.24, life: 0.07, c: [9, 6, 2.4] });
-  addPart({ k: 'glow', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.65, life: 0.16, c: [5, 2.6, 0.8], a: 1 });
+  addPart({ k: 'muzzle', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.32, life: 0.08, c: [9, 6, 2.4] });
+  addPart({ k: 'glow', x, z, h, vx: 0, vz: 0, vh: 0, r: 0.8, life: 0.18, c: [5, 2.6, 0.8], a: 1 });
   // the muzzle brake throws the blast out to both sides
-  for (const s of [-1, 1]) for (let i = 0; i < 7; i++) addPart({ k: 'fire', x, z: z + rand(-0.04, 0.08), h: h + rand(-0.02, 0.04), vx: s * rand(1.6, 3.2), vz: rand(-0.2, 0.8), vh: rand(-0.1, 0.5), r: rand(0.07, 0.12), grow: 1.2, drag: 6, life: rand(0.18, 0.3), heat: 1.3, f: 1 + (i % 2) });
+  for (const s of [-1, 1]) for (let i = 0; i < 8; i++) addPart({ k: 'fire', x, z: z + rand(-0.05, 0.1), h: h + rand(-0.03, 0.05), vx: s * rand(2.2, 4.2), vz: rand(-0.2, 1), vh: rand(-0.1, 0.6), r: rand(0.1, 0.17), grow: 1.2, drag: 6, life: rand(0.2, 0.34), heat: 1.3, f: 1 + (i % 2) });
   // a ring of smoke rolls off the muzzle, and the street out by the wire is blasted with grit
-  for (let i = 0, N = 16 * fx; i < N; i++) {
+  for (let i = 0, N = 18 * fx; i < N; i++) {
     const a = i / N * 6.283;
-    addPart({ k: 'smoke', x, z: z + 0.1, h, vx: Math.cos(a) * rand(0.8, 1.2) + dir.x, vz: -dir.z * rand(1.5, 3), vh: Math.sin(a) * rand(0.6, 0.9), r: 0.12, grow: 1.3, drag: 2.4, life: rand(1.1, 1.7), a: 0.4, warm: 0.4 });
+    addPart({ k: 'smoke', x, z: z + 0.1, h, vx: Math.cos(a) * rand(1, 1.5) + dir.x, vz: -dir.z * rand(1.5, 3), vh: Math.sin(a) * rand(0.75, 1.1), r: 0.17, grow: 1.3, drag: 2.4, life: rand(1.2, 1.8), a: 0.42, warm: 0.4 });
   }
-  for (let i = 0, N = 12 * fx; i < N; i++) {
-    const a = rand(-1.4, 1.4) + Math.PI / 2, sp = rand(2, 5);
-    addPart({ k: 'dust', x: x + rand(-0.3, 0.3), z: z + rand(1.6, 2.6), h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(0.2, 1), r: rand(0.3, 0.45), grow: 1.6, drag: 3, life: rand(0.7, 1.1), a: 0.4 });
+  for (let i = 0, N = 16 * fx; i < N; i++) {
+    const a = rand(-1.4, 1.4) + Math.PI / 2, sp = rand(2.5, 6);
+    addPart({ k: 'dust', x: x + rand(-0.4, 0.4), z: z + rand(1.6, 2.8), h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(0.3, 1.3), r: rand(0.35, 0.5), grow: 1.6, drag: 3, life: rand(0.8, 1.2), a: 0.42 });
   }
   for (let i = 0; i < 10; i++) addPart({ k: 'spark', x, z, h, vx: rand(-3, 3) + dir.x * 12, vz: -dir.z * rand(10, 18), vh: rand(-1, 3), g: 10, r: 0.03, life: rand(0.2, 0.45) });
   if (!running) return;
@@ -2680,14 +2719,14 @@ function shellTouch(s) {
     if (s.hit.has(zb)) continue;
     const sz = zb.size;
     if (zb.type === 'boss') {
-      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(40); s.done = true; return; }
+      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(70); s.done = true; return; }
       continue;
     }
     if (zb.state === 'walk') {
-      if (Math.abs(zb.z - gz) < 0.4 && Math.abs(zb.x - gx) < 0.4 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); skewer(zb, s); }
+      if (Math.abs(zb.z - gz) < 0.5 && Math.abs(zb.x - gx) < 0.55 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); skewer(zb, s); }
     } else if (zb.state === 'fly' && Math.abs(zb.z - gz) < 0.7 && Math.abs(zb.x - gx) < 0.7 && Math.abs(zb.h - gh) < 1) {
       s.hit.add(zb);
-      zb.vh = Math.max(zb.vh, 12); zb.vz += 6; zb.w.x -= rand(3, 7);
+      zb.vh = Math.max(zb.vh, 15); zb.vz += 8; zb.w.x -= rand(3, 7);
       if (running) { score += 50; juggles++; }
       bloodBurst(zb.x, zb.z, zb.h + 0.4, 6, 3, 4);
     }
@@ -2700,16 +2739,17 @@ function skewer(zb, s) {
   const dx = s.dir.x, dz = -s.dir.z, d = Math.hypot(dx, dz) || 1;
   s.n++;
   // torn apart, or flung far down the road the way the shell was going
-  killZombie(zb, { dx: dx / d, dz: dz / d, d: 1, f: 0.85, power: 1.1 });
+  killZombie(zb, { dx: dx / d, dz: dz / d, d: 1, f: 1, power: 1.35 });
   registerKills(1, zb.x, zb.z, null, false);
-  for (let i = 0; i < 8; i++) addPart({ k: 'blood', x: zb.x, z: zb.z + 0.2, h: s.p.y, vx: s.dir.x * rand(4, 9) + rand(-1.5, 1.5), vz: -s.dir.z * rand(4, 9), vh: rand(0.5, 3), g: 14, r: rand(0.04, 0.09), life: 1.3, dark: Math.random() < 0.3 });
+  for (let i = 0; i < 12; i++) addPart({ k: 'blood', x: zb.x, z: zb.z + 0.2, h: s.p.y, vx: s.dir.x * rand(4, 10) + rand(-2, 2), vz: -s.dir.z * rand(4, 10), vh: rand(0.5, 3.5), g: 14, r: rand(0.04, 0.1), life: 1.3, dark: Math.random() < 0.3 });
   squelch(true);
 }
 function shellBlast(s) {
   const gx = s.p.x, gz = -s.p.z, gh = Math.max(0.15, s.p.y);
   // a wall takes it all: the block comes down with one round
   if (s.kind === 'facade' && s.block && !s.block.ruined) { facadeBlast(s.block, gz, gh, SHELL_POWER); damageBlock(s.block, s.block.hp, gz, gh, false); }
-  else explode(gx, gz, SHELL_POWER, gh);
+  // a big blast near us goes off softer on the ground and in the light, as the finale's do, or the screen washes out orange
+  else { fxSoft = gz < 14; explode(gx, gz, SHELL_POWER, gh); fxSoft = false; }
   if (s.n >= 2 && running) {
     // several on one shell: a bonus that grows fast with the count
     const bonus = 200 * s.n * (s.n - 1);
@@ -2796,11 +2836,14 @@ function cannonSnd() {
   noiseSrc(t, 0.08).connect(filt('highpass', 2200)).connect(gain(t, 1.0, 0.001, 0.07)).connect(master);
   const lp = filt('lowpass', 3200, 1.2); lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(110, t + 0.7);
   const sh = actx.createWaveShaper(); sh.curve = distCurve;
-  const body = gain(t, 1.1, 0.004, 0.8);
-  noiseSrc(t, 0.9).connect(sh).connect(lp).connect(body).connect(master);
+  const body = gain(t, 1.3, 0.004, 0.95);
+  noiseSrc(t, 1.05).connect(sh).connect(lp).connect(body).connect(master);
   if (echoIn) body.connect(echoIn);
-  const o = osc('sine', 95, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.45);
-  o.connect(gain(t, 1.5, 0.002, 0.5)).connect(master); o.start(t); o.stop(t + 0.55);
+  // two sub thumps, the second a hair later and lower, so it lands in the chest
+  for (const [d, f0, f1, g, len] of [[0, 95, 28, 1.7, 0.5], [0.03, 62, 22, 1.2, 0.7]]) {
+    const o = osc('sine', f0, t + d); o.frequency.exponentialRampToValueAtTime(f1, t + d + len * 0.9);
+    o.connect(gain(t + d, g, 0.002, len)).connect(master); o.start(t + d); o.stop(t + d + len + 0.05);
+  }
 }
 // the next round rammed home: two metal clacks over a short ring
 function clank() {
@@ -3069,7 +3112,7 @@ const aim = { x: 0, y: 0, show: false, touch: false };
 
 function reset() {
   for (const z of zombies) z.gone = true;
-  zombies = []; gibs = []; chunks = []; parts = []; decals = []; explosionsQ = []; floaters = [];
+  zombies = []; gibs = []; chunks = []; parts = []; decals = []; craters = []; explosionsQ = []; floaters = [];
   for (const r of rockets) r.mesh.visible = false;
   rockets = [];
   bannerObj = null;
@@ -3245,9 +3288,10 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.03 * power * near);
   blastLight(x, z, hh, power);
   if (hh < 1.5) addDecal(x, z, R * 0.42, 'scorch', 22);
+  if (hh < 1.6) roadBlast(x, z, power, 1 - hh / 2);
   // fewer extras when the street is already full of them
   const fx = fxFull ? 1 : (parts.length > 1900 * LOD ? 0.45 : parts.length > 1300 * LOD ? 0.7 : 1) * (coarse ? 0.8 : 1), n = c => Math.max(1, Math.round(c * fx));
-  addPart({ k: 'core', x, z, h: hh + 0.6, vx: 0, vz: 0, vh: 0, r: 1.8 * power * (0.55 + 0.45 * low), life: 0.3, fade: 0.5 + 0.5 * low });
+  addPart({ k: 'core', x, z, h: hh + 0.6, vx: 0, vz: 0, vh: 0, r: 1.8 * power * (0.55 + 0.45 * low) * (fxSoft ? 0.75 : 1), life: 0.3, fade: 0.5 + 0.5 * low });
   addPart({ k: 'flash', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: R * 1.3, life: 0.35, a: fxSoft ? 0.4 : 1 });
   addPart({ k: 'shock', x, z, h: Math.min(hh, 0.6), vx: 0, vz: 0, vh: 0, r: 0.3, R: R * 1.6, life: 0.3, a: fxSoft ? 0.35 : 1 });
   for (let i = 0, N = n(26 * power); i < N; i++) {   // the fireball
@@ -3296,6 +3340,26 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
   }
   blastDamage(x, z, power, R);
   blastFacades(x, z, hh, power, skip);
+}
+// the road goes up with the blast (2026-10-24, kazu: the road blowing up too would be even better): slabs of asphalt, some with
+// the lane paint on them, spin up out of a crater that stays in the street, broken slabs heave up round its rim, and grit and dirt
+// fountain out. A rocket throws a few slabs, the tank's main gun a dozen.
+function roadBlast(x, z, power, low) {
+  if (power < 0.9 || Math.abs(x) > WALK || z < Z_WALL + 0.5) return;
+  const cr = 0.35 + 0.42 * power, lod = chunks.length > 420 ? 0.4 : chunks.length > 260 ? 0.7 : 1;   // fewer when the street is already full of them
+  addCrater(x, z, cr);
+  for (let i = 0, N = Math.round(power * power * 2.4 * low * lod); i < N; i++) {
+    const a = rand(0, 6.28), sp = rand(1.5, 5) * power, s = rand(0.22, 0.5) * Math.min(1.4, 0.55 + 0.4 * power);
+    addChunk({ x: x + Math.cos(a) * 0.25, z: z + Math.sin(a) * 0.25, h: 0.12, vx: Math.cos(a) * sp, vz: Math.max(-1, Math.sin(a) * sp) + 0.8, vh: rand(7, 14) * Math.sqrt(power), sx: s, sy: rand(0.06, 0.12), sz: s * rand(0.55, 1), c: Math.random() < 0.18 ? CH.paint : Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: rand(3.5, 5.5), bounce: 0.2, w: new THREE.Vector3(rand(-6, 6), rand(-4, 4), rand(-6, 6)), hot: Math.random() < 0.2 ? 0.4 : 0 });
+  }
+  for (let i = 0, M = Math.round((1.5 + 1.8 * power) * low * lod); i < M; i++) {
+    const a = i / M * 6.283 + rand(-0.3, 0.3), d = cr * rand(0.85, 1.2);
+    addChunk({ x: x + Math.cos(a) * d, z: z + Math.sin(a) * d * 0.9, h: 0.08, vx: Math.cos(a) * rand(0.4, 1.2), vz: Math.sin(a) * rand(0.4, 1.2), vh: rand(2, 4), sx: rand(0.25, 0.45), sy: rand(0.06, 0.1), sz: rand(0.2, 0.35), c: Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: rand(5, 7), bounce: 0.1, w: new THREE.Vector3(rand(-3, 3), rand(-2, 2), rand(-3, 3)) });
+  }
+  for (let i = 0, M = Math.round(8 * power * low * lod); i < M; i++) {
+    const a = rand(0, 6.28), sp = rand(0.5, 2.5);
+    addPart({ k: 'dust', x: x + rand(-0.3, 0.3), z: z + rand(-0.3, 0.3), h: 0.2, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(5, 11) * Math.sqrt(power), g: 6, r: rand(0.25, 0.45) * power, grow: 1.2, drag: 1.8, life: rand(0.9, 1.4), a: 0.5 });
+  }
 }
 // what a blast does to the bodies, the loose limbs and the cars around it
 function blastDamage(x, z, power, R) {
@@ -3885,7 +3949,7 @@ function render(raw) {
   look.y += (ny * 0.008 - look.y) * Math.min(1, raw * 4);
   const sh = reduceMotion ? 0 : shake;
   camera.position.set(rand(-1, 1) * sh * 0.004, CAM_H + rand(-1, 1) * sh * 0.004, 0);
-  camera.rotation.set(-pitch0 + look.tilt + look.y + camKick * camKick * 0.03 + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
+  camera.rotation.set(-pitch0 + look.tilt + look.y + camKick * camKick * 0.04 + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
   camera.zoom = zoom; camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
