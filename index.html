@@ -402,10 +402,12 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const aspect = W / H;
-  // same framing as the 2D game: the barricade line sits at 90% of the height, the horizon about a third down;
-  // tall phone screens get a slightly wider lens
-  tanV = 0.387 + Math.max(0, 1.2 - aspect) * 0.15;
-  pitch0 = Math.atan(CAM_H / Z_WALL) - Math.atan(0.8 * tanV);
+  // a long lens so the zombies come up big (2026-10-24, kazu: the view felt too wide): the horizon a bit over a quarter down,
+  // the foot of the wire at the bottom edge. Tall phone screens look down a little more, the way kazu framed it by zooming in
+  // on a phone: the horizon about a quarter down, the wire and its coil in the lower third, the horde filling the width
+  const tall = Math.max(0, 1.2 - aspect);
+  tanV = 0.30 + tall * 0.06;
+  pitch0 = Math.atan((1 - 2 * (0.28 - tall * 0.047)) * tanV);
   camera.fov = 2 * Math.atan(tanV) * 180 / Math.PI;
   camera.aspect = aspect;
   camera.updateProjectionMatrix();
@@ -807,63 +809,134 @@ function makeBarrelTex() {
   return ctex(c, true);
 }
 
-// ---------- zombie skins: faces, rotten clothes, an opened chest ----------
-const BLOODC = '#5a0a0e', GOREC = '#8c1820', MEATC = '#a84050', BONEC = '#e3dccb';
+// ---------- zombie skins: rotting faces, filthy torn clothes, opened chests ----------
+const BLOODC = '#5a0a0e', GOREC = '#8c1820', MEATC = '#a84050', BONEC = '#e3dccb', FRESHC = '#b0101c', GUMC = '#6a0c16';
+// a ragged blob centred on the current origin
+function jag(q, w, h, n = 12) {
+  q.beginPath();
+  for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, r = rand(0.7, 1.15); q.lineTo(Math.cos(a) * w * r, Math.sin(a) * h * r); }
+  q.closePath(); q.fill();
+}
+// kind 0: both eyes milky, claw slashes down to the cheekbone; 1: one eye gone (it hangs out on its nerve), the cheek torn off to the jaw;
+// 2: bald, the skull broken open on the brain, dark pits for eyes with a hot pupil deep in each
 function makeFaceTex(kind) {
-  const S = 256;
+  const S = 256, cx = S / 2, EY = 110;
   const tex = maskedTex(S, S, (g, both) => {
-    // skin base (tinted per zombie) with bruises and veins
-    g.fillStyle = '#d8d4cc'; g.fillRect(0, 0, S, S);
-    for (let i = 0; i < 14; i++) blotch(g, rand(0, S), rand(30, S), rand(10, 30), `rgba(110,96,110,${rand(0.15, 0.35)})`, 6);
-    g.strokeStyle = 'rgba(70,60,90,.35)'; g.lineWidth = 1.2;
-    for (let i = 0; i < 16; i++) { let x = rand(0, S), y = rand(40, 200); g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 6; s++) { x += rand(-9, 9); y += rand(-6, 9); g.lineTo(x, y); } g.stroke(); }
-    const cx = S / 2;
-    // hair: stringy and dark, or none
-    if (kind !== 2) {
-      both((q, col) => {
-        q.fillStyle = col || '#1a1414';
-        q.fillRect(0, 0, S, 46);
-        for (let i = 0; i < 70; i++) { const x = rand(0, S); q.fillRect(x, 40, rand(2, 4), rand(6, kind === 1 ? 60 : 30)); }
-      }, '#1c1616');
+    // rotting skin (tinted per zombie): mottled with bruise and rot, veined, the eyes sunk in dark rings, the cheeks hollow
+    g.fillStyle = '#d8d4c8'; g.fillRect(0, 0, S, S);
+    const id = g.getImageData(0, 0, S, S), d = id.data;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4, n = fbm(x / 24 + kind * 9, y / 24, 4), m = fbm(x / 6, y / 6 + 40, 2);
+      const rot = clamp((n - 0.5) / 0.2, 0, 1), k = 1 - rot * 0.5 - (m - 0.5) * 0.22;
+      d[i] = clamp(d[i] * k + rot * 22, 0, 255); d[i + 1] = clamp(d[i + 1] * k - rot * 4, 0, 255); d[i + 2] = clamp(d[i + 2] * k + rot * 20, 0, 255);
     }
-    // sunken eye sockets
+    g.putImageData(id, 0, 0);
+    g.lineCap = 'round';
+    for (let i = 0; i < 26; i++) {
+      let x = rand(0, S), y = rand(50, 240);
+      g.strokeStyle = `rgba(${rand(40, 70) | 0},30,${rand(60, 90) | 0},${rand(0.3, 0.55).toFixed(2)})`; g.lineWidth = rand(0.8, 2.2);
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 8; k++) { x += rand(-8, 8); y += rand(-6, 9); g.lineTo(x, y); }
+      g.stroke();
+    }
     for (const sx of [-1, 1]) {
-      const ex = cx + sx * 15, ey = 110;
-      let gr = g.createRadialGradient(ex, ey, 2, ex, ey, 18);
-      gr.addColorStop(0, '#120a0e'); gr.addColorStop(0.55, 'rgba(40,20,30,.85)'); gr.addColorStop(1, 'rgba(60,40,60,0)');
-      g.fillStyle = gr; g.beginPath(); g.ellipse(ex, ey, 17, 13, 0, 0, 7); g.fill();
+      const ex = cx + sx * 15;
+      let gr = g.createRadialGradient(ex, EY, 3, ex, EY + 2, 24);
+      gr.addColorStop(0, 'rgba(20,8,14,1)'); gr.addColorStop(0.5, 'rgba(50,24,40,.8)'); gr.addColorStop(1, 'rgba(70,40,60,0)');
+      g.fillStyle = gr; g.beginPath(); g.ellipse(ex, EY + 2, 22, 18, 0, 0, 7); g.fill();
+      gr = g.createRadialGradient(cx + sx * 30, 148, 2, cx + sx * 30, 148, 22);
+      gr.addColorStop(0, 'rgba(40,24,34,.55)'); gr.addColorStop(1, 'rgba(40,24,34,0)');
+      g.fillStyle = gr; g.fillRect(cx + sx * 30 - 24, 124, 48, 48);
     }
+    // hair: stringy and dark, clumps torn out to the raw scalp; or none
+    if (kind !== 2) both((q, col) => {
+      q.fillStyle = col || '#181212';
+      q.fillRect(0, 0, S, 40);
+      for (let i = 0; i < 90; i++) q.fillRect(rand(0, S), 36, rand(1.5, 3.5), rand(6, kind === 1 ? 64 : 34));
+      for (let i = 0; i < 3; i++) { q.fillStyle = col || '#7a2a30'; q.beginPath(); q.ellipse(rand(20, S - 20), rand(14, 34), rand(10, 18), rand(6, 10), 0, 0, 7); q.fill(); }
+    }, null);
     both((q, col) => {
-      for (const sx of [-1, 1]) {
-        const ex = cx + sx * 15, ey = 110;
-        q.fillStyle = col || '#140a0c'; q.beginPath(); q.ellipse(ex, ey, 8, 6, 0, 0, 7); q.fill();
-        if (!(kind === 1 && sx > 0)) { q.fillStyle = col || '#e8e0b0'; q.beginPath(); q.arc(ex + rand(-1.5, 1.5), ey, 3, 0, 7); q.fill(); }
+      const C = c => col || c;
+      // eyes
+      const milky = (ex, ey) => {
+        q.fillStyle = C('#2a060a'); q.beginPath(); q.ellipse(ex, ey, 11, 9, 0, 0, 7); q.fill();   // the lids rotted raw
+        q.fillStyle = C('#d6d0b4'); q.beginPath(); q.ellipse(ex, ey, 8.5, 7, 0, 0, 7); q.fill();
+        q.strokeStyle = C('#b01e28'); q.lineWidth = 1;
+        for (let k = 0; k < 8; k++) { const a = rand(0, 6.28); q.beginPath(); q.moveTo(ex + Math.cos(a) * 8, ey + Math.sin(a) * 6.5); q.lineTo(ex + Math.cos(a) * 3.5, ey + Math.sin(a) * 2.8); q.stroke(); }
+        q.fillStyle = C('#a8aa98'); q.beginPath(); q.arc(ex + rand(-1, 1), ey + rand(-0.5, 1), 3.4, 0, 7); q.fill();
+        q.fillStyle = C('#4a4a44'); q.beginPath(); q.arc(ex, ey, 1.1, 0, 7); q.fill();
+        drip(q, ex + rand(-3, 3), ey + 7, rand(18, 40), 2, C(FRESHC));   // a bloody tear
+      };
+      const gone = (ex, ey) => {
+        q.fillStyle = C('#8a1420'); q.beginPath(); q.ellipse(ex, ey, 11.5, 10, 0, 0, 7); q.fill();
+        q.fillStyle = C('#050102'); q.beginPath(); q.ellipse(ex, ey + 0.5, 8, 7.5, 0, 0, 7); q.fill();
+        for (let k = 0; k < 3; k++) drip(q, ex + rand(-6, 6), ey + 7, rand(30, 70), rand(2, 3.5), C(pick([BLOODC, FRESHC])));
+      };
+      const pit = (ex, ey) => {
+        q.fillStyle = C('#0a0406'); q.beginPath(); q.ellipse(ex, ey, 10, 8, 0, 0, 7); q.fill();
+        q.fillStyle = C('#e8d890'); q.beginPath(); q.arc(ex + rand(-1, 1), ey, 2.6, 0, 7); q.fill();
+      };
+      if (kind === 0) { milky(cx - 15, EY); milky(cx + 15, EY); }
+      else if (kind === 1) { milky(cx - 15, EY); gone(cx + 15, EY); }
+      else { pit(cx - 15, EY); pit(cx + 15, EY); }
+      // the nose rotted away to the bone
+      q.fillStyle = C('#3a0a10'); q.beginPath(); q.moveTo(cx, 121); q.bezierCurveTo(cx - 10, 128, cx - 9, 141, cx - 2, 141); q.lineTo(cx + 2, 141); q.bezierCurveTo(cx + 9, 141, cx + 10, 128, cx, 121); q.fill();
+      q.fillStyle = C('#080204'); q.beginPath(); q.moveTo(cx, 125); q.bezierCurveTo(cx - 6, 130, cx - 6, 139, cx - 1, 139); q.lineTo(cx + 1, 139); q.bezierCurveTo(cx + 6, 139, cx + 6, 130, cx, 125); q.fill();
+      // no lips left: raw gums and every tooth bared, long and uneven, a few gone
+      const mw = kind === 2 ? 25 : 21, my = 161;
+      q.fillStyle = C(GUMC); q.beginPath(); q.ellipse(cx, my, mw + 6, 19, 0, 0, 7); q.fill();
+      q.fillStyle = C('#0a0204'); q.beginPath(); q.ellipse(cx, my + 1, mw - 1, 11, 0, 0, 7); q.fill();
+      for (let k = -4; k <= 4; k++) {
+        const tx = cx + k * 4.7, edge = Math.abs(k) * 0.7;
+        if (Math.random() > 0.16) { q.fillStyle = C(pick(['#dcd0a0', '#c8b884', '#b49c68', '#e4dab4'])); q.fillRect(tx - 1.9, my - 12 + edge, 3.8, rand(6, 10)); }
+        if (Math.random() > 0.24) { q.fillStyle = C(pick(['#d0c494', '#bca878', '#a48c5c'])); const h = rand(5, 8); q.fillRect(tx - 1.8, my + 12 - h - edge, 3.6, h); }
       }
-      // nose cavity
-      q.fillStyle = col || '#1a0c10'; q.beginPath(); q.moveTo(cx - 5, 138); q.lineTo(cx + 5, 138); q.lineTo(cx, 124); q.fill();
-      // gaping mouth with broken teeth, blood running down the chin
-      q.fillStyle = col || '#160608'; q.beginPath(); q.ellipse(cx, 160, kind === 2 ? 22 : 18, kind === 2 ? 17 : 12, 0, 0, 7); q.fill();
-      q.fillStyle = col || '#d8cfa8';
-      for (let k = -3; k <= 3; k++) { if (Math.random() < 0.25) continue; q.fillRect(cx + k * 5 - 2, 149 + rand(-1, 2), 4, rand(4, 8)); }
-      for (let k = -3; k <= 3; k++) { if (Math.random() < 0.35) continue; q.fillRect(cx + k * 5 - 2, 166 - rand(4, 7), 4, rand(3, 6)); }
-      q.fillStyle = col || GOREC;
-      for (let k = 0; k < 5; k++) drip(q, cx + rand(-14, 14), 168, rand(14, 50), rand(2, 4), col || BLOODC);
-      // a torn cheek or a rotten patch
-      if (kind === 1) { q.fillStyle = col || MEATC; q.beginPath(); q.ellipse(cx + 34, 150, 14, 20, 0.3, 0, 7); q.fill(); q.fillStyle = col || '#d8cfa8'; for (let k = 0; k < 4; k++) q.fillRect(cx + 28 + k * 4, 146, 3, 8); }
-      if (kind === 2) { q.fillStyle = col || '#c8bfa0'; q.beginPath(); q.ellipse(cx - 30, 70, 20, 14, 0, 0, 7); q.fill(); q.fillStyle = col || GOREC; q.beginPath(); q.ellipse(cx - 30, 70, 24, 18, 0, 0, 7); q.lineWidth = 3; q.strokeStyle = col || GOREC; q.stroke(); }
-      for (let i = 0; i < 6; i++) { q.fillStyle = col || BLOODC; q.beginPath(); q.arc(rand(0, S), rand(60, 220), rand(2, 7), 0, 7); q.fill(); }
+      // fresh blood smeared round the mouth and pouring off the chin
+      q.fillStyle = C(FRESHC);
+      for (let k = 0; k < 4; k++) { q.beginPath(); q.ellipse(cx + rand(-mw, mw), my + rand(10, 18), rand(5, 10), rand(3, 6), 0, 0, 7); q.fill(); }
+      for (let k = 0; k < 8; k++) drip(q, cx + rand(-mw - 2, mw + 2), my + 14, rand(22, 80), rand(2.5, 5.5), C(pick([BLOODC, FRESHC, GOREC, '#3a0608'])));
+      if (kind === 0) {
+        // three claw slashes down the cheek to the bone
+        for (let k = 0; k < 3; k++) {
+          const x0 = cx + 18 + k * 7, y0 = 118 + k * 3;
+          for (const [c, w] of [['#2a0408', 8], [MEATC, 5], [BONEC, 1.6]]) { q.strokeStyle = C(c); q.lineWidth = w; q.beginPath(); q.moveTo(x0 + (w < 2 ? 4 : 0), y0 + (w < 2 ? 7 : 0)); q.lineTo(x0 + (w < 2 ? 16 : 22), y0 + (w < 2 ? 29 : 40)); q.stroke(); }
+          drip(q, x0 + 22, y0 + 40, rand(15, 35), 2.5, C(FRESHC));
+        }
+      } else if (kind === 1) {
+        // the cheek torn away towards the ear: the jaw and the back teeth bared, strings of flesh across the hole
+        const x0 = cx + 20;
+        q.fillStyle = C('#2a0408'); q.beginPath(); q.moveTo(x0 - 5, 145); q.quadraticCurveTo(x0 + 30, 122, x0 + 48, 140); q.quadraticCurveTo(x0 + 42, 182, x0 - 3, 178); q.closePath(); q.fill();
+        q.fillStyle = C(MEATC); q.beginPath(); q.moveTo(x0, 148); q.quadraticCurveTo(x0 + 28, 128, x0 + 42, 142); q.quadraticCurveTo(x0 + 37, 175, x0 + 1, 173); q.closePath(); q.fill();
+        q.fillStyle = C('#140204'); q.beginPath(); q.ellipse(x0 + 18, 158, 16, 7, -0.15, 0, 7); q.fill();
+        q.strokeStyle = C(BONEC); q.lineWidth = 4; q.beginPath(); q.moveTo(x0 + 2, 171); q.quadraticCurveTo(x0 + 28, 174, x0 + 40, 150); q.stroke();
+        for (let k = 0; k < 5; k++) { q.fillStyle = C(pick(['#d8cc9c', '#c4b080'])); q.fillRect(x0 + 3 + k * 6, 151, 4.6, 7); q.fillRect(x0 + 3 + k * 6, 160, 4.6, 6); }
+        q.strokeStyle = C('#c86070'); q.lineWidth = 1.1;
+        for (let k = 0; k < 4; k++) { q.beginPath(); q.moveTo(x0 + rand(0, 10), rand(146, 172)); q.lineTo(x0 + rand(30, 42), rand(140, 170)); q.stroke(); }
+        for (let k = 0; k < 3; k++) drip(q, x0 + rand(5, 35), 174, rand(20, 55), rand(2, 4), C(FRESHC));
+      } else {
+        // the skull broken open on the left of the brow: a ragged ring of bone, the brain bulging pink and grey, blood down the face
+        const bx = cx - 30, by = 66;
+        q.save(); q.translate(bx, by); q.rotate(-0.3);
+        q.fillStyle = C(GOREC); jag(q, 34, 26, 14);
+        q.fillStyle = C(BONEC); jag(q, 28, 21, 16);
+        q.fillStyle = C('#c98a90'); q.beginPath(); q.ellipse(0, 0, 22, 15, 0, 0, 7); q.fill();
+        q.strokeStyle = C('#7a3a44'); q.lineWidth = 1.6;
+        for (let k = 0; k < 10; k++) { let x = rand(-17, 17), y = rand(-10, 10); q.beginPath(); q.moveTo(x, y); for (let s = 0; s < 4; s++) { x += rand(-5, 5); y += rand(-4, 4); q.quadraticCurveTo(x + rand(-3, 3), y + rand(-3, 3), x, y); } q.stroke(); }
+        q.restore();
+        for (let k = 0; k < 5; k++) drip(q, bx + rand(-18, 22), by + 18, rand(30, 90), rand(2, 4.5), C(pick([FRESHC, BLOODC])));
+      }
+      // weeping sores and spatter
+      for (let i = 0; i < 8; i++) { const x = rand(cx - 64, cx + 64), y = rand(64, 214); q.fillStyle = C('#3a080c'); q.beginPath(); q.arc(x, y, rand(3, 6), 0, 7); q.fill(); q.fillStyle = C('#c0a040'); q.beginPath(); q.arc(x + rand(-1, 1), y + rand(-1, 1), rand(1, 2.2), 0, 7); q.fill(); }
+      for (let i = 0; i < 10; i++) { q.fillStyle = C(BLOODC); q.beginPath(); q.arc(rand(0, S), rand(60, 230), rand(1.5, 6), 0, 7); q.fill(); }
     }, null);
     grain(g, S, S, 18, 10);
   });
-  // eyes glow faintly in the dark
+  // the eyes glow faintly in the dark: pale where they are milky, hot in the pits
   const [ec, eg] = canvas(S, S);
   eg.fillStyle = '#000'; eg.fillRect(0, 0, S, S);
-  for (const sx of [-1, 1]) {
-    if (kind === 1 && sx > 0) continue;
-    const gr = eg.createRadialGradient(S / 2 + sx * 15, 110, 0, S / 2 + sx * 15, 110, 6);
-    gr.addColorStop(0, '#fff6c0'); gr.addColorStop(1, 'rgba(255,200,80,0)');
-    eg.fillStyle = gr; eg.fillRect(S / 2 + sx * 15 - 8, 102, 16, 16);
-  }
+  const glow = (x, r, c) => { const gr = eg.createRadialGradient(x, EY, 0, x, EY, r); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); eg.fillStyle = gr; eg.fillRect(x - r, EY - r, 2 * r, 2 * r); };
+  if (kind === 2) { glow(cx - 15, 6, '#fff0a0'); glow(cx + 15, 6, '#fff0a0'); }
+  else { glow(cx - 15, 7, 'rgba(220,230,200,.75)'); if (kind === 0) glow(cx + 15, 7, 'rgba(220,230,200,.75)'); }
   const em = ctex(ec);
   return { map: tex, em };
 }
@@ -872,34 +945,61 @@ function makeClothTex(ribs) {
   return maskedTex(S, S, (g, both) => {
     g.fillStyle = '#d0ccd0'; g.fillRect(0, 0, S, S);
     for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(60,50,60,${rand(0.06, 0.18)})`; g.fillRect(rand(0, S), rand(0, S), rand(2, 5), rand(20, 80)); }   // wrinkles
-    for (let i = 0; i < 16; i++) blotch(g, rand(0, S), rand(0, S), rand(12, 34), `rgba(60,48,40,${rand(0.15, 0.35)})`, 7);   // grime
-    for (let i = 0; i < 7; i++) {   // tears showing the dark flesh underneath
-      const x = rand(0, S), y = rand(0, S);
-      g.fillStyle = '#2a1a1e'; g.beginPath(); g.moveTo(x, y);
-      for (let k = 0; k < 7; k++) g.lineTo(x + rand(-16, 16), y + rand(-12, 12));
-      g.fill();
-    }
+    for (let i = 0; i < 18; i++) blotch(g, rand(0, S), rand(0, S), rand(12, 34), `rgba(60,48,40,${rand(0.18, 0.4)})`, 7);   // grime and rot soaking through
     both((q, col) => {
-      for (let i = 0; i < 9; i++) {
-        const x = rand(0, S), y = rand(0, S * 0.7);
-        q.fillStyle = col || BLOODC; q.globalAlpha = col ? 1 : rand(0.75, 0.95);
-        blotch(q, x, y, rand(10, 26), col || pick([BLOODC, GOREC, '#3a0608']), 7);
-        for (let k = 0; k < 3; k++) drip(q, x + rand(-10, 10), y, rand(16, 60), rand(2, 4), col || BLOODC);
+      const C = c => col || c;
+      // old blood soaked in dark, fresh blood over it
+      for (let i = 0; i < 10; i++) {
+        const x = rand(0, S), y = rand(0, S * 0.75);
+        // both passes must draw the same random shapes, so the alpha is drawn either way
+        const a = rand(0.75, 0.95); q.globalAlpha = col ? 1 : a;
+        blotch(q, x, y, rand(12, 30), C(pick([BLOODC, '#3a0608', GOREC])), 8);
         q.globalAlpha = 1;
+        if (Math.random() < 0.6) blotch(q, x + rand(-4, 4), y + rand(-4, 4), rand(5, 12), C(FRESHC), 5);
+        for (let k = 0; k < 3; k++) drip(q, x + rand(-12, 12), y, rand(18, 70), rand(2, 4.5), C(pick([BLOODC, FRESHC])));
+      }
+      // gashes torn through cloth and skin: ragged slashes of raw meat, dark where they go deepest, a glint of bone in some
+      for (let i = 0; i < 9; i++) {
+        const x = rand(10, S - 10), y = rand(10, S - 10), w = rand(10, 24), h = rand(2.5, 5.5);
+        q.save(); q.translate(x, y); q.rotate(rand(-0.9, 0.9));
+        q.fillStyle = C('#240306'); jag(q, w + 2.5, h + 2.5, 14);
+        q.fillStyle = C(pick([MEATC, '#9a2a38', '#b84a58'])); jag(q, w, h, 14);
+        q.fillStyle = C('#3a040a'); jag(q, w * 0.75, h * 0.35, 10);
+        if (Math.random() < 0.3) { q.fillStyle = C(BONEC); q.beginPath(); q.ellipse(w * rand(-0.4, 0.4), 0, rand(2, 4), 1.2, 0, 0, 7); q.fill(); }
+        q.restore();
+        for (let k = 0; k < 2; k++) drip(q, x + rand(-w * 0.6, w * 0.6), y + h * 0.6, rand(14, 45), rand(1.8, 3.5), C(FRESHC));
+      }
+      // bullet holes
+      for (let i = 0; i < 12; i++) {
+        const x = rand(0, S), y = rand(0, S);
+        q.fillStyle = C('#3a0408'); q.beginPath(); q.arc(x, y, rand(2.5, 4), 0, 7); q.fill();
+        q.fillStyle = C('#0a0102'); q.beginPath(); q.arc(x, y, 1.4, 0, 7); q.fill();
+        drip(q, x, y + 2, rand(8, 28), 1.6, C(FRESHC));
       }
     }, null);
     if (ribs) both((q, col) => {
-      // the chest is torn open: meat, ribs, a dark cavity
+      const C = c => col || c;
+      // chest and belly torn open together: ribs over a dark cavity, coils of gut below them
       const cx = S / 2, cy = 100;
-      q.fillStyle = col || MEATC; q.beginPath(); q.ellipse(cx, cy, 46, 62, 0, 0, 7); q.fill();
-      q.fillStyle = col || '#3a080c'; q.beginPath(); q.ellipse(cx, cy + 6, 30, 46, 0, 0, 7); q.fill();
-      q.strokeStyle = col || BONEC; q.lineWidth = 6; q.lineCap = 'round';
+      q.save(); q.translate(cx, 132);
+      q.fillStyle = C('#300408'); jag(q, 54, 94, 18);
+      q.fillStyle = C(MEATC); jag(q, 47, 86, 16);
+      q.restore();
+      q.fillStyle = C('#3a080c'); q.beginPath(); q.ellipse(cx, cy + 6, 30, 46, 0, 0, 7); q.fill();
+      q.strokeStyle = C(BONEC); q.lineWidth = 6; q.lineCap = 'round';
       for (let k = 0; k < 5; k++) {
         const y = cy - 40 + k * 18;
-        for (const s of [-1, 1]) { q.beginPath(); q.moveTo(cx + s * 4, y); q.quadraticCurveTo(cx + s * 30, y - 8, cx + s * 44, y + 10); q.stroke(); }
+        for (const s of [-1, 1]) { if (Math.random() < 0.12) continue; q.beginPath(); q.moveTo(cx + s * 4, y); q.quadraticCurveTo(cx + s * 30, y - 8, cx + s * 44, y + 10); q.stroke(); }
       }
-      q.fillStyle = col || BONEC; q.fillRect(cx - 4, cy - 50, 8, 92);
-      q.fillStyle = col || GOREC; for (let k = 0; k < 6; k++) drip(q, cx + rand(-30, 30), cy + 50, rand(20, 70), rand(3, 6), col || BLOODC);
+      q.fillStyle = C(BONEC); q.fillRect(cx - 4, cy - 50, 8, 92);
+      const by = 184;
+      q.fillStyle = C('#1a0204'); q.beginPath(); q.ellipse(cx, by, 36, 24, 0, 0, 7); q.fill();
+      for (let k = 0; k < 11; k++) {
+        q.fillStyle = C(pick(['#c46a72', '#b0505c', '#d8848c', '#9a4a52']));
+        q.beginPath(); q.ellipse(cx + rand(-27, 27), by + rand(-15, 15), rand(8, 12), rand(4.5, 7), rand(0, 3), 0, 7); q.fill();
+        q.strokeStyle = C('#5a1820'); q.lineWidth = 1.2; q.stroke();
+      }
+      for (let k = 0; k < 7; k++) drip(q, cx + rand(-34, 34), by + 18, rand(20, 60), rand(3, 6), C(pick([BLOODC, FRESHC])));
     }, null);
     grain(g, S, S, 16, 8);
   });
@@ -1186,11 +1286,11 @@ function buildCity() {
     B.glow.flat(1.9, 0.013, -26, 2.2, 6, 0, col(0xff2a1a, 0.25));
   }
   {
-    const z = -62;
+    const z = -BRIDGE.z;
     B.conc.box(-WALK - 1, 5.2, z - 1.6, WALK + 1, 5.8, z, col(0x7a8a8a), 'pz ny');
     B.conc.box(-WALK - 1, 5.8, z - 0.12, WALK + 1, 6.9, z, col(0x6a7676), 'pz');
     for (const x of [-WALK + 0.6, WALK - 0.6]) B.conc.box(x - 0.25, 0.15, z - 1.2, x + 0.25, 5.2, z - 0.4, col(0x6a7676), 'pz px nx');
-    B.bill.box(-3.2, 5.95, z + 0.02, 3.2, 7.55, z + 0.03, col(0xffffff, 1.1), 'pz', () => [0, 0, 1, 0.5]);
+    B.bill.box(-3.2, 5.95, z + 0.02, 3.2, BRIDGE.top, z + 0.03, col(0xffffff, 1.1), 'pz', () => [0, 0, 1, 0.5]);
     for (const x of [-2.4, 0, 2.4]) B.lamp.box(x - 0.4, 5.18, z - 0.9, x + 0.4, 5.2, z - 0.7, col(0xdfe8ff, 3), 'ny');
   }
   // vending machines glowing on the sidewalks
@@ -1303,10 +1403,14 @@ function buildCity() {
 }
 // the moon hangs over the far end of the avenue, between the buildings, sized to the screen like the 2D one
 const moonScr = { x: 0, y: 0, r: 0 };
+// the footbridge with the street's name at the far end: the moon rises clear of it
+const BRIDGE = { z: 62, top: 7.55 };
 function placeMoon() {
   if (!moonMesh) return;
-  const horizonY = H * (0.5 - 0.5 * Math.tan(pitch0) / tanV);
-  const r = Math.min(W, H) * 0.075, y = Math.min(Math.max(horizonY * 0.45, r + 90), horizonY - r - 8);
+  const horizonY = H * (0.5 - 0.5 * Math.tan(pitch0) / tanV), r = Math.min(W, H) * 0.075;
+  // over the far end of the avenue, nearly all of it above the footbridge (the long lens on a phone would hide it behind), under the HUD's top row
+  const yBridge = H / 2 * (1 - Math.tan(Math.atan2(BRIDGE.top - CAM_H, BRIDGE.z) + 0.8 * r / (H / 2) * tanV + pitch0) / tanV);
+  const y = Math.min(Math.max(horizonY * 0.45, r + 90), horizonY - r - 8, Math.max(yBridge, r + 44));
   moonScr.x = W / 2; moonScr.y = y; moonScr.r = r;
   camera.rotation.set(-pitch0, 0, 0); camera.updateMatrixWorld();
   const ndc = new THREE.Vector3(0, 1 - 2 * y / H, 0.5).unproject(camera).sub(camera.position).normalize();
@@ -1449,7 +1553,8 @@ class PBuf {
     for (const [a, k] of [[this.aPos, 3], [this.aDir, 3], [this.aCol, 4], [this.aPrm, 4]]) {
       a.clearUpdateRanges(); if (n) a.addUpdateRange(0, n * k); a.needsUpdate = true;
     }
-    this.mat.uniforms.tanV.value = tanV / camera.zoom;
+    // the size cap is a share of the screen's height; a tall narrow screen holds it to less, or one fireball near us would fill its width
+    this.mat.uniforms.tanV.value = tanV / camera.zoom * Math.min(1, W / H * 1.4);
     this.n = 0;
   }
 }
@@ -1498,6 +1603,9 @@ function updateParts(dt) {
     switch (p.k) {
       case 'shock': case 'wshock': p.r += (p.R - p.r) * Math.min(1, dt * 16); break;
       case 'blood':
+        // the wire catches blood thrown our way, as it does the debris, and none comes at the lens over it
+        if (p.vz < 0 && p.h < 1.55 && p.z < Z_WALL + 0.1 && p.z > Z_WALL - 0.6) { p.z = Z_WALL + 0.1; p.vz *= -0.2; p.vx *= 0.5; }
+        if (p.z < 3) p.life = 0;
         if (p.h < 0.02) { p.life = 0; if (Math.random() < 0.35) addDecal(p.x, p.z, p.r * rand(3, 6), 'splat', 10); }
         break;
       case 'spark': case 'ember':
@@ -1526,6 +1634,8 @@ const _sortBuf = [];
 let fireLoad = 0;
 function drawParts() {
   _sortBuf.length = 0; fireLoad = 0;
+  // a tall narrow screen sees the spray from close kills over a much smaller area: smaller drops and thinner mist, or it turns red all over
+  const nk = Math.min(1, W / H * 1.4), dropK = Math.pow(nk, 0.7), mistK = 0.4 + 0.6 * nk;
   for (const p of parts) {
     const t = 1 - p.life / p.max, X = p.x, Y = p.h, Z = -p.z, nf = p.nf ? 10 : 0;
     switch (p.k) {
@@ -1564,8 +1674,8 @@ function drawParts() {
         break;
       }
       case 'dust': { const a = (p.a || 0.45) * fin * fout; ALPHA.push(X, Y, Z, p.r * 2, p.rot, p.f || 4, 0, DUST_C[0], DUST_C[1], DUST_C[2], a); break; }
-      case 'mist': { const a = (p.a || 0.55) * fout; ALPHA.push(X, Y, Z, p.r * 2, p.rot, 3, 0, MIST_C[0], MIST_C[1], MIST_C[2], a); break; }
-      case 'blood': { const c = p.dark ? BLOOD_D : BLOOD_C; ALPHA.push(X, Y, Z, p.r * 2, p.rot, 8, 0, c[0], c[1], c[2], 0.95 * fout); break; }
+      case 'mist': { const a = (p.a || 0.55) * fout * mistK; ALPHA.push(X, Y, Z, p.r * 2, p.rot, 3, 0, MIST_C[0], MIST_C[1], MIST_C[2], a); break; }
+      case 'blood': { const c = p.dark ? BLOOD_D : BLOOD_C; ALPHA.push(X, Y, Z, p.r * 2 * dropK, p.rot, 8, 0, c[0], c[1], c[2], 0.95 * fout); break; }
       case 'haze': { const a = p.a * (0.6 + 0.4 * Math.sin(p.life * 0.3 + p.rot)); ALPHA.push(X, Y, Z, p.r * 2, p.rot, 4, 0, p.c[0], p.c[1], p.c[2], a); break; }
       case 'shadow': ALPHA.push(X, 0.02, Z, p.r * 2, 0, 0, 2, 0, 0, 0, p.a); break;
     }
@@ -1592,7 +1702,7 @@ function chunkMesh(geo, mat, max) {
   return m;
 }
 const CHUNK_MAX = 520;
-const chunkM = { box: chunkMesh(new THREE.BoxGeometry(1, 1, 1), chunkMat, CHUNK_MAX), meat: chunkMesh(new THREE.IcosahedronGeometry(0.5, 0), meatMat, 260) };
+const chunkM = { box: chunkMesh(new THREE.BoxGeometry(1, 1, 1), chunkMat, CHUNK_MAX), meat: chunkMesh(new THREE.IcosahedronGeometry(0.5, 0), meatMat, 380) };
 let chunks = [];
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _ax = new THREE.Vector3();
 function addChunk(o) {
@@ -1638,12 +1748,12 @@ function drawChunks() {
     m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
   }
 }
-const CH = { asphalt: new THREE.Color('#3a3440'), asphalt2: new THREE.Color('#5a5060'), glass: new THREE.Color('#9ab8d8'), brass: new THREE.Color('#d89a3a'), meat: new THREE.Color('#8a1a22'), meat2: new THREE.Color('#b44a55'), bone: new THREE.Color('#e3dccb'), conc: new THREE.Color('#8a8090') };
+const CH = { asphalt: new THREE.Color('#3a3440'), asphalt2: new THREE.Color('#5a5060'), glass: new THREE.Color('#9ab8d8'), brass: new THREE.Color('#d89a3a'), meat: new THREE.Color('#8a1a22'), meat2: new THREE.Color('#b44a55'), bone: new THREE.Color('#e3dccb'), conc: new THREE.Color('#8a8090'), brain: new THREE.Color('#d4949a'), eye: new THREE.Color('#e8e4d8') };
 
 // ===== 40-zombies.js
 
 // ---------- zombies: one rig of joints posed per body every frame; body parts drawn as instanced meshes ----------
-const SKINS = ['#a7ae8c', '#b3ad97', '#97a59f', '#ad9d91', '#9aa877', '#8f9a86'];
+const SKINS = ['#a7ae8c', '#b3ad97', '#97a59f', '#ad9d91', '#9aa877', '#8f9a86', '#8e9aa0', '#b5a878', '#9a8a96'];
 const OUTFITS = {
   suit:   { top: '#2e303d', legs: '#25272f', long: 1 },
   worker: { top: '#56595e', legs: '#384659', long: 1 },
@@ -1655,37 +1765,97 @@ const OUTFITS = {
 const TEES = ['#6b5a7a', '#5a6e7f', '#7f5a55', '#4f6650', '#7a6a4a', '#8a3a3a', '#3f5d66', '#8a7d3a', '#a3a09a'];
 const JERSEYS = ['#2a3d82', '#8a1f2a', '#1f6a3a', '#b8901e', '#5a2a82', '#c4562a'];
 
-// tint mask: the texture alpha says where the per-zombie colour applies; plus a faint rim so bodies read in the dark
+// tint mask: the texture alpha says where the per-zombie colour applies; plus a faint rim so bodies read in the dark.
+// Blood and raw meat (untinted and deep red in the texture) are wet: they shine
 const RIM = col(0x6a3a8a, 0.55);
-function zombieMat(o) {
+// jitter: each body part takes its own patch of the texture (iUvOff per instance), so the blood is not the same on every body
+function zombieMat(o, jitter) {
   const m = new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.62, metalness: 0 }, o));
   m.onBeforeCompile = sh => {
     sh.uniforms.rimCol = { value: RIM };
+    if (jitter) sh.vertexShader = 'attribute vec2 iUvOff;\n' + sh.vertexShader.replace('#include <uv_vertex>', `#include <uv_vertex>
+        vMapUv += iUvOff;`);
     sh.fragmentShader = 'uniform vec3 rimCol;\n' + sh.fragmentShader
-      .replace('#include <map_fragment>', `float tintK = 1.0;
+      .replace('#include <map_fragment>', `float tintK = 1.0, wetK = 0.0;
         #ifdef USE_MAP
           vec4 sampledDiffuseColor = texture2D( map, vMapUv );
           diffuseColor.rgb *= sampledDiffuseColor.rgb; tintK = sampledDiffuseColor.a;
+          wetK = ( 1.0 - tintK ) * smoothstep( 1.6, 3.0, sampledDiffuseColor.r / ( max( sampledDiffuseColor.g, sampledDiffuseColor.b ) + 0.01 ) );
         #endif`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = mix( roughnessFactor, 0.18, wetK );`)
       .replace('#include <color_fragment>', `#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
           diffuseColor.rgb *= mix( vec3( 1.0 ), vColor, tintK );
         #endif`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         totalEmissiveRadiance += rimCol * pow( 1.0 - clamp( dot( normal, normalize( vViewPosition ) ), 0.0, 1.0 ), 2.6 ) * ( 0.35 + 0.65 * tintK ) * min( vec3( 1.6 ), vColor + 0.25 );`);
   };
-  m.customProgramCacheKey = () => 'zb-skin';
+  m.customProgramCacheKey = () => jitter ? 'zb-skin-j' : 'zb-skin';
   return m;
 }
 const ZP = {};
+// raw meat, bone and gut: vertex-coloured pieces, wet
+const GC = { dark: new THREE.Color('#3a060a'), raw: new THREE.Color('#b8283a'), bone: new THREE.Color('#e6dcc4'), gut: new THREE.Color('#d07a84'), gut2: new THREE.Color('#7a2a36'), eye: new THREE.Color('#e4e0d0'), iris: new THREE.Color('#7a8070') };
+function vcol(g, fn) {
+  const p = g.attributes.position, c = new Float32Array(p.count * 3), t = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { fn(t, p.getX(i), p.getY(i), p.getZ(i), i); c[i * 3] = t.r; c[i * 3 + 1] = t.g; c[i * 3 + 2] = t.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return g;
+}
+// ragged by angle, so the copies of a vertex on a seam move together
+function ragged(g, fn) {
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), o = fn(x, y, z, Math.atan2(z, x)); p.setXYZ(i, o[0], o[1], o[2]); }
+  g.computeVertexNormals();
+  return g;
+}
+// where a limb, a head or the spine came off: a ring of torn meat with the broken bone sticking out of it, pointing up from y = 0
+function tornGeo() {
+  const meat = ragged(new THREE.CylinderGeometry(0.05, 0.054, 0.05, 10, 2).translate(0, 0.022, 0), (x, y, z, a) => {
+    const k = 1 + 0.13 * Math.sin(a * 7 + 1), up = y > 0.03 ? 0.011 * Math.sin(a * 5) + 0.006 * Math.sin(a * 11 + 2) : 0;
+    return [x * k, y + up, z * k];
+  });
+  vcol(meat, (t, x, y) => t.copy(GC.dark).lerp(GC.raw, clamp(y / 0.045, 0, 1)));
+  const bone = ragged(new THREE.CylinderGeometry(0.014, 0.018, 0.085, 6, 2).translate(0.006, 0.07, 0.003), (x, y, z, a) => [x, y > 0.1 ? y + 0.014 * Math.sin(a * 3 + 0.5) : y, z]);
+  vcol(bone, (t, x, y) => t.copy(GC.raw).lerp(GC.bone, clamp((y - 0.04) / 0.03, 0, 1)));
+  return mergeGeometries([meat.toNonIndexed(), bone.toNonIndexed()]);
+}
+// a loop of gut hanging out of the belly and a longer strand beside it, swollen and pinched along their length
+function gutsGeo() {
+  const tube = (pts, r, n, ph) => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(a => new THREE.Vector3(...a))), g = new THREE.TubeGeometry(curve, n, r, 6, false), p = g.attributes.position, P = new THREE.Vector3();
+    for (let i = 0; i <= n; i++) {
+      curve.getPointAt(i / n, P);
+      const k = 0.75 + 0.4 * Math.abs(Math.sin(i * 1.15 + ph));
+      for (let j = 0; j <= 6; j++) { const v = i * 7 + j; p.setXYZ(v, P.x + (p.getX(v) - P.x) * k, P.y + (p.getY(v) - P.y) * k, P.z + (p.getZ(v) - P.z) * k); }
+    }
+    g.computeVertexNormals();
+    vcol(g, (t, x, y, z, v) => t.copy(GC.gut).lerp(GC.gut2, 0.25 + 0.45 * Math.max(0, Math.cos(Math.floor(v / 7) * 1.15 + ph))));
+    return g.toNonIndexed();
+  };
+  return mergeGeometries([
+    tube([[0, 0, 0], [0.05, -0.08, 0.03], [0.075, -0.2, 0.05], [0.035, -0.33, 0.055], [-0.04, -0.3, 0.045], [-0.06, -0.17, 0.03], [-0.025, -0.04, 0.008]], 0.024, 28, 0),
+    tube([[-0.03, -0.01, 0.01], [-0.06, -0.12, 0.04], [-0.03, -0.25, 0.06], [-0.065, -0.4, 0.05], [-0.04, -0.5, 0.045]], 0.018, 20, 1.3),
+  ]);
+}
+// an eye out of its socket, hanging on the nerve; it pivots at the socket (y = 0)
+function eyeGeo() {
+  const ball = new THREE.SphereGeometry(0.021, 10, 8).translate(0, -0.056, 0.01);
+  vcol(ball, (t, x, y, z) => { const f = Math.hypot(x, y + 0.056); t.copy(z > 0.024 && f < 0.011 ? GC.iris : z < 0.0 ? GC.raw : GC.eye); if (z > 0.026 && f < 0.004) t.setRGB(0.02, 0.02, 0.02); });
+  const nerve = new THREE.CylinderGeometry(0.0045, 0.007, 0.04, 5).translate(0, -0.02, 0.004);
+  vcol(nerve, t => t.copy(GC.raw));
+  return mergeGeometries([ball.toNonIndexed(), nerve.toNonIndexed()]);
+}
 function lathe(profile, seg, zs) {
   const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), seg, Math.PI, Math.PI * 2);
   g.scale(1, 1, zs); return g;
 }
 function initZombieMeshes() {
   const faces = [0, 1, 2].map(makeFaceTex), cloth = makeClothTex(false), ribs = makeClothTex(true), barrel = makeBarrelTex();
-  const body = zombieMat({ map: cloth, roughness: 0.75 });
+  const body = zombieMat({ map: cloth, roughness: 0.75 }, true);
   const gore = zombieMat({ map: ribs, roughness: 0.5 });
   const headM = faces.map(f => zombieMat({ map: f.map, emissiveMap: f.em, emissive: 0xfff0b0, emissiveIntensity: 2.2, roughness: 0.5 }));
+  const goreM = zombieMat({ vertexColors: true, roughness: 0.22 });
   const barrelM = new THREE.MeshStandardMaterial({ map: barrel, roughness: 0.4, metalness: 0.35, envMap, envMapIntensity: 0.8 });
   const head = new THREE.SphereGeometry(0.12, 16, 12, -Math.PI / 2); head.scale(0.88, 1.06, 0.98);
   const foot = new THREE.BoxGeometry(0.095, 0.075, 0.24); foot.translate(0, 0, 0.045);
@@ -1704,6 +1874,7 @@ function initZombieMeshes() {
     shin: [new THREE.CylinderGeometry(0.056, 0.042, 0.42, 8, 1, false, Math.PI), body, 420],
     foot: [foot, body, 420],
     barrel: [new THREE.CylinderGeometry(0.27, 0.27, 0.8, 16, 1, false, Math.PI), barrelM, 40],
+    torn: [tornGeo(), goreM, 300], guts: [gutsGeo(), goreM, 220], eye: [eyeGeo(), goreM, 120],
   };
   for (const k in G) {
     const [g, mat, max] = G[k];
@@ -1714,15 +1885,23 @@ function initZombieMeshes() {
     m.frustumCulled = false; m.count = 0;
     scene.add(m);
     ZP[k] = { m, n: 0, max, mat: m.instanceMatrix.array, col: m.instanceColor.array };
+    if (mat === body) {
+      const a = new THREE.InstancedBufferAttribute(new Float32Array(max * 2), 2);
+      a.setUsage(THREE.DynamicDrawUsage); g.setAttribute('iUvOff', a);
+      ZP[k].uvA = a; ZP[k].uv = a.array;
+    }
   }
 }
-function putPart(name, mtx, c, k = 1) {
+function putPart(name, mtx, c, k = 1, uo = 0, vo = 0) {
   const P = ZP[name];
   if (!P || P.n >= P.max) return;
   const i = P.n++;
   mtx.toArray(P.mat, i * 16);
   P.col[i * 3] = c.r * k; P.col[i * 3 + 1] = c.g * k; P.col[i * 3 + 2] = c.b * k;
+  if (P.uv) { P.uv[i * 2] = uo; P.uv[i * 2 + 1] = vo; }
 }
+// where on the clothes texture a body's part takes its patch from
+const partUv = (z, si, i) => [z.look.uvo + si * 0.37 + i * 0.29, z.look.uvo * 1.7 + si * 0.23 + i * 0.41];
 
 // the rig: hips at the root, spine up to the neck and head, arms off the shoulders, legs off the hips
 function buildRig() {
@@ -1744,6 +1923,7 @@ function buildRig() {
     head: slot(head, 0, 0.11, 0.01), jaw: slot(jaw, 0, -0.035, 0.06), barrel: slot(spine, 0, 0.16, 0.36),
     uarm: sh.map(j => slot(j, 0, -0.15, 0)), farm: el.map(j => slot(j, 0, -0.135, 0)), hand: wr.map(j => slot(j, 0, -0.055, 0)),
     thigh: hp.map(j => slot(j, 0, -0.21, 0)), shin: kn.map(j => slot(j, 0, -0.21, 0)), foot: an.map(j => slot(j, 0, -0.04, 0)),
+    guts: slot(spine, 0, 0.085, 0.1), eye: slot(head, 0.041, 0.137, 0.108),
   };
   S.barrel.rotation.z = Math.PI / 2;
   return { root, spine, neck, head, jaw, sh, el, wr, hp, kn, an, S };
@@ -1755,15 +1935,17 @@ function makeLook(type) {
   const r = Math.random;
   const out = type === 'barrel' ? 'worker' : type === 'runner' ? pick(['jersey', 'tee']) : type === 'tank' ? pick(['tee', 'suit'])
     : pick(['suit', 'suit', 'worker', 'police', 'doctor', 'tee', 'tee', 'jersey']);
-  const O = OUTFITS[out], bald = r() < 0.35;
+  const O = OUTFITS[out], bald = r() < 0.35, ribs = r() < 0.38;
   return {
     out, long: O.long,
     skin: new THREE.Color(pick(SKINS)).multiplyScalar(rand(0.8, 1.0)),
     top: new THREE.Color(O.top || pick(out === 'jersey' ? JERSEYS : TEES)),
     legs: new THREE.Color(O.legs), shoe: new THREE.Color(pick(['#1a1616', '#2a2420', '#3a3030', '#cfcac0'])),
-    face: bald ? 2 : r() < 0.5 ? 0 : 1, ribs: r() < 0.3, jawless: r() < 0.14,
-    tilt: rand(-0.3, 0.3), limp: r() < 0.5 ? rand(0.3, 0.8) : 0, pose: type === 'runner' ? 2 : r() < 0.6 ? 0 : 1,
-    hunch: rand(0.05, 0.3), w: type === 'tank' || type === 'boss' ? 1.3 : rand(0.92, 1.08), seed: rand(0, 100),
+    face: bald ? 2 : r() < 0.5 ? 0 : 1, ribs, jawless: r() < 0.14,
+    // guts hanging out of most opened bellies and some others; some heads loll on broken necks
+    guts: type !== 'barrel' && r() < (ribs ? 0.8 : 0.16),
+    tilt: r() < 0.2 ? (r() < 0.5 ? -1 : 1) * rand(0.6, 0.95) : rand(-0.3, 0.3), limp: r() < 0.5 ? rand(0.3, 0.8) : 0, pose: type === 'runner' ? 2 : r() < 0.6 ? 0 : 1,
+    hunch: rand(0.05, 0.3), w: type === 'tank' || type === 'boss' ? 1.3 : rand(0.92, 1.08), seed: rand(0, 100), uvo: rand(0, 1),
   };
 }
 function makeZombie(type, x, z) {
@@ -1802,7 +1984,7 @@ function spawnWave(zs) {
 }
 function spawnInterval() { return Math.max(0.34, 0.8 - elapsed / DURATION * 0.46) * rand(0.7, 1.3); }
 // where a zombie stops at the wire; the giant stays further back, in full view
-const wallZ = z => Z_WALL + 0.45 + (z.size - 1) * 0.8 + (z.type === 'boss' ? 5.6 : 0);
+const wallZ = z => Z_WALL + 0.45 + (z.size - 1) * 0.8 + (z.type === 'boss' ? 8 : 0);
 
 // ---------- poses ----------
 const _eu = new THREE.Euler();
@@ -1889,7 +2071,18 @@ function poseZombie(z, R) {
     // old bodies sink away just before they are cleared
     if (!fly && z.dead > 6.6) R.root.scale.multiplyScalar(Math.max(0.01, (7 - z.dead) / 0.4));
   }
+  // what hangs off a body swings: kept hanging down while it walks, flung about while it flies
+  if (z.state === 'walk') {
+    R.S.guts.rotation.set(-R.spine.rotation.x + 0.12 + Math.sin(t * 2 + 0.6) * 0.22, 0, Math.sin(t) * 0.25);
+    R.S.eye.rotation.set(-R.spine.rotation.x - R.neck.rotation.x + Math.sin(t * 2) * 0.35, 0, -R.neck.rotation.z + Math.sin(t + 1) * 0.4);
+  } else {
+    R.S.guts.rotation.set(Math.sin(now * 13 + L.seed) * 0.9, 0, Math.cos(now * 11 + L.seed) * 0.7);
+    R.S.eye.rotation.set(Math.sin(now * 5.3 + L.seed), 0, Math.cos(now * 7) * 0.8);
+  }
 }
+// gore pieces placed off a slot: the stump of a torn arm at the shoulder, the spine out of a headless neck
+const TORN_SHOULDER = new THREE.Matrix4().compose(new THREE.Vector3(0, 0.15, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI, 0, 0)), new THREE.Vector3(1.05, 1, 1.05));
+const TORN_NECK = new THREE.Matrix4().makeTranslation(0, 0.045, 0);
 const SLOTS = ['pelvis', 'torso', 'neck', 'head', 'jaw', 'barrel', 'uarm', 'farm', 'hand', 'thigh', 'shin', 'foot'];
 function partColor(z, name) {
   const L = z.look;
@@ -1924,11 +2117,15 @@ function drawZombies() {
     poseZombie(z, R);
     R.root.updateMatrixWorld(true);
     const fl = z.flash > 0 ? 1 + z.flash / 0.07 * 2.2 : 1;
-    for (const name of SLOTS) {
-      const sl = R.S[name];
-      if (Array.isArray(sl)) { for (let i = 0; i < 2; i++) if (slotVisible(z, name, i)) putPart(meshFor(z, name), sl[i].matrixWorld, partColor(z, name), fl); }
-      else if (slotVisible(z, name, 0)) putPart(meshFor(z, name), sl.matrixWorld, partColor(z, name), name === 'barrel' ? 1 : fl);
+    for (let si = 0; si < SLOTS.length; si++) {
+      const name = SLOTS[si], sl = R.S[name];
+      if (Array.isArray(sl)) { for (let i = 0; i < 2; i++) if (slotVisible(z, name, i)) { const u = partUv(z, si, i); putPart(meshFor(z, name), sl[i].matrixWorld, partColor(z, name), fl, u[0], u[1]); } }
+      else if (slotVisible(z, name, 0)) { const u = partUv(z, si, 0); putPart(meshFor(z, name), sl.matrixWorld, partColor(z, name), name === 'barrel' ? 1 : fl, u[0], u[1]); }
     }
+    for (let i = 0; i < 2; i++) if (!z.arms[i]) putPart('torn', _mB.multiplyMatrices(R.S.uarm[i].matrixWorld, TORN_SHOULDER), WHITE, fl);
+    if (z.headless) putPart('torn', _mB.multiplyMatrices(R.S.neck.matrixWorld, TORN_NECK), WHITE, fl);
+    if (z.look.guts) putPart('guts', R.S.guts.matrixWorld, WHITE, fl);
+    if (z.look.face === 1 && !z.headless) putPart('eye', R.S.eye.matrixWorld, WHITE, fl);
     if (z.state === 'walk') addShadow(z.x, z.z, 0.42 * z.size * z.look.w, 0.5);
     else if (z.h < 3) addShadow(z.x, z.z, 0.6 * z.size, 0.45 * clamp(1 - z.h / 3, 0, 1));
   }
@@ -1937,12 +2134,13 @@ function drawZombies() {
     const k = Math.min(1, g.life / 0.35);
     _s3.setScalar(k);
     _m4.compose(_v3.set(g.x, g.h, -g.z), g.q, _s3);
-    for (const p of g.parts) { _mB.multiplyMatrices(_m4, p.local); putPart(p.mesh, _mB, p.c); }
+    for (const p of g.parts) { _mB.multiplyMatrices(_m4, p.local); putPart(p.mesh, _mB, p.c, 1, p.uo, p.vo); }
   }
   for (const k in ZP) {
     const P = ZP[k]; P.m.count = P.n;
     P.m.instanceMatrix.clearUpdateRanges(); P.m.instanceMatrix.addUpdateRange(0, Math.max(1, P.n) * 16); P.m.instanceMatrix.needsUpdate = true;
     P.m.instanceColor.clearUpdateRanges(); P.m.instanceColor.addUpdateRange(0, Math.max(1, P.n) * 3); P.m.instanceColor.needsUpdate = true;
+    if (P.uvA) { P.uvA.clearUpdateRanges(); P.uvA.addUpdateRange(0, Math.max(1, P.n) * 2); P.uvA.needsUpdate = true; }
   }
 }
 const _mB = new THREE.Matrix4(), _mInv = new THREE.Matrix4();
@@ -1966,9 +2164,13 @@ function makeGib(z, group, v, spin) {
   for (const [name, i] of group) {
     const sl = Array.isArray(RIG.S[name]) ? RIG.S[name][i] : RIG.S[name];
     if (!slotVisible(z, name, i)) continue;
-    ps.push({ mesh: meshFor(z, name), local: new THREE.Matrix4().multiplyMatrices(_mInv, sl.matrixWorld), c: partColor(z, name) });
+    const u = partUv(z, SLOTS.indexOf(name), i);
+    ps.push({ mesh: meshFor(z, name), local: new THREE.Matrix4().multiplyMatrices(_mInv, sl.matrixWorld), c: partColor(z, name), uo: u[0], vo: u[1] });
   }
   if (!ps.length) return null;
+  // the end it was torn from: meat and broken bone, or the guts out of the bottom of a torso
+  const end = GIB_END[first[0]];
+  if (end && slotVisible(z, first[0], first[1])) ps.push({ mesh: end[0], local: new THREE.Matrix4().multiplyMatrices(_mInv, new THREE.Matrix4().multiplyMatrices(sl0.matrixWorld, end[1])), c: WHITE });
   const g = {
     x: pos.x, h: pos.y, z: -pos.z, vx: v.x, vh: v.y, vz: v.z, q, parts: ps, life: rand(4, 6), rad: 0.09 * z.size,
     w: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(spin), head: group[0][0] === 'head', bleed: 1,
@@ -1977,6 +2179,8 @@ function makeGib(z, group, v, spin) {
   if (gibs.length > 110) gibs.splice(0, gibs.length - 110);
   return g;
 }
+const _gm = (x, y, z, flip, sx = 1, sy = 1) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(flip ? Math.PI : 0, 0, 0)), new THREE.Vector3(sx, sy, sx));
+const GIB_END = { uarm: ['torn', _gm(0, 0.15, 0)], thigh: ['torn', _gm(0, 0.21, 0, false, 1.45, 1.2)], head: ['torn', _gm(0, -0.115, -0.01, true)], torso: ['guts', _gm(0, -0.2, 0.05)], pelvis: ['torn', _gm(0, 0.1, 0, false, 1.9, 1.3)] };
 const LIMBS = { armL: [['uarm', 0], ['farm', 0], ['hand', 0]], armR: [['uarm', 1], ['farm', 1], ['hand', 1]], legL: [['thigh', 0], ['shin', 0], ['foot', 0]], legR: [['thigh', 1], ['shin', 1], ['foot', 1]], head: [['head', 0], ['jaw', 0]], torso: [['torso', 0], ['neck', 0]], pelvis: [['pelvis', 0]] };
 function updateGibs(dt) {
   for (const g of gibs) {
@@ -2095,8 +2299,9 @@ function buildGun() {
 }
 // where the gun sits on screen: low, just right of centre, about as big as the 2D one
 function placeGun() {
-  const aspect = W / H, s = aspect < 1 ? 0.33 : 0.45;
-  gunRoot.position.set(aspect < 1 ? 0.03 : 0.06, aspect < 1 ? -0.23 : -0.2, -0.6);
+  // the gun keeps the size and spot on screen it had with the old, wider lens
+  const aspect = W / H, k = tanV / (0.387 + Math.max(0, 1.2 - aspect) * 0.15), s = (aspect < 1 ? 0.33 : 0.45) * k;
+  gunRoot.position.set((aspect < 1 ? 0.03 : 0.06) * k, (aspect < 1 ? -0.23 : -0.2) * k, -0.6);
   gunRoot.scale.setScalar(s);
 }
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _O = new THREE.Vector3(), _D = new THREE.Vector3(), _wp = new THREE.Vector3(), _wp2 = new THREE.Vector3();
@@ -2624,7 +2829,7 @@ function reset() {
   combo = 0; comboTimer = 0; maxCombo = 0; fever = 0; feverT = 0; comboPulse = 0; lastLabelT = -9;
   longestFlight = 0; headshots = 0; juggles = 0; carsBlown = 0;
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
-  pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false;
+  pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
   resetBoss(); resetMoon(); resetBuildings();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
@@ -2678,6 +2883,8 @@ function meatChunk(zb, s) {
 }
 function hitZombie(hit, dmg, D) {
   const z = hit.z, gx = hit.p.x, gz = -hit.p.z, gh = hit.p.y;
+  // the exit wound sprays out of the back: blood and bits of meat
+  if (z.type !== 'boss' && Math.random() < 0.35) addChunk({ m: 'meat', x: gx, z: gz, h: gh, vx: D.x * rand(1, 3) + rand(-1, 1), vz: -D.z * rand(1, 3) + rand(-0.5, 0.5), vh: rand(1, 4), sx: 0.035, sy: 0.028, sz: 0.04, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(1.5, 2.5), blood: true, bounce: 0.1 });
   for (let i = 0; i < 5; i++) addPart({ k: 'blood', x: gx, z: gz, h: gh, vx: D.x * rand(1, 4) + rand(-1.5, 1.5), vz: -D.z * rand(1, 4) + rand(-1, 1), vh: rand(0.5, 3.5), g: 14, r: rand(0.025, 0.06), life: 1.2, dark: Math.random() < 0.3 });
   addPart({ k: 'mist', x: gx, z: gz + 0.1, h: gh, vx: D.x, vz: -D.z, vh: 0.2, r: 0.12, grow: 1.6, drag: 3, life: 0.3, a: 0.5 });
   if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg); if (Math.random() < 0.25) squelch(false); return; }
@@ -2707,6 +2914,11 @@ function tearArm(z, i, vx, vz) {
 function popHead(zb, shot) {
   makeGib(zb, LIMBS.head, { x: zb.vx * 0.5 + rand(-1.5, 1.5), y: shot ? rand(12, 16) : rand(8, 14), z: zb.vz * 0.7 }, rand(14, 26));
   zb.headless = true;
+  // the skull bursts: brain, bits of bone, an eye
+  const hh = 1.62 * zb.size;
+  for (let i = 0; i < 6; i++) addChunk({ m: 'meat', x: zb.x, z: zb.z, h: hh, vx: rand(-3, 3), vz: rand(-2, 3), vh: rand(4, 10), sx: rand(0.04, 0.06), sy: 0.035, sz: rand(0.05, 0.07), c: CH.brain, life: rand(2.5, 4), blood: true, bounce: 0.08 });
+  for (let i = 0; i < 4; i++) addChunk({ x: zb.x, z: zb.z, h: hh, vx: rand(-4, 4), vz: rand(-2, 4), vh: rand(5, 11), sx: rand(0.03, 0.06), sy: 0.012, sz: rand(0.03, 0.05), c: CH.bone, life: 2.5 });
+  if (Math.random() < 0.6) addChunk({ m: 'meat', x: zb.x, z: zb.z, h: hh, vx: rand(-2, 2), vz: rand(-1, 3), vh: rand(6, 10), sx: 0.042, sy: 0.042, sz: 0.042, c: CH.eye, life: 3, bounce: 0.35 });
   for (let i = 0; i < 8; i++) addPart({ k: 'blood', x: zb.x, z: zb.z, h: 1.5 * zb.size, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(5, 10), g: 14, r: rand(0.04, 0.09), life: 1.4, dark: Math.random() < 0.3 });
   addPart({ k: 'mist', x: zb.x, z: zb.z, h: 1.55 * zb.size, vx: 0, vz: 0, vh: 1, r: 0.25, grow: 2.4, drag: 3, life: 0.45, a: 0.6 });
 }
@@ -2732,7 +2944,9 @@ function killZombie(zb, o) {
   if (running) kills++;
   bloodBurst(zb.x, zb.z, 1.2 * s, 14, 5, 7);
   addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: 1.1 * s, vx: 0, vz: 0, vh: 0.4, r: 0.3, grow: 2.6, drag: 3, life: 0.45, a: 0.6 });
-  for (let i = 0; i < (o.gun ? 2 : 4); i++) meatChunk(zb, 1);
+  for (let i = 0; i < (o.gun ? 3 : 5); i++) meatChunk(zb, 1);
+  // the belly splits as it goes down: the guts come out and swing
+  if (!zb.look.guts && zb.type !== 'barrel' && Math.random() < 0.3) zb.look.guts = true;
   if (zb.type === 'barrel') explosionsQ.push({ x: zb.x, z: zb.z, t: 0.1, power: 1.35 });
   addFever(o.gun ? 3 : 4);
   if (Math.random() < 0.45) deathGurgle(zb);
@@ -2744,6 +2958,11 @@ function killZombie(zb, o) {
   }
   if (o.head || (!o.gun && o.f > 0.4 && Math.random() < 0.55)) popHead(zb, o.head);
 }
+// a length of gut flying on its own
+function gutGib(zb, v) {
+  const q = new THREE.Quaternion().setFromEuler(_eu.set(rand(0, 6), rand(0, 6), rand(0, 6)));
+  gibs.push({ x: zb.x, h: zb.size, z: zb.z, vx: v.x, vh: v.y, vz: v.z, q, parts: [{ mesh: 'guts', local: new THREE.Matrix4(), c: WHITE }], life: rand(4, 6), rad: 0.05, w: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(rand(8, 18)), head: false, bleed: 1 });
+}
 // a point-blank blast tears the body apart: every limb flies on its own
 function burstZombie(zb, o) {
   zb.gone = true;
@@ -2753,8 +2972,11 @@ function burstZombie(zb, o) {
   if (zb.arms[1]) groups.push(LIMBS.armR);
   if (!zb.headless) groups.push(LIMBS.head);
   for (const g of groups) makeGib(zb, g, { x: nx * rand(3, 8) + rand(-4, 4), y: rand(7, 15) * (g === LIMBS.head ? 1.15 : 1), z: nz * rand(2, 6) + rand(0, 5) }, rand(8, 24));
+  for (let i = 0; i < 2; i++) gutGib(zb, { x: nx * rand(2, 6) + rand(-3, 3), y: rand(6, 12), z: nz * rand(1, 4) + rand(0, 4) });
   for (let i = 0; i < (zb.type === 'tank' ? 18 : 10); i++) meatChunk(zb, 1.3);
-  for (let i = 0; i < 3; i++) addChunk({ x: zb.x, z: zb.z, h: s, vx: rand(-5, 5), vz: rand(-2, 5), vh: rand(6, 12), sx: 0.03, sy: 0.2 * Math.min(1.4, s), sz: 0.03, c: CH.bone, life: 2.5 });
+  // it rains blood for a moment
+  for (let i = 0; i < 24; i++) addPart({ k: 'blood', x: zb.x + rand(-0.4, 0.4), z: zb.z + rand(-0.4, 0.4), h: s, vx: rand(-3, 3), vz: rand(-1.5, 3), vh: rand(7, 14), g: 14, r: rand(0.04, 0.09), life: rand(1.4, 2), dark: Math.random() < 0.35 });
+  for (let i = 0; i < 6; i++) addChunk({ x: zb.x, z: zb.z, h: s, vx: rand(-5, 5), vz: rand(-2, 5), vh: rand(6, 12), sx: 0.03, sy: 0.2 * Math.min(1.4, s), sz: 0.03, c: CH.bone, life: 2.5 });
   bloodBurst(zb.x, zb.z, s, 20, 6, 9);
   addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: s, vx: 0, vz: 0, vh: 0.5, r: 0.5, grow: 4, drag: 3, life: 0.7, a: 0.7 });
   addDecal(zb.x, zb.z, 1.3 * s, 'splat', 16);
@@ -3170,6 +3392,7 @@ function fxDecay(raw) {
   flashScreen = Math.max(0, flashScreen - raw);
   speedLines = Math.max(0, speedLines - raw * 1.2);
   zoom += (1 - zoom) * Math.min(1, raw * 6);
+  look.tilt += (bossTiltGoal() - look.tilt) * Math.min(1, raw * 2.2);
   gunRecoil = Math.max(0, gunRecoil - raw * 14);
   tubeRecoil = Math.max(0, tubeRecoil - raw * 4);
   comboPulse = Math.max(0, comboPulse - raw * 6);
@@ -3251,7 +3474,17 @@ function update(dt, raw) {
         // the barricade never breaks: zombies just pound on it
         z.atWall = z.z <= wz + 0.05;
         z.attackT += dt; z.phase += dt * 3;
-        if (z.atWall && running && z.attackT > 0.7) { z.attackT = 0; barricadeHit(false); }
+        if (z.atWall && running && z.attackT > 0.7) {
+          z.attackT = 0; barricadeHit(false);
+          if (Math.random() < 0.4) addDecal(z.x + rand(-0.25, 0.25), z.z - rand(0.1, 0.4), rand(0.15, 0.32), 'splat', 14);   // the road at the wire gets bloodier
+        }
+      }
+      // they drip as they come: drool off the chin, blood off the guts, a spurt from a torn shoulder
+      if (z.z < 18) {
+        const s = z.size;
+        if (!z.headless && Math.random() < dt * 1.2) addPart({ k: 'blood', x: z.x + rand(-0.03, 0.03), z: z.z - 0.14 * s, h: 1.5 * s, vx: 0, vz: 0, vh: rand(-0.4, 0), g: 9, r: rand(0.018, 0.032), life: 0.7, dark: Math.random() < 0.4 });
+        if (z.look.guts && Math.random() < dt * 1.6) addPart({ k: 'blood', x: z.x + rand(-0.05, 0.05), z: z.z - 0.12 * s, h: 0.55 * s, vx: 0, vz: 0, vh: 0, g: 9, r: rand(0.02, 0.035), life: 0.5, dark: true });
+        for (let i = 0; i < 2; i++) if (!z.arms[i] && Math.random() < dt * 10) addPart({ k: 'blood', x: z.x + (i ? 0.22 : -0.22) * s, z: z.z - 0.05, h: 1.36 * s, vx: (i ? 1 : -1) * rand(0.3, 1.3), vz: rand(-0.4, 0.3), vh: rand(0.5, 2.4), g: 12, r: rand(0.025, 0.05), life: 0.8, dark: Math.random() < 0.3 });
       }
       z.vxs += ((z.x - x0) / Math.max(dt, 1e-4) - z.vxs) * Math.min(1, dt * 5);
     } else if (z.state === 'fly') {
@@ -3387,15 +3620,15 @@ function demoTick(dt) {
 }
 
 // ---------- render ----------
-const look = { x: 0, y: 0 };
+const look = { x: 0, y: 0, tilt: 0 };
 function render(raw) {
-  // a touch of parallax toward the reticle, plus the shake
+  // a touch of parallax toward the reticle, the tilt up at the giant, plus the shake
   const nx = aim.show ? aim.x / W * 2 - 1 : 0, ny = aim.show ? 1 - aim.y / H * 2 : 0;
   look.x += (-nx * 0.018 - look.x) * Math.min(1, raw * 4);
   look.y += (ny * 0.008 - look.y) * Math.min(1, raw * 4);
   const sh = reduceMotion ? 0 : shake;
   camera.position.set(rand(-1, 1) * sh * 0.004, CAM_H + rand(-1, 1) * sh * 0.004, 0);
-  camera.rotation.set(-pitch0 + look.y + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
+  camera.rotation.set(-pitch0 + look.tilt + look.y + rand(-1, 1) * sh * 0.0008, look.x + rand(-1, 1) * sh * 0.0008, rand(-1, 1) * sh * 0.0005);
   camera.zoom = zoom; camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
@@ -3500,6 +3733,18 @@ async function bootInner() {
     };
     window.__share = () => ({ x: $('shareX').href, line: $('shareLine').href, img: $('shareImg').textContent, ready: !!cardBlob, disabled: $('shareImg').disabled, shot: shotHave, shotSize: [shotCv.width, shotCv.height] });
     window.__card = () => cardBlob && new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(cardBlob); });
+    // a row of zombies standing still at a given distance, to look at them up close
+    window.__lineup = (zz = 6, n = 6, types) => {
+      for (const z of zombies) z.gone = true;
+      zombies = []; spawnTimer = 1e9;
+      for (let i = 0; i < n; i++) {
+        const z = makeZombie(types ? types[i % types.length] : pick(['walker', 'walker', 'runner', 'tank']), (i - (n - 1) / 2) * 0.75, zz + (i % 2) * 0.4);
+        z.speed = 0; zombies.push(z);
+      }
+      return zombies.length;
+    };
+    // the gore on show: an arm off every third, guts out of every other, a loose eye on every third
+    window.__gore = () => { zombies.forEach((z, i) => { if (z.state !== 'walk') return; if (i % 3 === 0 && z.arms[0]) tearArm(z, 0, 0, 0); if (i % 2 === 0 && z.type !== 'barrel') z.look.guts = true; if (i % 3 === 1) z.look.face = 1; }); return zombies.length; };
     window.__clear = () => { for (const z of zombies) if (z.state === 'walk' && z.type !== 'boss') killZombie(z, { gun: true }); if (boss) { boss.gone = true; boss.state = 'gone'; } };
     window.__dropBlock = i => { const b = city.blocks.filter(o => o.group && !o.ruined)[i || 0]; if (b) { b.hp = 0.01; damageBlock(b, 1, (b.z0 + b.z1) / 2, 4, true); } return !!b; };
   }
@@ -3760,7 +4005,7 @@ function makeBossSkin(chest) {
     for (let i = 0; i < 28; i++) { let x = rand(0, S), y = rand(0, S); g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 8; s++) { x += rand(-10, 10); y += rand(-4, 12); g.lineTo(x, y); } g.stroke(); }
     both((q, col) => {
       for (let i = 0; i < 10; i++) {
-        const x = rand(0, S), y = rand(0, S), c = col || pick([MEATC, GOREC, '#3a0608']);
+        const x = rand(0, S), y = rand(0, S), c0 = pick([MEATC, GOREC, '#3a0608']), c = col || c0;   // picked either way: both passes must draw the same shapes
         blotch(q, x, y, rand(5, 14), c, 7);
         for (let k = 0; k < 2; k++) drip(q, x + rand(-4, 4), y, rand(10, 40), rand(2, 3), col || BLOODC);
       }
@@ -3872,6 +4117,13 @@ function resetBoss() {
   boss = null; bossSpawned = false; bossKilled = false;
   BOSS_U.fogK.value = 1; BOSS_U.flash.value.setRGB(0, 0, 0);
   if (bossM) bossM.R.root.visible = false;
+}
+// the giant stands taller than the long lens shows: while it is on its feet the camera tilts up to keep its head in view
+function bossTiltGoal() {
+  const z = boss;
+  if (!z || z.gone || !(z.state === 'walk' || z.state === 'final' || z.state === 'dying')) return 0;
+  const e = Math.atan2(1.75 * z.size + 0.35 - CAM_H, Math.max(z.z, 1));
+  return clamp(pitch0 + e - Math.atan(0.88 * tanV), 0, 0.14);
 }
 const bossBusy = () => boss && (boss.state === 'drop' || boss.state === 'dying' || boss.state === 'moonshot' || boss.state === 'final');
 function spawnBoss() {
