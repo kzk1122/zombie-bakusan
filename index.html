@@ -78,13 +78,10 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo i.on { background: var(--ember); border-color: var(--flare); opacity: 1; }
 .gauge { display: block; width: 110px; height: 12px; margin-top: 6px; border: 2px solid var(--bone); border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ink) 60%, transparent); }
 .gauge b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ember), var(--flare)); }
-.fever.on .k { color: var(--flare); opacity: 1; animation: blink .25s steps(2) infinite; }
 .gauge.reload { width: 64px; }
 .reload b { background: linear-gradient(90deg, #6d7350, #c9c08a); }
 .reload.ready b { background: linear-gradient(90deg, var(--ember), var(--flare)); }
-.fever.on .gauge b { background: linear-gradient(90deg, #ff4a3d, #ffd25e, #9aae5c, #5ac8ff, #c86bff, #ff4a3d); background-size: 200% 100%; animation: slide .6s linear infinite; }
 @keyframes blink { 50% { opacity: .45; } }
-@keyframes slide { to { background-position: 200% 0; } }
 .spacer { flex: 1; }
 .mute {
   pointer-events: auto;
@@ -93,6 +90,24 @@ canvas { display: block; width: 100%; height: 100%; }
   padding: 4px 10px; cursor: pointer; opacity: .8;
 }
 .mute:focus-visible, .btn:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+/* the air strike meter, bottom left, clear of the giant's health bar: a ring that fills as we kill (full, the strike comes
+   on its own), glowing while a full one waits out the giant's show, and a rainbow ring draining through FEVER. It only
+   shows: taps go through it to the game */
+.sp {
+  position: absolute; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(54px, calc(env(safe-area-inset-bottom, 0px) + 40px));
+  width: 64px; height: 64px; border-radius: 50%; color: var(--bone); pointer-events: none;
+  display: grid; place-items: center;
+  background: conic-gradient(transparent calc(var(--p, 0) * 1%), color-mix(in srgb, var(--ink) 72%, transparent) 0), conic-gradient(var(--ember), var(--flare), var(--ember));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bone) 30%, transparent), 0 4px 14px rgba(0, 0, 0, .5);
+}
+.sp::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 85%, transparent); }
+.sp .t { position: relative; font-family: var(--display); font-size: 17px; line-height: 1; opacity: .5; }
+.sp.ready { animation: sp-pulse .42s ease-in-out infinite alternate; box-shadow: 0 0 0 3px var(--flare), 0 0 28px 8px color-mix(in srgb, var(--ember) 85%, transparent); }
+.sp.ready::before { background: radial-gradient(circle at 50% 40%, #ffb04a, #d8401f 70%, #8a1f14); }
+.sp.ready .t { opacity: 1; color: var(--bone); text-shadow: 0 2px 0 var(--ink); }
+.sp.fever { background: conic-gradient(transparent calc(var(--p, 0) * 1%), color-mix(in srgb, var(--ink) 72%, transparent) 0), conic-gradient(#ff4a3d, #ffd25e, #9aae5c, #5ac8ff, #c86bff, #ff4a3d); }
+.sp.fever .t { opacity: 1; font-size: 13px; color: var(--flare); animation: blink .25s steps(2) infinite; }
+@keyframes sp-pulse { to { transform: scale(1.09); } }
 @container (max-width: 440px) {
   .hud { gap: 6px 12px; }
   .stat .v { font-size: 18px; }
@@ -195,7 +210,7 @@ canvas { display: block; width: 100%; height: 100%; }
   background: color-mix(in srgb, var(--ink) 80%, transparent); color: var(--bone);
   user-select: text; -webkit-user-select: text; cursor: text;
 }
-@media (prefers-reduced-motion: reduce) { .fever.on .k, .fever.on .gauge b { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sp.ready, .sp.fever .t { animation: none; } }
 </style>
 </head>
 <body>
@@ -209,10 +224,11 @@ canvas { display: block; width: 100%; height: 100%; }
     <div class="stat time"><span class="k">残り</span><span class="v" id="time">15.0</span></div>
     <div class="stat"><span class="k">スコア</span><span class="v" id="score">0</span></div>
     <div class="stat"><span class="k" id="ammoLabel">ロケット</span><span class="ammo" id="ammo"></span></div>
-    <div class="stat fever" id="feverWrap"><span class="k" id="feverLabel">FEVER</span><span class="gauge"><b id="feverBar"></b></span></div>
     <span class="spacer"></span>
     <button class="mute" id="mute" type="button">音: ON</button>
   </div>
+
+  <div class="sp" id="spMeter" hidden aria-hidden="true"><span class="t" id="spText">空爆</span></div>
 
   <div class="overlay" id="title">
     <div class="card">
@@ -231,7 +247,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <div class="ctl"><span class="key">長押し</span><span id="ctlHold">マシンガン</span></div>
         <div class="ctl"><span class="key">タップ</span><span id="ctlTap">ロケット</span></div>
       </div>
-      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けるとFEVER。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCは右クリックかスペースでも<span id="ctlPc">ロケット</span>。</p>
+      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCは右クリックかスペースでも<span id="ctlPc">ロケット</span>。</p>
     </div>
   </div>
 
@@ -2060,11 +2076,11 @@ function spawnWave(zs) {
 // a few at a time burst up through the road just past the wire, so the near street is never empty (2026-10-25: the
 // lower half of a phone screen sat empty while everything died far off)
 const IRON = new THREE.Color('#2a2a30');
-function spawnManhole() {
+function spawnManhole(zAt) {
   let walking = 0;
   for (const z of zombies) if (z.state === 'walk') walking++;
   if (walking > 70 || (boss && boss.state === 'drop')) return;
-  const x = rand(-1, 1) * halfX * 0.7, z0 = rand(8.5, 12.5), n = 2 + (Math.random() < 0.4 ? 1 : 0);
+  const x = rand(-1, 1) * halfX * 0.7, z0 = zAt || rand(8.5, 12.5), n = 2 + (Math.random() < 0.4 ? 1 : 0);
   craters.push({ x, z: z0, r: 0.42, rot: rand(0, 6.28), life: 30 });   // a cold hole: no glow, it is not a blast
   addChunk({ x, z: z0, h: 0.05, vx: rand(-1, 1), vz: rand(-1.5, 0.5), vh: rand(8, 11), sx: 0.72, sy: 0.07, sz: 0.72, c: IRON, life: 3, bounce: 0.35, w: new THREE.Vector3(rand(-9, 9), rand(-2, 2), rand(-9, 9)) });
   for (let i = 0; i < 7; i++) { const a = rand(0, 6.28), sp = rand(1, 3); addChunk({ x: x + Math.cos(a) * 0.35, z: z0 + Math.sin(a) * 0.35, h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(3, 6), sx: rand(0.12, 0.24), sy: 0.06, sz: rand(0.1, 0.2), c: Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: rand(2, 3), bounce: 0.2 }); }
@@ -3124,9 +3140,9 @@ const DURATION = 15, FEVER_TIME = 4.5;
 // what the set pieces pay on top of the kills they take with them (2026-10-25: a block coming down paid what three zombies
 // did, so nobody aimed at one)
 const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000 };
-// lines drawn from bot rounds (2026-10-25): doing nothing is C; firing blindly and clean shooting both land around S; blocks
-// brought down on the horde lift a round to SS; SSS took about one round in ten
-const RANKS = [{ r: 'SSS', min: 1800000 }, { r: 'SS', min: 1500000 }, { r: 'S', min: 1200000 }, { r: 'A', min: 700000 }, { r: 'B', min: 200000 }, { r: 'C', min: 0 }];
+// lines drawn from bot rounds with the air strike called in as soon as it is ready (2026-10-25): doing nothing is C, firing
+// blindly mostly S, clean shooting mostly SS (with the tank too); SSS took about one skilled round in ten
+const RANKS = [{ r: 'SSS', min: 2400000 }, { r: 'SS', min: 2100000 }, { r: 'S', min: 1600000 }, { r: 'A', min: 1000000 }, { r: 'B', min: 300000 }, { r: 'C', min: 0 }];
 let running = false, endT = 0, boss = null;
 let explosionsQ = [], floaters = [], bannerObj = null;
 let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
@@ -3150,7 +3166,7 @@ function reset() {
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -3169,6 +3185,7 @@ const chainMult = i => i > 10 ? 2 : 1;
 let chainF = null, chainFCh = null;   // the one chain counter on screen and the chain it shows
 function registerKills(k, x, z, label, blast, ch, mul = 1) {
   if (!running || !ch) return;   // the finale, the title demo and whatever we did not set off score nothing
+  if (strike) ch = strike.ch;   // while the jets are in, everything we kill goes on the air strike's one chain
   const prev = combo;
   combo += k; comboTimer = 1.5; maxCombo = Math.max(maxCombo, combo);
   const base = 100 * Math.min(combo, 50) * mul;
@@ -3176,7 +3193,7 @@ function registerKills(k, x, z, label, blast, ch, mul = 1) {
   for (let i = 0; i < k; i++) pts += base * chainMult(++ch.n);
   score += pts; ch.extra += pts - base * k; ch.quiet = 0; ch.x = x; ch.z = z;
   if (!ch.live) { ch.live = true; chains.push(ch); }
-  bestChain = Math.max(bestChain, ch.n);
+  if (ch.strike) strikeKills += k; else bestChain = Math.max(bestChain, ch.n);   // 「1発で◯体」 is for our own shots
   chainCallout(ch);
   comboPulse = 1;
   if (label && elapsed - lastLabelT > 0.6) {
@@ -3184,7 +3201,7 @@ function registerKills(k, x, z, label, blast, ch, mul = 1) {
     floaters.push({ x, z, h: 2.4, text: label, sub: '', life: 0.7, big: false });
   }
   for (const [n, t, v] of MILESTONES) {
-    if (prev < n && combo >= n) { showBanner(t, `${n} COMBO`, C.flare, 1.0); speedLines = Math.max(speedLines, 0.5); comboSting(); say(v, 2); }
+    if (prev < n && combo >= n) { if (!strikeQuiet()) showBanner(t, `${n} COMBO`, C.flare, 1.0); speedLines = Math.max(speedLines, 0.5); comboSting(); say(v, 2); }
   }
 }
 // a chain on the run counts up where it is going off, and stings when it starts paying double. One counter at a time,
@@ -3196,30 +3213,34 @@ function chainCallout(ch) {
   const shown = chainF && chainF.life > 0 && floaters.includes(chainF);
   if (shown && chainFCh !== ch && chainFCh.live && chainFCh.n >= ch.n) return;
   if (!shown) {
-    const sp = toScreen(ch.x, ch.z, 2.2);
-    chainF = { chain: true, screen: true, x: clamp(sp.X, 90, W - 90), y: clamp(sp.Y, hudH + 60, H * 0.6), text: '', sub: '', life: 1.2, big: true };
+    const sp = toScreen(ch.x, ch.z, 2.2);   // the strike's counter goes under the sky its jets fly through
+    chainF = { chain: true, screen: true, x: clamp(sp.X, 90, W - 90), y: ch.strike ? H * 0.56 : clamp(sp.Y, hudH + 60, H * 0.6), text: '', sub: '', life: 1.2, big: true };
     floaters.push(chainF);
   }
   chainFCh = ch;
-  chainF.text = `${ch.n}体連鎖!!`; chainF.sub = m > 1 ? `×${m}` : ''; chainF.life = 1.2;
+  chainF.text = ch.strike ? `空爆 ${ch.n}体!!` : `${ch.n}体連鎖!!`; chainF.sub = m > 1 ? `×${m}` : ''; chainF.life = 1.2;
 }
 // once a chain has gone quiet, a long one gets the banner with what its length paid on top
 function updateChains(dt) {
   for (const ch of chains) {
     if ((ch.quiet += dt) < 1.1) continue;
     ch.live = false;
-    if (ch.n >= 20 && ch.n - ch.shown >= 10) {   // the counter covers the shorter ones: a banner each piled up
+    if (ch.n >= 20 && ch.n - ch.shown >= 10 && !strikeQuiet()) {   // the counter covers the shorter ones: a banner each piled up
       ch.shown = ch.n;
-      showBanner(`1発で${ch.n}体!!`, `連鎖ボーナス +${ch.extra.toLocaleString()}`, C.flare, 1.3);
+      showBanner(ch.strike ? `空爆で${ch.n}体!!` : `1発で${ch.n}体!!`, `連鎖ボーナス +${ch.extra.toLocaleString()}`, C.flare, 1.3);
       say(ch.n >= 25 ? 'incredible' : ch.n >= 15 ? 'excellent' : 'great', 2);
     }
   }
   chains = chains.filter(ch => ch.live);
 }
+// the meter fills as we kill; full, it calls in the air strike, which starts FEVER (74-strike.js). It fills at half the
+// rate FEVER's did (2026-10-25: at the old rate a strike came every few seconds, three a round), and it stops in the last
+// STRIKE_LAST seconds, when the bombs would still be falling at the whistle
+const STRIKE_FILL = 0.5, STRIKE_LAST = 2.2;
 function addFever(v) {
-  if (!running || feverT > 0) return;
-  fever = Math.min(100, fever + v);
-  if (fever >= 100) startFever();
+  if (!running || feverT > 0 || spReady || DURATION - elapsed < STRIKE_LAST) return;
+  fever = Math.min(100, fever + v * STRIKE_FILL);
+  if (fever >= 100) strikeReady();
 }
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
@@ -3228,10 +3249,11 @@ function startFever() {
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.08);
   sting(); say('fever', 3);
 }
+// the giant's death and flight and the moon breaking are the show: no combo callouts and no air strike over them
+function showOn() { return (boss && (boss.state === 'dying' || boss.state === 'moonshot')) || (moonBroken && moonBreakT < 2.2); }
 function showBanner(text, sub, color, dur, force, low) {
   if (!running && !force) return;   // after time-up only FINISH and the giant's own banners
-  // the giant's death and flight and the moon breaking are the show: no combo callouts over them
-  if (!force && ((boss && (boss.state === 'dying' || boss.state === 'moonshot')) || (moonBroken && moonBreakT < 2.2))) return;
+  if (!force && showOn()) return;
   bannerObj = { text, sub, color, life: dur, max: dur, low };
 }
 function bloodBurst(x, z, h, n, sp, up) {
@@ -3731,14 +3753,14 @@ function start() {
   reset(); resetShare(); running = true;
   track('game_start', { weapon });
   spawnWave(12); spawnWave(16.5); spawnTimer = 0.6;
-  $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false;
+  $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false; $('spMeter').hidden = false;
   hudH = $('hud').offsetHeight + 10;
   startMusic();
   showBanner("LET'S ROCK!!", 'ここが最終防衛ライン!', C.flare, 1.3);
   sayWhenReady('go', 3);
 }
 function timeUp() {
-  running = false; endT = FIN_END; pointers.clear(); firing = false; feverT = 0; fever = 0;
+  running = false; endT = FIN_END; pointers.clear(); firing = false; feverT = 0; fever = 0; spReady = false; $('spMeter').hidden = true;
   musicOn = false; endSting();
   showBanner('FINISH!!', 'TIME UP', C.bone, 1.4, true); say('finish', 3);
   startFinale();
@@ -3755,6 +3777,7 @@ function finish() {
   $('resFlight').textContent = `${longestFlight | 0}m`;
   const badges = [];
   if (bestChain >= 10) badges.push(`1発で${bestChain}体`);
+  if (strikeKills) badges.push(`空爆で${strikeKills}体`);
   if (bossKilled) badges.push('巨大ゾンビ撃破');
   if (moonBroken) badges.push('月を破壊');
   if (moonHits) badges.push(`月面着弾 ×${moonHits}`);
@@ -3775,7 +3798,7 @@ function finish() {
     } else best = `ベスト: ${prev.score.toLocaleString()}`;
   } catch (e) {}
   $('resBest').textContent = best;
-  $('hud').hidden = true; $('result').hidden = false;
+  $('hud').hidden = true; $('spMeter').hidden = true; $('result').hidden = false;
   try { $('again').focus({ preventScroll: true }); } catch (e) {}
 }
 $('startBtn').addEventListener('click', start);
@@ -3788,7 +3811,8 @@ function fxDecay(raw) {
   flashScreen = Math.max(0, flashScreen - raw);
   speedLines = Math.max(0, speedLines - raw * 1.2);
   zoom += (1 - zoom) * Math.min(1, raw * 6);
-  look.tilt += (bossTiltGoal() - look.tilt) * Math.min(1, raw * 2.2);
+  const bg = bossTiltGoal(), sg = strikeTiltGoal();
+  look.tilt += (Math.max(bg, sg) - look.tilt) * Math.min(1, raw * (sg > bg ? 3.5 : 2.2));
   gunRecoil = Math.max(0, gunRecoil - raw * 14);
   tubeRecoil = Math.max(0, tubeRecoil - raw * 4);
   cannonRecoil = Math.max(0, cannonRecoil - raw * 2.2); camKick = Math.max(0, camKick - raw * 5);
@@ -3852,6 +3876,7 @@ function update(dt, raw) {
   }
   updateRockets(dt);
   updateShells(dt);
+  updateStrike(dt);
   updateCars(dt);
   updateBuildings(dt);
   updateBoss(dt, raw);
@@ -3986,7 +4011,7 @@ function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
   const tank = weapon === 'tank', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
-  const key = [tv.toFixed(1), score, tank ? 'T' + Math.round(load * 24) : rocketsLeft, feverT > 0 ? 'F' : fever | 0].join('|');
+  const key = [tv.toFixed(1), score, tank ? 'T' + Math.round(load * 24) : rocketsLeft, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
   $('time').textContent = tv.toFixed(1);
@@ -3994,9 +4019,11 @@ function hud() {
   $('score').textContent = score.toLocaleString();
   $('ammo').innerHTML = tank ? `<span class="gauge reload${load >= 1 ? ' ready' : ''}"><b style="width:${(load * 100).toFixed(0)}%"></b></span>`
     : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
-  $('feverBar').style.width = fever + '%';
-  $('feverWrap').classList.toggle('on', feverT > 0);
-  $('feverLabel').textContent = feverT > 0 ? 'FEVER!!' : 'FEVER';
+  // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
+  const sp = $('spMeter');
+  sp.style.setProperty('--p', fever.toFixed(1));
+  sp.classList.toggle('ready', spReady); sp.classList.toggle('fever', feverT > 0);
+  $('spText').textContent = feverT > 0 ? 'FEVER' : '空爆';
 }
 
 // ---------- title demo: the horde shambles in and gets shot up behind the menu ----------
@@ -4041,7 +4068,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawParts();
   updateLights(raw);
 }
 function drawOverlay() {
@@ -4104,7 +4131,7 @@ function fakeBlack() {
   renderer.setRenderTarget(null); renderer.setClearColor(0x000000, 1); renderer.clear(true, false, false); renderer.setClearColor(c, a);
 }
 function onResize() { placeMoon(); placeGun(); placeTank(); }
-const CANVAS_GLYPHS = '連鎖体串刺しき,巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
+const CANVAS_GLYPHS = '空左ボタ発動キか主砲射機銃連鎖体串刺しき,巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
 async function boot() {
   try { await bootInner(); }
   catch (e) {
@@ -4115,7 +4142,7 @@ async function boot() {
 }
 async function bootInner() {
   try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
-  buildCity(); initZombieMeshes(); buildGun(); buildTank(); buildBoss(); setWeapon(weapon);
+  buildCity(); initZombieMeshes(); buildGun(); buildTank(); buildBoss(); buildJets(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); placeScenery();
   if (window.ZB_DEBUG) {
@@ -4128,6 +4155,8 @@ async function bootInner() {
     window.__weapon = w => setWeapon(w);
     window.__fire = v => { pointers.clear(); if (v) pointers.set(-1, { sx: aim.x, sy: aim.y, t: performance.now(), moved: 99, fire: true }); };
     window.__fever = () => startFever();
+    window.__special = () => trySpecial();
+    window.__ready = () => { if (running && feverT <= 0) { fever = 100; strikeReady(); } };
     window.__fcount = () => frameCount;
     window.__prep = n => { const t = performance.now(); for (let i = 0; i < n; i++) { render(1 / 60); drawOverlay(); } return (performance.now() - t) / n; };
     window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, drawBuildingFx, bossM };
@@ -4163,7 +4192,7 @@ async function bootInner() {
     targets: zombies.filter(z => z.state === 'walk').map(z => { const s = toScreen(z.x, z.z, 1.1 * z.size), hd = toScreen(z.x, z.z, z.h + 1.64 * z.size); return { x: s.X, y: s.Y, hy: hd.Y, z: z.z, type: z.type }; }),
     cars: cars.map(c => { const s = toScreen(c.x, c.z, 0.8); return { x: s.X, y: s.Y, z: c.z, s: c.state }; }),
     boss: boss ? (() => { const s = toScreen(boss.x, boss.z, 1.25 * boss.size); return { x: s.X, y: s.Y, z: boss.z, hp: boss.hp, state: boss.state }; })() : null,
-    moonBroken, moonHits, bldDown, bestChain, carsBlown, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
+    moonBroken, moonHits, bldDown, bestChain, carsBlown, spReady, strikes, strikeKills, fever, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
     blocks: city.blocks.filter(b => b.group && !b.ruined && b.z1 > 12).map(b => { const zc = clamp((b.z0 + b.z1) / 2, 12, b.z1), s = toScreen(b.side * b.xf, zc, Math.min(b.h * 0.5, 6)); return { x: s.X, y: s.Y, z: zc, hp: b.hp }; }),
   });
   if (window.ZB_GLFAIL === 'shader') {
@@ -4977,6 +5006,220 @@ function megaSnd() {
   const o = osc('sine', 90, t); o.frequency.exponentialRampToValueAtTime(18, t + 2.2);
   o.connect(gain(t, 1.3, 0.004, 2.4)).connect(master); o.start(t); o.stop(t + 2.5);
   noiseSrc(t, 3.4).connect(filt('lowpass', 160)).connect(gain(t + 0.05, 1.0, 0.2, 3.0)).connect(master);
+}
+
+// ===== 74-strike.js
+// ---------- the air strike, our special move (2026-10-25, kazu picked it) ----------
+// FEVER no longer starts by itself: the meter fills as we kill, then waits for a press of the button at the bottom left
+// (F on a keyboard). FEVER starts, and three jets come in low down the avenue out of the far end, each dropping a stick of
+// bombs: the lead's go off far down the street, the next one's halfway, the last one's at the wire as it roars over us,
+// so the fire walks up the avenue at us. They come at us rather than from behind because the long lens shows only a
+// sliver of sky: from behind they would not show until they were small and far off, so they come in at street-sign
+// height, under the traffic signal, and pull up only as they reach us. The roar draws a horde out of the haze at the far
+// end just before the first stick lands there, and more of them burst up out of the manholes in the street ahead of the
+// other two sticks (FEVER's guns would otherwise have the street cleared before the bombs got there). From the press to
+// the last bomb, everything we kill, with the bombs or our own guns, goes on one chain: 「空爆で◯体!!」. Once the last
+// bomb is down a last horde comes in, so FEVER has something left to shoot.
+let spReady = false, strikes = 0, strikeKills = 0, strike = null;
+let jets = [], bombs = [];
+const JET_V = 70, BOMB_T = 0.42, BOMB_LEAD = 21;   // a bomb lands 21 m short of where it left the jet, 0.42 s later
+// where each jet's bombs land: the lead far off, the second halfway, the last one at the wire
+const STICKS = [[35, 31.5, 28, 24.5], [21, 17.5, 14], [10.8, 7.8]];
+const JET_LIGHTS = { land: new THREE.Vector3(0, -0.62, 2.3), port: new THREE.Vector3(3.15, -0.02, -2.25), star: new THREE.Vector3(-3.15, -0.02, -2.25), fin: new THREE.Vector3(0, 2.25, -4.55), burn: new THREE.Vector3(0, 0, -4.45) };
+const _jl = new THREE.Vector3(), _jt = new THREE.Vector3();
+let BOMB_GEO = null, BOMB_MAT = null;
+function buildJets() {
+  const body = new THREE.MeshStandardMaterial({ color: 0x7c838e, metalness: 0.45, roughness: 0.4, envMap, envMapIntensity: 1.0, emissive: 0x0d0e12 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1d1e24, metalness: 0.6, roughness: 0.5, envMap, envMapIntensity: 0.6 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x2a1c08, metalness: 0.9, roughness: 0.08, envMap, envMapIntensity: 1.6 });
+  const B = [], D = [], G = [];
+  const add = (list, g, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, s = [1, 1, 1]) => {
+    g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv');
+    g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(...s)));
+    list.push(g);
+  };
+  // a flat plate cut from an outline, t thick
+  const plate = (pts, t) => new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b))), { depth: t, bevelEnabled: false });
+  const Z = Math.PI / 2;
+  // the nose points down +z, the way it flies at us: fuselage, nose, the intake under the belly, the nozzle
+  add(B, new THREE.CylinderGeometry(0.4, 0.53, 6.2, 12), 0, 0, -0.5, Z);
+  add(B, new THREE.ConeGeometry(0.4, 2.6, 12), 0, 0, 3.9, Z);
+  add(D, new THREE.BoxGeometry(0.8, 0.5, 2.2), 0, -0.42, 0.6);
+  add(D, new THREE.CylinderGeometry(0.5, 0.42, 0.7, 12), 0, 0, -3.95, Z);
+  add(G, new THREE.SphereGeometry(0.5, 12, 8), 0, 0.36, 1.7, 0, 0, 0, [0.62, 0.55, 2.0]);
+  for (const s of [-1, 1]) {
+    // delta wings with a missile on each tip, and the tailplanes (outlines in x and z, laid flat)
+    add(B, plate([[0.35, 1.0], [3.1, -1.9], [3.1, -2.4], [0.35, -2.55]].map(([x, z]) => [s * x, -z]), 0.09), 0, -0.06, 0, -Z);
+    add(B, plate([[0.4, -2.9], [1.9, -4.1], [1.9, -4.5], [0.4, -4.55]].map(([x, z]) => [s * x, -z]), 0.07), 0, -0.02, 0, -Z);
+    add(D, new THREE.CylinderGeometry(0.065, 0.065, 2.3, 6), s * 3.15, -0.02, -1.25, Z);
+    add(D, new THREE.ConeGeometry(0.065, 0.35, 6), s * 3.15, -0.02, 0.07, Z);
+  }
+  // the fin (an outline in z and height, stood upright)
+  add(B, plate([[-2.7, 0.3], [-4.3, 2.3], [-4.85, 2.3], [-4.7, 0.3]].map(([z, y]) => [-z, y]), 0.09), -0.045, 0, 0, 0, Z);
+  const geo = { body: mergeGeometries(B), dark: mergeGeometries(D), glass: mergeGeometries(G) };
+  for (let j = 0; j < 3; j++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(geo.body, body), new THREE.Mesh(geo.dark, dark), new THREE.Mesh(geo.glass, glass));
+    g.position.set(0, -50, -40); scene.add(g);   // drawn once at boot so its shaders are ready (prepBig), hidden at reset
+    jets.push({ g, on: false });
+  }
+  // the bombs: dark, finned, with a hot tail so they show against the night
+  BOMB_GEO = mergeGeometries([
+    new THREE.CylinderGeometry(0.16, 0.16, 1.0, 8).rotateX(Z),
+    new THREE.ConeGeometry(0.16, 0.4, 8).rotateX(Z).translate(0, 0, 0.7),
+    new THREE.BoxGeometry(0.5, 0.03, 0.22).translate(0, 0, -0.5), new THREE.BoxGeometry(0.03, 0.5, 0.22).translate(0, 0, -0.5),
+  ].map(g => { g = g.toNonIndexed(); g.deleteAttribute('uv'); return g; }));
+  BOMB_MAT = dark;
+}
+function resetStrike() {
+  spReady = false; strikes = 0; strikeKills = 0; strike = null;
+  for (const J of jets) { J.on = false; J.g.visible = false; }
+  for (const b of bombs) scene.remove(b.mesh);
+  bombs = [];
+}
+// the meter is full: the strike is called in on the next update (2026-10-25, kazu: it should go off by itself rather than
+// wait for a press), or as soon as the giant's death, its flight or the moon breaking is over (showOn())
+function strikeReady() {
+  spReady = true; fever = 100;
+}
+function trySpecial() {
+  if (!running || !spReady) return;
+  spReady = false;
+  track('air_strike', { weapon });
+  readySnd();
+  startFever();
+  showBanner('空爆!!', weapon === 'tank' ? 'FEVER ・ 主砲連射' : 'FEVER ・ ロケット撃ち放題', C.flare, 1.1, false, true);   // low: the sky is for the jets
+  launchStrike();
+}
+function launchStrike() {
+  const ch = newChain(); ch.strike = true;
+  strike = { t: 0, ch, left: STICKS.flat().length, cue: 0 };
+  strikes++;
+  jets.forEach((J, j) => {
+    Object.assign(J, { on: true, j, z: 98 + j * 25, x0: [0, -1.2, 0.35][j], hHi: 8.6 + j * 0.5, hRun: 4.3 + j * 0.3, hPass: 6.4 + j * 0.4, k: 0, passed: false, roll: rand(-1, 1) });
+    J.stick = STICKS[j].map((z, k) => ({ z, x: clamp(J.x0 * 0.3 + (k % 2 ? 1 : -1) * rand(0.35, 1.0), -halfX - 0.8, halfX + 0.8) }));
+    J.x = J.x0; J.h = jetH(J, J.z);   // drawn before the next update when a hitstop holds the game
+    J.g.visible = true;
+  });
+  jetDrone();
+}
+// the flight: over the footbridge at the far end, a dive to street-sign height (under the signal's arm at 34 m, wings and
+// all), and a pull-up as it reaches us
+const smooth01 = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const jetH = (J, z) => J.hRun + (J.hHi - J.hRun) * smooth01(42, 60, z) + (J.hPass - J.hRun) * smooth01(16, -6, z);
+// while they come in, the camera looks up a little so they cross open sky rather than the top edge of the screen, and the
+// big callouts keep out of that sky (on a phone the banners sit right where the jets fly)
+const strikeQuiet = () => jets.some(J => J.on && J.z > 10 && J.z < 100);
+const strikeTiltGoal = () => strikeQuiet() ? 0.075 : 0;
+// what turns up for each stick, and when: [time after the press, what]
+const STRIKE_CUES = [[0.5, () => { spawnWave(Z_FAR + 5); spawnWave(Z_FAR + 8); }], [1.0, () => spawnManhole(rand(15, 19))], [1.45, () => spawnManhole(rand(9, 11.5))]];
+function updateStrike(dt) {
+  if (spReady && running && !strike && !showOn()) trySpecial();
+  if (strike) {
+    strike.t += dt;
+    while (strike.cue < STRIKE_CUES.length && strike.t >= STRIKE_CUES[strike.cue][0]) { const f = STRIKE_CUES[strike.cue++][1]; if (running) f(); }
+  }
+  for (const J of jets) {
+    if (!J.on) continue;
+    J.z -= JET_V * dt;
+    J.x = J.x0 + Math.sin(J.z * 0.05 + J.j * 2) * 0.25;
+    J.h = jetH(J, J.z);
+    // its bombs go when it is 21 m short of where they land; none once the whistle has gone
+    while (J.k < J.stick.length && J.z <= J.stick[J.k].z + BOMB_LEAD) {
+      const s = J.stick[J.k++];
+      if (running) dropBomb(J, s);
+    }
+    // jet wash: the street's grit swirls up under it as it goes over
+    if (J.z > 5 && J.z < 34 && J.h < 7) for (let i = 0; i < 2; i++) addPart({ k: 'dust', x: J.x + rand(-2.5, 2.5), z: J.z + rand(-1, 1), h: 0.2, vx: rand(-2, 2), vz: rand(-1, 1), vh: rand(0.5, 1.6), r: rand(0.35, 0.6), grow: 1.4, drag: 1.8, life: rand(0.6, 1), a: 0.3 });
+    if (!J.passed && J.z < 9) {
+      J.passed = true;
+      jetPass(J.j);
+      shake = Math.max(shake, 7); speedLines = Math.max(speedLines, 0.45);
+    }
+    if (J.z < -30) { J.on = false; J.g.visible = false; }
+  }
+  for (const b of bombs) {
+    b.t += dt;
+    const u = Math.min(1, b.t / BOMB_T);
+    b.x = lerp(b.x0, b.x1, u); b.z = lerp(b.z0, b.z1, u); b.h = b.h0 + b.vh * b.t - 15 * b.t * b.t;
+    if (b.t >= BOMB_T) {
+      b.done = true; scene.remove(b.mesh);
+      fxSoft = b.z1 < 10; explode(b.x1, b.z1, b.z1 < 10 ? 0.95 : 1.05, 0.3, null, strike && strike.ch); fxSoft = false;
+      if (strike && --strike.left === 0) strikeOver();
+    }
+  }
+  bombs = bombs.filter(b => !b.done);
+}
+function dropBomb(J, s) {
+  const mesh = new THREE.Mesh(BOMB_GEO, BOMB_MAT);
+  scene.add(mesh);
+  const h0 = J.h - 0.7;
+  // falls from the jet's belly onto its spot in BOMB_T, dropping back behind the jet the way a bomb with a drag tail does
+  bombs.push({ mesh, t: 0, x0: J.x, z0: J.z, h0, x1: s.x, z1: s.z, vh: (15 * BOMB_T * BOMB_T - h0) / BOMB_T, x: J.x, z: J.z, h: h0 });
+}
+// the last bomb is down: up out of the manholes past the wire come more of them, right into the smoke, and a horde behind
+function strikeOver() {
+  strike = null;
+  if (!running) return;
+  spawnManhole(); manholeT = 0.7; spawnWave(Z_FAR + 1);
+}
+function drawJets() {
+  const now = performance.now() / 1000;
+  for (const J of jets) {
+    if (!J.on) continue;
+    const g = J.g, zA = J.z - 0.5, hA = jetH(J, zA);
+    g.position.set(J.x, J.h, -J.z);
+    g.lookAt(J.x, hA, -zA);   // nose along the flight path: down as it dives in, up as it pulls up
+    g.rotateZ(Math.sin(now * 1.7 + J.roll * 3) * 0.08);
+    g.updateMatrixWorld();
+    // the landing light shows long before the jet comes out of the haze (and smaller close up, where it would hide the jet);
+    // the street lights up in front of it
+    const near = clamp((130 - J.z) / 40, 0, 1) * clamp((J.z - 8) / 30, 0.25, 1);
+    const P = n => _jl.copy(JET_LIGHTS[n]).applyMatrix4(g.matrixWorld);
+    P('land'); ADD.push(_jl.x, _jl.y, _jl.z, 0.9 + J.z * 0.017, 0, 0, 10, 5.5 * near, 5 * near, 4.2 * near, 1);
+    if (J.z < 70 && J.z > 4) ADD.push(J.x, 0.06, -(J.z - 9), 9, 0, 0, 2, 0.3, 0.28, 0.24, clamp((70 - J.z) / 25, 0, 1));
+    const blink = (now * 1.6 + J.j * 0.3) % 1 < 0.5 ? 1 : 0.35;
+    P('port'); ADD.push(_jl.x, _jl.y, _jl.z, 0.9, 0, 0, 0, 8 * blink, 0.5 * blink, 0.3 * blink, 1);
+    P('star'); ADD.push(_jl.x, _jl.y, _jl.z, 0.9, 0, 0, 0, 0.4 * blink, 7 * blink, 1.6 * blink, 1);
+    if ((now * 1.25 + J.j * 0.4) % 1 < 0.08) { P('fin'); ADD.push(_jl.x, _jl.y, _jl.z, 1.4, 0, 0, 0, 9, 9, 9, 1); }
+    P('burn'); ADD.push(_jl.x, _jl.y, _jl.z, 1.7 + rand(0, 0.3), rand(0, 6), 0, 0, 5, 2, 0.6, 1);
+  }
+  for (const b of bombs) {
+    const u = Math.min(1, b.t / BOMB_T), vx = (b.x1 - b.x0) / BOMB_T, vz = (b.z1 - b.z0) / BOMB_T, vh = b.vh - 30 * b.t;
+    b.mesh.position.set(b.x, b.h, -b.z);
+    _jt.set(b.x + vx, b.h + vh, -(b.z + vz));
+    b.mesh.lookAt(_jt);
+    ADD.push(b.x - vx * 0.012, b.h - vh * 0.012, -(b.z - vz * 0.012), 0.5, 0, 0, 0, 4 * (1 - u * 0.5), 1.4, 0.4, 1);
+  }
+}
+// two quick beeps, the way a jet's radar locks on
+function readySnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (const d of [0, 0.12]) {
+    const o = osc('square', 1760, t + d);
+    o.connect(filt('lowpass', 4000)).connect(gain(t + d, 0.12, 0.004, 0.08)).connect(master); o.start(t + d); o.stop(t + d + 0.1);
+  }
+}
+// the three of them coming in: a roar that swells out of the far end of the street
+function jetDrone() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  const bp = filt('bandpass', 260, 0.7); bp.frequency.setValueAtTime(260, t); bp.frequency.exponentialRampToValueAtTime(1300, t + 1.5);
+  const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 1.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+  noiseSrc(t, 2.6).connect(bp).connect(g).connect(master);
+  const o = osc('sawtooth', 1500, t); o.frequency.exponentialRampToValueAtTime(2300, t + 1.4); o.frequency.exponentialRampToValueAtTime(800, t + 2.4);
+  o.connect(filt('bandpass', 2000, 3)).connect(gain(t, 0.05, 1.2, 1.2)).connect(master); o.start(t); o.stop(t + 2.6);
+}
+// one of them tearing over our heads: a blast of roar that drops in pitch as it goes behind us, and a low rumble
+function jetPass(j) {
+  if (!live()) return;
+  const t = actx.currentTime;
+  const bp = filt('bandpass', 1600, 0.6); bp.frequency.setValueAtTime(1600, t); bp.frequency.exponentialRampToValueAtTime(320, t + 1.1);
+  noiseSrc(t, 1.3).connect(bp).connect(gain(t, 0.75, 0.05, 1.15)).connect(master);
+  noiseSrc(t, 1.6).connect(filt('lowpass', 140)).connect(gain(t, 0.9, 0.08, 1.4)).connect(master);
+  const o = osc('sawtooth', 2100 - j * 80, t); o.frequency.exponentialRampToValueAtTime(700, t + 0.9);
+  o.connect(filt('bandpass', 1500, 2)).connect(gain(t, 0.07, 0.02, 0.9)).connect(master); o.start(t); o.stop(t + 1);
 }
 
 // ===== 75-overlay.js
