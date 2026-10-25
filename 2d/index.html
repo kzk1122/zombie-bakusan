@@ -13,6 +13,8 @@
 <meta property="og:url" content="https://zombie-bakusan.pages.dev/2d/">
 <meta property="og:image" content="https://zombie-bakusan.pages.dev/2d/screenshot.jpg">
 <meta name="twitter:card" content="summary_large_image">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3JDQK26EY4"></script>
+<script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-3JDQK26EY4');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
@@ -1391,9 +1393,12 @@ $('mute').addEventListener('click', () => setMuted(!muted));
 setMuted(muted);
 
 // ---------- game flow ----------
+// Site analytics: Google's tag in the head defines gtag; without it (opened as a file, blocked) this does nothing
+function track(name, params) { try { if (typeof window.gtag === 'function') window.gtag('event', name, params); } catch (e) {} }
 function start() {
   initAudio();
   reset(); running = true;
+  track('game_start', { weapon: '2d' });
   spawnWave(12); spawnWave(16.5); spawnTimer = 0.6;
   $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false;
   hudH = $('hud').offsetHeight + 10;
@@ -1425,6 +1430,7 @@ function finish() {
   if (headshots) badges.push(`HEADSHOT ×${headshots}`);
   if (bldDown) badges.push(`ビル倒壊 ×${bldDown}`);
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
+  track('game_end', { weapon: '2d', rank: RANKS[i].r, score });
   let best = '';
   try {
     const prev = JSON.parse(localStorage.getItem('zb-v7-best') || 'null');
