@@ -5156,18 +5156,19 @@ function resetShare() {
   shotT = -1; shotHave = false; cardBlob = null; cardJob++; shareInfo = null;
   $('shareImg').disabled = true; $('shareMsg').hidden = true;
 }
-function shareText(o) {
+// X and the share sheet (on a phone mostly used to post to X) carry the extra tags kazu asked for; LINE keeps the game's own
+const TAGS = '#ゾンビ爆散', TAGS_X = '#ゾンビ爆散 #ストレス解消 #ゾンビ';
+function shareText(o, tags = TAGS) {
   const bits = [`撃破${o.kills}体`, `最大${o.combo}コンボ`];
   if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push('巨大ゾンビ撃破');
-  return `ゾンビ爆散${o.weapon === 'tank' ? '（戦車）' : ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n#ゾンビ爆散`;
+  return `ゾンビ爆散${o.weapon === 'tank' ? '（戦車）' : ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n${tags}`;
 }
 const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'z.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; } };
 // called when the result comes up
 function setupShare(o) {
   shareInfo = o;
-  const text = shareText(o);
-  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(SITE_URL);
-  $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(text + '\n' + SITE_URL);
+  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText(o, TAGS_X)) + '&url=' + encodeURIComponent(SITE_URL);
+  $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText(o) + '\n' + SITE_URL);
   $('shareImg').textContent = !dlNS && canShareFiles() ? '画像で共有' : '画像を保存';
   if (!shotHave) requestShot(0);   // no finale frame (it can happen): the street as it is now
   buildCard(o);
@@ -5250,7 +5251,7 @@ $('shareImg').addEventListener('click', async () => {
     return;
   }
   if (canShareFiles()) {
-    try { await navigator.share({ files: [file], text: shareText(shareInfo) + '\n' + SITE_URL }); }
+    try { await navigator.share({ files: [file], text: shareText(shareInfo, TAGS_X) + '\n' + SITE_URL }); }
     catch (e) { if (!e || e.name !== 'AbortError') msg('ここでは共有できませんでした。XかLINEのボタンを使ってください'); }
     return;
   }
