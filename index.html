@@ -2044,18 +2044,37 @@ function pickType() {
 function spawnWave(zs) {
   let walking = 0;
   for (const z of zombies) if (z.state === 'walk') walking++;
-  if (walking > 55) return;
+  if (walking > 70) return;
   const p = Math.min(1, elapsed / DURATION);
   const horde = zs || Math.random() < 0.45 + p * 0.35;
   const cx = rand(-1, 1) * halfX * 0.85, z0 = zs || Z_FAR - rand(0, 2);
-  const n = horde ? 4 + ((Math.random() * (3 + elapsed / DURATION * 7.5)) | 0) : 1 + (Math.random() < 0.4 ? 1 : 0);
+  const n = horde ? 5 + ((Math.random() * (4 + elapsed / DURATION * 9)) | 0) : 1 + (Math.random() < 0.6 ? 1 : 0);
   for (let i = 0; i < n; i++) {
     const x = horde ? cx + rand(-1.3, 1.3) : rand(-1, 1) * halfX * 0.9;
     const type = horde && i === 0 && Math.random() < 0.6 ? 'barrel' : pickType();
     zombies.push(makeZombie(type, clamp(x, -halfX, halfX), z0 + rand(0, 3)));
   }
 }
-function spawnInterval() { return Math.max(0.34, 0.8 - elapsed / DURATION * 0.46) * rand(0.7, 1.3); }
+// a few at a time burst up through the road just past the wire, so the near street is never empty (2026-10-25: the
+// lower half of a phone screen sat empty while everything died far off)
+const IRON = new THREE.Color('#2a2a30');
+function spawnManhole() {
+  let walking = 0;
+  for (const z of zombies) if (z.state === 'walk') walking++;
+  if (walking > 70 || (boss && boss.state === 'drop')) return;
+  const x = rand(-1, 1) * halfX * 0.7, z0 = rand(8.5, 12.5), n = 2 + (Math.random() < 0.4 ? 1 : 0);
+  craters.push({ x, z: z0, r: 0.42, rot: rand(0, 6.28), life: 30 });   // a cold hole: no glow, it is not a blast
+  addChunk({ x, z: z0, h: 0.05, vx: rand(-1, 1), vz: rand(-1.5, 0.5), vh: rand(8, 11), sx: 0.72, sy: 0.07, sz: 0.72, c: IRON, life: 3, bounce: 0.35, w: new THREE.Vector3(rand(-9, 9), rand(-2, 2), rand(-9, 9)) });
+  for (let i = 0; i < 7; i++) { const a = rand(0, 6.28), sp = rand(1, 3); addChunk({ x: x + Math.cos(a) * 0.35, z: z0 + Math.sin(a) * 0.35, h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(3, 6), sx: rand(0.12, 0.24), sy: 0.06, sz: rand(0.1, 0.2), c: Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: rand(2, 3), bounce: 0.2 }); }
+  for (let i = 0; i < 6; i++) { const a = rand(0, 6.28), sp = rand(0.4, 1.4); addPart({ k: 'dust', x, z: z0, h: 0.2, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(2, 4), g: 3, r: rand(0.25, 0.4), grow: 1.1, drag: 1.6, life: rand(0.8, 1.2), a: 0.45 }); }
+  clang(); thud();
+  for (let i = 0; i < n; i++) {
+    const zb = makeZombie(Math.random() < 0.3 ? 'runner' : 'walker', clamp(x + rand(-0.3, 0.3), -halfX, halfX), z0 + rand(-0.2, 0.4));
+    zb.rise = 0.7 + i * 0.3; zb.h = -1.9;
+    zombies.push(zb);
+  }
+}
+function spawnInterval() { return Math.max(0.3, 0.7 - elapsed / DURATION * 0.4) * rand(0.7, 1.3); }
 // where a zombie stops at the wire; the giant stays further back, in full view
 const wallZ = z => Z_WALL + 0.45 + (z.size - 1) * 0.8 + (z.type === 'boss' ? 8 : 0);
 
@@ -2247,6 +2266,7 @@ function makeGib(z, group, v, spin) {
   const g = {
     x: pos.x, h: pos.y, z: -pos.z, vx: v.x, vh: v.y, vz: v.z, q, parts: ps, life: rand(4, 6), rad: 0.09 * z.size,
     w: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(spin), head: group[0][0] === 'head', bleed: 1,
+    ours: !!z.ch,   // a head off a zombie we did not kill (the giant's stomps) flies past for nothing
   };
   gibs.push(g);
   if (gibs.length > 110) gibs.splice(0, gibs.length - 110);
@@ -2270,7 +2290,7 @@ function updateGibs(dt) {
     }
     g.bleed = Math.max(0, g.bleed - dt * 0.4);
     if (g.bleed > 0 && Math.random() < dt * 30 * g.bleed) addPart({ k: 'blood', x: g.x, z: g.z, h: g.h, vx: g.vx * 0.3 + rand(-0.5, 0.5), vz: g.vz * 0.3, vh: rand(0, 1.5), g: 14, r: rand(0.03, 0.07), life: 0.9, dark: Math.random() < 0.4 });
-    if (g.head && g.z < 1.6 && g.vz < 0) { g.life = 0; flyPast(toScreen(g.x, 1.6, g.h).X, false); }
+    if (g.head && g.z < 1.6 && g.vz < 0) { g.life = 0; flyPast(toScreen(g.x, 1.6, g.h).X, false, g.ours); }
   }
   gibs = gibs.filter(g => g.life > 0 && g.z > -2 && g.z < 140);
 }
@@ -2454,14 +2474,14 @@ function shootBullet() {
   const end = A.p, dx = end.x - _wp.x, dy = end.y - _wp.y, dz = end.z - _wp.z;
   const tc = fev ? hueRGB(((performance.now() / 1400) + 0.3) % 1, 5) : [5, 3, 1.1];
   addPart({ k: 'tracer', x: _wp.x + dx * 0.56, z: -(_wp.z + dz * 0.56), h: _wp.y + dy * 0.56, vx: 0, vz: 0, vh: 0, r: fev ? 0.07 : 0.045, life: 0.05, dx: dx * 0.42, dy: dy * 0.42, dz: dz * 0.42, c: tc });
-  const P = end, gx = P.x, gz = -P.z, gh = P.y;
-  if (A.kind === 'zombie') hitZombie(A.hit, fev ? 2 : 1, _D.clone());
-  else if (A.kind === 'car') hitCar(A.car, fev ? 2 : 1, gx, gz, gh);
+  const P = end, gx = P.x, gz = -P.z, gh = P.y, ch = newChain();
+  if (A.kind === 'zombie') hitZombie(A.hit, fev ? 2 : 1, _D.clone(), ch);
+  else if (A.kind === 'car') hitCar(A.car, fev ? 2 : 1, gx, gz, gh, ch);
   else if (A.kind === 'facade') {
     for (let i = 0; i < 4; i++) addPart({ k: 'spark', x: gx, z: gz, h: gh, vx: -A.side * rand(1, 5), vz: rand(-3, 3), vh: rand(-1, 4), g: 12, r: 0.03, life: rand(0.15, 0.35) });
     addPart({ k: 'dust', x: gx - A.side * 0.15, z: gz, h: gh, vx: -A.side * 0.6, vz: 0, vh: 0.2, r: 0.18, grow: 0.8, drag: 2, life: 0.6, a: 0.5 });
     if (Math.random() < 0.5) addChunk({ x: gx - A.side * 0.1, z: gz, h: gh, vx: -A.side * rand(1, 3), vz: rand(-1, 1), vh: rand(0, 2), sx: 0.05, sy: 0.04, sz: 0.05, c: CH.conc, life: 1.2 });
-    if (A.block) bulletFacade(A.block, gz, gh);
+    if (A.block) bulletFacade(A.block, gz, gh, ch);
   } else if (A.kind === 'ground') {
     addPart({ k: 'dust', x: gx, z: gz, h: 0.1, vx: 0, vz: 0, vh: 0.6, r: 0.16, grow: 0.9, drag: 2, life: 0.5, a: 0.5 });
     for (let i = 0; i < 3; i++) addPart({ k: 'spark', x: gx, z: gz, h: 0.04, vx: rand(-3, 3), vz: rand(-3, 3), vh: rand(2, 5), g: 14, r: 0.025, life: rand(0.12, 0.3) });
@@ -2504,14 +2524,14 @@ function tryRocket() {
   const fev = feverT > 0;
   if (!fev && rocketsLeft <= 0) { softClick(); return; }
   if (!fev) rocketsLeft--;
-  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40);
-  for (const off of fev ? [-2.2, 0, 2.2] : [0]) fireRocket(A, off);
+  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40), ch = newChain();   // FEVER's three rockets make one chain
+  for (const off of fev ? [-2.2, 0, 2.2] : [0]) fireRocket(A, off, ch);
   rocketSnd(); tubeRecoil = 1;
   tubeTip.getWorldPosition(_wp);
   for (let i = 0; i < 10; i++) addPart({ k: 'smoke', x: _wp.x + rand(-0.1, 0.1), z: -_wp.z, h: _wp.y, vx: rand(-1.5, 1.5), vz: rand(-1, 2), vh: rand(-0.5, 1), r: 0.12, grow: 0.9, drag: 2.5, life: rand(0.5, 0.9), a: 0.35, warm: 0.6 });
   addPart({ k: 'glow', x: _wp.x, z: -_wp.z, h: _wp.y, vx: 0, vz: 0, vh: 0, r: 0.5, life: 0.12, c: [5, 2.4, 0.8], a: 1 });
 }
-function fireRocket(A, offX) {
+function fireRocket(A, offX, ch) {
   tubeTip.getWorldPosition(_wp);
   let tx = A.p.x, th = A.p.y, tz = -A.p.z;
   if (A.kind === 'zombie') { const zb = A.hit.z; tx = zb.x; tz = Math.max(Z_WALL + 0.6, zb.z - (zb.state === 'walk' ? zb.speed * 0.25 : 0)); th = zb.state === 'walk' ? 0.9 * zb.size : zb.h + 0.5; }
@@ -2524,7 +2544,7 @@ function fireRocket(A, offX) {
   if (offX) th = Math.max(0.4, th - 0.3);
   const x0 = _wp.x, h0 = _wp.y, z0 = -_wp.z;
   const dx = tx - x0, dz = tz - z0, dh = th - h0, T = Math.max(0.08, Math.hypot(dx, dz, dh) / 60);
-  rockets.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, mesh: rocketMesh(), kind: A.kind, car: A.car, side: A.side });
+  rockets.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, mesh: rocketMesh(), kind: A.kind, car: A.car, side: A.side, ch });
 }
 function updateRockets(dt) {
   for (const r of rockets) {
@@ -2542,10 +2562,10 @@ function updateRockets(dt) {
     if (!hitZ) hitC = cars.find(c => (c.state === 'park' || c.state === 'roll') && Math.abs(c.x - r.x) < 0.95 && Math.abs(c.z - r.z) < 2.2 && r.h < 1.5);
     if (hitZ || hitC || r.t >= r.T) {
       r.done = true;
-      if (hitZ && hitZ.type === 'boss') damageBoss(22);
+      if (hitZ && hitZ.type === 'boss') damageBoss(22, r.ch);
       const b = !hitZ && !hitC && r.kind === 'facade' ? blockAt(r.side, r.z) : null;
-      if (b && !b.ruined) facadeBlast(b, r.z, r.h, 1.15);
-      else explode(r.x, r.z, 1.25, r.h);
+      if (b && !b.ruined) facadeBlast(b, r.z, r.h, 1.15, r.ch);
+      else explode(r.x, r.z, 1.25, r.h, null, r.ch);
     }
     const m = r.mesh;
     m.position.set(r.x, r.h, -r.z);
@@ -2664,7 +2684,7 @@ function fireCannon(A) {
   // it flies from the muzzle to the first solid thing behind the reticle (the ground, a car, a wall; far off in the air if nothing)
   const dir = S.p.clone().sub(M), L = dir.length();
   dir.divideScalar(L || 1);
-  shells.push({ p: M.clone(), dir, left: L, kind: S.kind, block: S.block, hit: new Set(), n: 0 });
+  shells.push({ p: M.clone(), dir, left: L, kind: S.kind, block: S.block, hit: new Set(), n: 0, ch: newChain() });
   muzzleBlast(M, dir);
 }
 function muzzleBlast(M, dir) {
@@ -2719,7 +2739,7 @@ function shellTouch(s) {
     if (s.hit.has(zb)) continue;
     const sz = zb.size;
     if (zb.type === 'boss') {
-      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(70); s.done = true; return; }
+      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(70, s.ch); s.done = true; return; }
       continue;
     }
     if (zb.state === 'walk') {
@@ -2739,17 +2759,17 @@ function skewer(zb, s) {
   const dx = s.dir.x, dz = -s.dir.z, d = Math.hypot(dx, dz) || 1;
   s.n++;
   // torn apart, or flung far down the road the way the shell was going
-  killZombie(zb, { dx: dx / d, dz: dz / d, d: 1, f: 1, power: 1.35 });
-  registerKills(1, zb.x, zb.z, null, false);
+  killZombie(zb, { dx: dx / d, dz: dz / d, d: 1, f: 1, power: 1.35, ch: s.ch });
+  registerKills(1, zb.x, zb.z, null, false, s.ch);
   for (let i = 0; i < 12; i++) addPart({ k: 'blood', x: zb.x, z: zb.z + 0.2, h: s.p.y, vx: s.dir.x * rand(4, 10) + rand(-2, 2), vz: -s.dir.z * rand(4, 10), vh: rand(0.5, 3.5), g: 14, r: rand(0.04, 0.1), life: 1.3, dark: Math.random() < 0.3 });
   squelch(true);
 }
 function shellBlast(s) {
   const gx = s.p.x, gz = -s.p.z, gh = Math.max(0.15, s.p.y);
   // a wall takes it all: the block comes down with one round
-  if (s.kind === 'facade' && s.block && !s.block.ruined) { facadeBlast(s.block, gz, gh, SHELL_POWER); damageBlock(s.block, s.block.hp, gz, gh, false); }
+  if (s.kind === 'facade' && s.block && !s.block.ruined) { facadeBlast(s.block, gz, gh, SHELL_POWER, s.ch); damageBlock(s.block, s.block.hp, gz, gh, false, s.ch); }
   // a big blast near us goes off softer on the ground and in the light, as the finale's do, or the screen washes out orange
-  else { fxSoft = gz < 14; explode(gx, gz, SHELL_POWER, gh); fxSoft = false; }
+  else { fxSoft = gz < 14; explode(gx, gz, SHELL_POWER, gh, null, s.ch); fxSoft = false; }
   if (s.n >= 2 && running) {
     // several on one shell: a bonus that grows fast with the count
     const bonus = 200 * s.n * (s.n - 1);
@@ -3099,10 +3119,15 @@ function popSnd(s, z) {
 
 // ---------- state ----------
 const DURATION = 15, FEVER_TIME = 4.5;
-const RANKS = [{ r: 'S', min: 320000 }, { r: 'A', min: 170000 }, { r: 'B', min: 70000 }, { r: 'C', min: 0 }];
+// what the set pieces pay on top of the kills they take with them (2026-10-25: a block coming down paid what three zombies
+// did, so nobody aimed at one)
+const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000 };
+// lines drawn from bot rounds (2026-10-25): doing nothing is C; firing blindly and clean shooting both land around S; blocks
+// brought down on the horde lift a round to SS; SSS took about one round in ten
+const RANKS = [{ r: 'SSS', min: 1800000 }, { r: 'SS', min: 1500000 }, { r: 'S', min: 1200000 }, { r: 'A', min: 700000 }, { r: 'B', min: 200000 }, { r: 'C', min: 0 }];
 let running = false, endT = 0, boss = null;
 let explosionsQ = [], floaters = [], bannerObj = null;
-let elapsed = 0, kills = 0, score = 0, spawnTimer = 0;
+let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
 let shake = 0, hitstop = 0, slowmo = 0, zoom = 1, speedLines = 0, flashScreen = 0;
 let combo = 0, comboTimer = 0, maxCombo = 0, fever = 0, feverT = 0, comboPulse = 0, lastLabelT = -9, lastSfxT = 0;
 let longestFlight = 0, headshots = 0, juggles = 0, carsBlown = 0;
@@ -3112,11 +3137,11 @@ const aim = { x: 0, y: 0, show: false, touch: false };
 
 function reset() {
   for (const z of zombies) z.gone = true;
-  zombies = []; gibs = []; chunks = []; parts = []; decals = []; craters = []; explosionsQ = []; floaters = [];
+  zombies = []; gibs = []; chunks = []; parts = []; decals = []; craters = []; explosionsQ = []; floaters = []; chains = []; bestChain = 0; chainF = chainFCh = null;
   for (const r of rockets) r.mesh.visible = false;
   rockets = [];
   bannerObj = null;
-  elapsed = 0; kills = 0; score = 0; rocketsLeft = MAX_ROCKETS; rocketTimer = 0; spawnTimer = 0.2;
+  elapsed = 0; kills = 0; score = 0; rocketsLeft = MAX_ROCKETS; rocketTimer = 0; spawnTimer = 0.2; manholeT = 3;
   shake = 0; hitstop = 0; slowmo = 0; zoom = 1; speedLines = 0; flashScreen = 0;
   combo = 0; comboTimer = 0; maxCombo = 0; fever = 0; feverT = 0; comboPulse = 0; lastLabelT = -9;
   longestFlight = 0; headshots = 0; juggles = 0; carsBlown = 0;
@@ -3132,11 +3157,25 @@ function reset() {
 const GORE_TXT = ['グチャァ!!', 'ブシャー!!', 'ベチャッ!!'];
 const BOOM_TXT = ['ドカーン!!', 'ズドーン!!', 'ボガーン!!', 'ドゴォ!!', 'バゴーン!!', 'ドガガーン!!', 'ズガァン!!', 'ドッカーン!!'];
 const MILESTONES = [[10, 'NICE!!', 'nice'], [25, 'GREAT!!', 'great'], [50, 'BRAVO!!', 'bravo'], [100, 'EXCELLENT!!', 'excellent'], [150, 'UNSTOPPABLE!!', 'unstoppable'], [200, 'LEGENDARY!!', 'legendary']];
-function registerKills(k, x, z, label, blast) {
-  if (!running) return;   // the finale and the title demo score nothing
+// A chain is everything one shot of ours sets off: the blast, the cars and drums it touches off, the bodies it throws into
+// the others, the block it brings down. Only kills in a chain score (2026-10-25: a round played with no input at all scored
+// an S, as the giant's stomps and what they knocked over counted too), and from the 11th kill on, a chain pays double.
+// No more than that, so that one lucky pile-up late in the round cannot outweigh fifteen seconds of good shooting.
+let chains = [], bestChain = 0;
+const newChain = () => ({ n: 0, extra: 0, quiet: 0, shown: 0, m: 1, live: false, x: 0, z: 0 });
+const chainMult = i => i > 10 ? 2 : 1;
+let chainF = null, chainFCh = null;   // the one chain counter on screen and the chain it shows
+function registerKills(k, x, z, label, blast, ch, mul = 1) {
+  if (!running || !ch) return;   // the finale, the title demo and whatever we did not set off score nothing
   const prev = combo;
   combo += k; comboTimer = 1.5; maxCombo = Math.max(maxCombo, combo);
-  score += k * 100 * Math.min(combo, 50);
+  const base = 100 * Math.min(combo, 50) * mul;
+  let pts = 0;
+  for (let i = 0; i < k; i++) pts += base * chainMult(++ch.n);
+  score += pts; ch.extra += pts - base * k; ch.quiet = 0; ch.x = x; ch.z = z;
+  if (!ch.live) { ch.live = true; chains.push(ch); }
+  bestChain = Math.max(bestChain, ch.n);
+  chainCallout(ch);
   comboPulse = 1;
   if (label && elapsed - lastLabelT > 0.6) {
     lastLabelT = elapsed;
@@ -3145,6 +3184,35 @@ function registerKills(k, x, z, label, blast) {
   for (const [n, t, v] of MILESTONES) {
     if (prev < n && combo >= n) { showBanner(t, `${n} COMBO`, C.flare, 1.0); speedLines = Math.max(speedLines, 0.5); comboSting(); say(v, 2); }
   }
+}
+// a chain on the run counts up where it is going off, and stings when it starts paying double. One counter at a time,
+// for the longest chain going: every bullet is a chain of its own, and a counter each piled up over the street
+function chainCallout(ch) {
+  if (ch.n < 8) return;
+  const m = chainMult(ch.n);
+  if (m > ch.m) { ch.m = m; comboSting(); speedLines = Math.max(speedLines, 0.4); if (!reduceMotion) slowmo = Math.max(slowmo, 0.6); }
+  const shown = chainF && chainF.life > 0 && floaters.includes(chainF);
+  if (shown && chainFCh !== ch && chainFCh.live && chainFCh.n >= ch.n) return;
+  if (!shown) {
+    const sp = toScreen(ch.x, ch.z, 2.2);
+    chainF = { chain: true, screen: true, x: clamp(sp.X, 90, W - 90), y: clamp(sp.Y, hudH + 60, H * 0.6), text: '', sub: '', life: 1.2, big: true };
+    floaters.push(chainF);
+  }
+  chainFCh = ch;
+  chainF.text = `${ch.n}体連鎖!!`; chainF.sub = m > 1 ? `×${m}` : ''; chainF.life = 1.2;
+}
+// once a chain has gone quiet, a long one gets the banner with what its length paid on top
+function updateChains(dt) {
+  for (const ch of chains) {
+    if ((ch.quiet += dt) < 1.1) continue;
+    ch.live = false;
+    if (ch.n >= 20 && ch.n - ch.shown >= 10) {   // the counter covers the shorter ones: a banner each piled up
+      ch.shown = ch.n;
+      showBanner(`1発で${ch.n}体!!`, `連鎖ボーナス +${ch.extra.toLocaleString()}`, C.flare, 1.3);
+      say(ch.n >= 25 ? 'incredible' : ch.n >= 15 ? 'excellent' : 'great', 2);
+    }
+  }
+  chains = chains.filter(ch => ch.live);
 }
 function addFever(v) {
   if (!running || feverT > 0) return;
@@ -3174,13 +3242,13 @@ function meatChunk(zb, s) {
   const a = rand(0, 6.28), sp = rand(2, 7) * s, r = rand(0.06, 0.14) * Math.min(1.5, zb.size);
   addChunk({ m: 'meat', x: zb.x + rand(-0.2, 0.2), z: zb.z, h: rand(0.6, 1.4) * zb.size, vx: Math.cos(a) * sp + zb.vx * 0.2, vz: Math.sin(a) * sp + zb.vz * 0.2, vh: rand(4, 11) * s, sx: r, sy: r * 0.8, sz: r * 1.1, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(2.5, 4), blood: true, bounce: 0.15 });
 }
-function hitZombie(hit, dmg, D) {
+function hitZombie(hit, dmg, D, ch) {
   const z = hit.z, gx = hit.p.x, gz = -hit.p.z, gh = hit.p.y;
   // the exit wound sprays out of the back: blood and bits of meat
   if (z.type !== 'boss' && Math.random() < 0.35) addChunk({ m: 'meat', x: gx, z: gz, h: gh, vx: D.x * rand(1, 3) + rand(-1, 1), vz: -D.z * rand(1, 3) + rand(-0.5, 0.5), vh: rand(1, 4), sx: 0.035, sy: 0.028, sz: 0.04, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(1.5, 2.5), blood: true, bounce: 0.1 });
   for (let i = 0; i < 5; i++) addPart({ k: 'blood', x: gx, z: gz, h: gh, vx: D.x * rand(1, 4) + rand(-1.5, 1.5), vz: -D.z * rand(1, 4) + rand(-1, 1), vh: rand(0.5, 3.5), g: 14, r: rand(0.025, 0.06), life: 1.2, dark: Math.random() < 0.3 });
   addPart({ k: 'mist', x: gx, z: gz + 0.1, h: gh, vx: D.x, vz: -D.z, vh: 0.2, r: 0.12, grow: 1.6, drag: 3, life: 0.3, a: 0.5 });
-  if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg); if (Math.random() < 0.25) squelch(false); return; }
+  if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg, ch); if (Math.random() < 0.25) squelch(false); return; }
   if (z.state === 'fly') {
     // juggle bodies in the air
     z.vh = Math.max(z.vh, 7); z.vz += 0.8; z.vx += rand(-1, 1); z.w.x -= rand(2, 5);
@@ -3192,8 +3260,8 @@ function hitZombie(hit, dmg, D) {
   z.flash = 0.07; z.stagger = 0.18; z.z += 0.1;
   if (z.hp <= 0) {
     if (hit.head) { headshots++; squelch(true); }
-    killZombie(z, { gun: true, head: hit.head });
-    registerKills(1, z.x, z.z, null, false);
+    killZombie(z, { gun: true, head: hit.head, ch });
+    registerKills(1, z.x, z.z, hit.head ? 'HEADSHOT!' : null, false, ch, hit.head ? 2 : 1);   // a clean headshot pays double
   } else {
     if (Math.random() < 0.2) { const i = z.arms[0] ? 0 : z.arms[1] ? 1 : -1; if (i >= 0) tearArm(z, i, 0, 0); }
     if (Math.random() < 0.35) squelch(false);
@@ -3219,6 +3287,7 @@ function killZombie(zb, o) {
   if (zb.state !== 'walk' || zb.type === 'boss') return;
   const s = zb.size;
   zb.state = 'fly'; zb.bounces = 0; zb.hp = 0; zb.launchX = zb.x; zb.launchZ = zb.z; zb.h = 0.4 * s; zb.atWall = false;
+  zb.ch = o.ch || null;   // whoever set this off also gets whatever the body knocks over
   zb.q.setFromEuler(_eu.set(0, zb.yaw, 0));
   let spin;
   if (o.gun) {
@@ -3234,14 +3303,14 @@ function killZombie(zb, o) {
   }
   // tumble backwards, away from us, with some twist
   zb.w.set(-spin * rand(0.6, 1), rand(-1, 1) * spin * 0.5, rand(-1, 1) * spin * 0.45);
-  if (running) kills++;
+  if (running && o.ch) kills++;
   bloodBurst(zb.x, zb.z, 1.2 * s, 14, 5, 7);
   addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: 1.1 * s, vx: 0, vz: 0, vh: 0.4, r: 0.3, grow: 2.6, drag: 3, life: 0.45, a: 0.6 });
   for (let i = 0; i < (o.gun ? 3 : 5); i++) meatChunk(zb, 1);
   // the belly splits as it goes down: the guts come out and swing
   if (!zb.look.guts && zb.type !== 'barrel' && Math.random() < 0.3) zb.look.guts = true;
-  if (zb.type === 'barrel') explosionsQ.push({ x: zb.x, z: zb.z, t: 0.1, power: 1.35 });
-  addFever(o.gun ? 3 : 4);
+  if (zb.type === 'barrel') explosionsQ.push({ x: zb.x, z: zb.z, t: 0.1, power: 1.35, ch: o.ch });
+  if (o.ch) addFever(o.gun ? 3 : 4);
   if (Math.random() < 0.45) deathGurgle(zb);
   if (!o.gun && (zb.type === 'tank' || (o.f > 0.5 && Math.random() < 0.6))) { burstZombie(zb, o); return; }
   const tear = o.gun ? (Math.random() < 0.3 ? 1 : 0) : o.f > 0.3 ? (Math.random() < 0.5 ? 2 : 1) : (Math.random() < 0.4 ? 1 : 0);
@@ -3280,7 +3349,7 @@ function burstZombie(zb, o) {
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(GORE_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(26 * Math.min(1.6, 14 / zb.z), 26, 60) });
   }
 }
-function explode(x, z, power = 1, h0 = 0.3, skip = null) {
+function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
   const R = 3.3 * power, near = Math.min(1.6, 14 / z), low = clamp((z - 4) / 6, 0.4, 1), hh = clamp(h0, 0.2, 8);
   boom(power, z);
   shake = Math.min(shake + 13 * power * near, 24);
@@ -3338,8 +3407,8 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null) {
     const sp = toScreen(x, z, hh + 2.4);
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(BOOM_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(24 * near * power, 26, 64) });
   }
-  blastDamage(x, z, power, R);
-  blastFacades(x, z, hh, power, skip);
+  blastDamage(x, z, power, R, ch);
+  blastFacades(x, z, hh, power, skip, ch);
 }
 // the road goes up with the blast (2026-10-24, kazu: the road blowing up too would be even better): slabs of asphalt, some with
 // the lane paint on them, spin up out of a crater that stays in the street, broken slabs heave up round its rim, and grit and dirt
@@ -3362,12 +3431,12 @@ function roadBlast(x, z, power, low) {
   }
 }
 // what a blast does to the bodies, the loose limbs and the cars around it
-function blastDamage(x, z, power, R) {
+function blastDamage(x, z, power, R, ch) {
   let k = 0;
   for (const zb of zombies) {
     const dx = zb.x - x, dz = zb.z - z, d = Math.hypot(dx, dz);
     if (zb.type === 'boss') {
-      if (zb.state === 'walk' && d < R + 1.2) damageBoss(13 * (1 - d / (R + 1.2)) * power + 1.5);
+      if (zb.state === 'walk' && d < R + 1.2) damageBoss(13 * (1 - d / (R + 1.2)) * power + 1.5, ch);
       continue;
     }
     if (zb.state === 'fly' || zb.state === 'dead') {
@@ -3375,6 +3444,7 @@ function blastDamage(x, z, power, R) {
       if (d < R) {
         const f = 1 - d / R;
         zb.state = 'fly'; zb.vh = Math.max(zb.vh, (11 + 12 * f) * power); zb.dead = 0;
+        if (ch) zb.ch = ch;
         zb.vx += dx / (d + 0.01) * 8 * f; zb.vz += dz / (d + 0.01) * 8 * f + 3; zb.w.x -= rand(4, 9);
       }
       continue;
@@ -3382,16 +3452,16 @@ function blastDamage(x, z, power, R) {
     if (zb.state !== 'walk' || d > R) continue;
     const f = 1 - d / R;
     if (zb.hp > 4 && f < 0.45) { zb.hp -= 5; zb.flash = 0.15; zb.z += 1.2 * (0.5 + f); continue; }
-    killZombie(zb, { dx, dz, d, f, power });
+    killZombie(zb, { dx, dz, d, f, power, ch });
     k++;
   }
   for (const g of gibs) {
     const dx = g.x - x, dz = g.z - z, d = Math.hypot(dx, dz);
     if (d < R) { const f = 1 - d / R; g.vh = Math.max(g.vh, 8 * f * power + 3); g.vx += dx / (d + 0.01) * 6 * f; g.vz += dz / (d + 0.01) * 6 * f + 2; g.life = Math.max(g.life, 2); }
   }
-  for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.hypot(c.x - x, c.z - z) < R + 1.2) carBoom(c, 0.12);
+  for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.hypot(c.x - x, c.z - z) < R + 1.2) carBoom(c, 0.12, ch);
   if (k > 0 && running) {
-    registerKills(k, x, z, null, true);
+    registerKills(k, x, z, null, true, ch);
     if (k >= 3 && !reduceMotion) hitstop = 0.05 + Math.min(k, 8) * 0.012;
     if (k >= 5 && !reduceMotion) slowmo = Math.max(slowmo, 0.5);
     if (k >= 6) say(pick(['awesome', 'amazing', 'incredible']), 1);
@@ -3409,9 +3479,9 @@ function pop(x, z, s, h = 0.5) {
   shake = Math.min(shake + 3 * s, 24);
 }
 // a body launched past the camera: bonus text only, nothing covers the screen
-function flyPast(px, big) {
+function flyPast(px, big, ours = true) {
   whoosh();
-  if (!running) return;
+  if (!running || !ours) return;
   if (big) say('homerun', 1);
   score += big ? 500 : 200;
   const kind = big ? 'hr' : 'neck', name = big ? '場外ホームラン!' : 'ナイス首!', f = floaters.find(o => o.fly === kind);
@@ -3487,27 +3557,30 @@ function placeCars() {
   cars.push(...carSpots().map(([x, z], i) => makeCar(kinds[i], x, z)));
   carRespawn = [];
 }
-function hitCar(c, dmg, x, z, h) {
+function hitCar(c, dmg, x, z, h, ch) {
   c.hp -= dmg; c.flash = 0.05;
   if (Math.random() < 0.5) clang();
   for (let i = 0; i < 5; i++) addPart({ k: 'spark', x, z, h, vx: rand(-4, 4), vz: rand(-5, 1), vh: rand(0, 5), g: 12, r: 0.03, life: rand(0.15, 0.4) });
   if (Math.random() < 0.3) addChunk({ x, z, h, vx: rand(-2, 2), vz: rand(-3, 0), vh: rand(1, 3), sx: 0.04, sy: 0.01, sz: 0.04, c: CH.glass, life: 1 });
-  if (c.hp <= 0) carBoom(c, 0);
+  if (c.hp <= 0) carBoom(c, 0, ch);
 }
-function carBoom(c, delay) {
+function carBoom(c, delay, ch) {
   if (c.state !== 'park' && c.state !== 'roll') return;
-  c.state = 'fly'; c.vh = rand(13, 17); c.vz = rand(1.5, 4); c.vx = -Math.sign(c.x || 1) * rand(0.5, 1.8);
+  c.ch = ch || null;
+  // it sails off away from us and out to its own side, so the wreck burns out of the zombies' way (2026-10-25: thrown
+  // towards the middle, wrecks came down mid-street and hid everything behind them on a phone)
+  c.state = 'fly'; c.vh = rand(13, 17); c.vz = rand(5, 8); c.vx = Math.sign(c.x || 1) * rand(0.3, 1.0);
   const s = (Math.random() < 0.5 ? -1 : 1);
   c.w.set(rand(-1.5, 1.5), rand(-1, 1), s * rand(3.5, 6));
-  explosionsQ.push({ x: c.x, z: c.z, t: delay + 0.01, power: 1.6, h: 0.8, car: c });
-  if (running) {
-    score += 5000; carsBlown++;
+  explosionsQ.push({ x: c.x, z: c.z, t: delay + 0.01, power: 1.6, h: 0.8, car: c, ch });
+  if (running) carRespawn.push(rand(3.5, 5.5));   // after the whistle no new cars roll in
+  if (running && ch) {
+    score += BONUS.car; carsBlown++;
     // a chain of cars stacks into one counter instead of piling up text
     const f = floaters.find(o => o.car);
-    if (f) { f.n++; f.life = 1.1; f.text = `車ごとドカン!! ×${f.n}`; f.sub = `+${(5000 * f.n).toLocaleString()}`; }
-    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: '車ごとドカン!!', sub: '+5000', life: 1.1, big: true });
+    if (f) { f.n++; f.life = 1.1; f.text = `車ごとドカン!! ×${f.n}`; f.sub = `+${(BONUS.car * f.n).toLocaleString()}`; }
+    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: '車ごとドカン!!', sub: `+${BONUS.car.toLocaleString()}`, life: 1.1, big: true });
     say('kaboom', 2);
-    carRespawn.push(rand(3.5, 5.5));   // after the whistle no new cars roll in
   }
 }
 // a car comes apart when it goes up: wheels bounce down the road, panels and glass spin away
@@ -3549,16 +3622,16 @@ function updateCars(dt) {
         c.h = 0; c.state = 'wreck'; c.burnT = 0;
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(c.q);
         c.q.setFromEuler(_eu.set(0, rand(-0.4, 0.4), up.y < 0 ? Math.PI : 0)); c.flip = up.y < 0;
-        explosionsQ.push({ x: c.x, z: c.z, t: 0, power: 0.8, h: 0.6 });
+        explosionsQ.push({ x: c.x, z: c.z, t: 0, power: 0.8, h: 0.6, ch: c.ch });
       }
     } else if (c.state === 'wreck') {
       c.burnT += dt;
-      if ((c.burnT < 5.5 || c.scenery) && Math.random() < 0.5) addPart({ k: 'fire', x: c.x + rand(-0.6, 0.6), z: c.z + rand(-1.4, 1.4), h: 0.9 + rand(0, 0.4), vx: 0, vz: 0, vh: rand(1.2, 2.6), r: rand(0.25, 0.5), grow: 0.5, drag: 1.5, life: rand(0.45, 0.75), heat: 0.9, f: 12 });
-      if ((c.burnT < 6.5 || c.scenery) && Math.random() < 0.12) addPart({ k: 'smoke', x: c.x + rand(-0.5, 0.5), z: c.z + rand(-1, 1), h: 1.6, vx: rand(-0.2, 0.2), vz: rand(-0.2, 0.2), vh: rand(1, 2), r: 0.5, grow: 0.8, drag: 0.4, life: rand(2.5, 3.5), a: 0.5, warm: 0.6, fin: 0.2 });
-      if (!c.scenery && c.burnT > 7) c.h -= dt * 1.2;
+      if ((c.burnT < 4 || c.scenery) && Math.random() < 0.5) addPart({ k: 'fire', x: c.x + rand(-0.6, 0.6), z: c.z + rand(-1.4, 1.4), h: 0.9 + rand(0, 0.4), vx: 0, vz: 0, vh: rand(1.2, 2.6), r: rand(0.25, 0.5), grow: 0.5, drag: 1.5, life: rand(0.45, 0.75), heat: 0.9, f: 12 });
+      if ((c.burnT < 5 || c.scenery) && Math.random() < 0.12) addPart({ k: 'smoke', x: c.x + rand(-0.5, 0.5), z: c.z + rand(-1, 1), h: 1.6, vx: rand(-0.2, 0.2), vz: rand(-0.2, 0.2), vh: rand(1, 2), r: 0.5, grow: 0.8, drag: 0.4, life: rand(2.5, 3.5), a: 0.5, warm: 0.6, fin: 0.2 });
+      if (!c.scenery && c.burnT > 5.2) c.h -= dt * 1.2;
     }
   }
-  for (const c of cars) if (!c.scenery && c.state === 'wreck' && c.burnT > 8.4) { removeCar(c); c.gone = true; }
+  for (const c of cars) if (!c.scenery && c.state === 'wreck' && c.burnT > 6.6) { removeCar(c); c.gone = true; }
   cars = cars.filter(c => !c.gone);
 }
 function drawCars() {
@@ -3669,13 +3742,14 @@ function finish() {
   endT = 0; floaters = []; bannerObj = null;
   const i = RANKS.findIndex(r => score >= r.min);
   $('resRank').textContent = RANKS[i].r;
-  say(['incredible', 'excellent', 'great', 'nice'][i], 3);
+  say(['legendary', 'incredible', 'excellent', 'great', 'nice', 'nice'][i], 3);
   $('resNote').textContent = i > 0 ? `ナイス爆破! あと${(RANKS[i - 1].min - score).toLocaleString()}点で${RANKS[i - 1].r}` : moonBroken ? '月まで壊すとは…' : '爆破マスター!';
   $('resScore').textContent = score.toLocaleString();
   $('resKills').textContent = kills;
   $('resCombo').textContent = maxCombo;
   $('resFlight').textContent = `${longestFlight | 0}m`;
   const badges = [];
+  if (bestChain >= 10) badges.push(`1発で${bestChain}体`);
   if (bossKilled) badges.push('巨大ゾンビ撃破');
   if (moonBroken) badges.push('月を破壊');
   if (moonHits) badges.push(`月面着弾 ×${moonHits}`);
@@ -3732,6 +3806,7 @@ function update(dt, raw) {
     elapsed += dt;
     spawnTimer -= dt;
     if (spawnTimer <= 0) { spawnWave(); spawnTimer = spawnInterval(); }
+    if ((manholeT -= dt) <= 0) { spawnManhole(); manholeT = rand(1.8, 2.8); }
     if ((groanT -= dt) <= 0) {
       // the horde moans the whole time; the nearest ones are the loudest
       groanT = rand(0.3, 0.75);
@@ -3766,7 +3841,7 @@ function update(dt, raw) {
   const ready = explosionsQ.filter(q => q.t <= 0);
   explosionsQ = explosionsQ.filter(q => q.t > 0);
   for (const q of ready) {
-    if (q.pop) pop(q.x, q.z, q.power, q.h || 0.5); else explode(q.x, q.z, q.power || 1.3, q.h ?? 0.4);
+    if (q.pop) pop(q.x, q.z, q.power, q.h || 0.5); else explode(q.x, q.z, q.power || 1.3, q.h ?? 0.4, null, q.ch);
     if (q.car) { carParts(q.car); burnCar(q.car); }
   }
   updateRockets(dt);
@@ -3774,11 +3849,17 @@ function update(dt, raw) {
   updateCars(dt);
   updateBuildings(dt);
   updateBoss(dt, raw);
+  updateChains(dt);
 
   const halfLane = halfX * 1.2;
   for (const z of zombies) {
     if (z.type === 'boss') continue;   // updateBoss
     z.flash = Math.max(0, z.flash - dt);
+    if (z.state === 'walk' && z.rise > 0) {
+      // still climbing out of its manhole: it comes up through the road, then walks
+      z.rise -= dt; z.h = z.rise > 0 ? -1.9 * Math.min(1, z.rise / 0.7) : 0; z.phase += dt * 5;
+      continue;
+    }
     if (z.state === 'walk') {
       const slow = z.stagger > 0 ? 0.25 : 1;
       z.stagger = Math.max(0, z.stagger - dt);
@@ -3814,7 +3895,7 @@ function update(dt, raw) {
       if (z.headless && Math.random() < dt * 14) addPart({ k: 'blood', x: z.x, z: z.z, h: z.h + 1.0 * z.size, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(3, 7), g: 14, r: rand(0.05, 0.09), life: 0.9 });
       // a body thrown low at us slams into the wire and drops; a high one sails over for the home run
       if (z.vz < 0 && z.h < 1.4 && z.z < Z_WALL + 0.35 && z.z > Z_WALL - 0.5) { z.z = Z_WALL + 0.35; z.vz *= -0.25; z.vx *= 0.5; z.w.multiplyScalar(0.5); barricadeHit(false); }
-      if (z.z < 1.6) { z.gone = true; flyPast(toScreen(z.x, 1.6, z.h + 1).X, true); continue; }
+      if (z.z < 1.6) { z.gone = true; flyPast(toScreen(z.x, 1.6, z.h + 1).X, true, !!z.ch); continue; }
       // launched high and far enough, a body lands on the moon
       if (running && !moonBroken && z.z > 30 && z.h > 5 && moonNow.r > 0) {
         const s = toScreen(z.x, z.z, z.h + 0.5 * z.size);
@@ -3865,8 +3946,8 @@ function update(dt, raw) {
       if (wz.state !== 'walk' || wz.type === 'boss') continue;
       const dx = wz.x - fz.x, dz = wz.z - fz.z, d = Math.hypot(dx, dz);
       if (d > 0.9) continue;
-      killZombie(wz, { dx: dx + fz.vx * 0.05, dz: dz + fz.vz * 0.05, d: d + 0.01, f: 0.55, power: 0.9 });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false); if (running) say('strike', 1);
+      killZombie(wz, { dx: dx + fz.vx * 0.05, dz: dz + fz.vz * 0.05, d: d + 0.01, f: 0.55, power: 0.9, ch: fz.ch });
+      registerKills(1, wz.x, wz.z, 'ストライク!', false, fz.ch); if (running && fz.ch) say('strike', 1);
     }
   }
   // a flying car flattens whatever it comes down on
@@ -3876,8 +3957,8 @@ function update(dt, raw) {
       if (wz.state !== 'walk' || wz.type === 'boss') continue;
       const dx = wz.x - c.x, dz = wz.z - c.z, d = Math.hypot(dx, dz);
       if (d > 1.8) continue;
-      killZombie(wz, { dx, dz, d: d + 0.01, f: 0.6, power: 1 });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false); if (running) say('strike', 1);
+      killZombie(wz, { dx, dz, d: d + 0.01, f: 0.6, power: 1, ch: c.ch });
+      registerKills(1, wz.x, wz.z, 'ストライク!', false, c.ch); if (running && c.ch) say('strike', 1);
     }
   }
   // bodies stay down for a while; the oldest go first when the street is full
@@ -4017,7 +4098,7 @@ function fakeBlack() {
   renderer.setRenderTarget(null); renderer.setClearColor(0x000000, 1); renderer.clear(true, false, false); renderer.setClearColor(c, a);
 }
 function onResize() { placeMoon(); placeGun(); placeTank(); }
-const CANVAS_GLYPHS = '巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
+const CANVAS_GLYPHS = '連鎖体串刺しき,巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
 async function boot() {
   try { await bootInner(); }
   catch (e) {
@@ -4045,7 +4126,7 @@ async function bootInner() {
     window.__prep = n => { const t = performance.now(); for (let i = 0; i < n; i++) { render(1 / 60); drawOverlay(); } return (performance.now() - t) / n; };
     window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, drawBuildingFx, bossM };
     window.__boss = () => { if (!bossSpawned) { elapsed = Math.max(elapsed, BOSS_AT); spawnBoss(); } };
-    window.__killBoss = () => { if (boss && boss.state === 'walk') damageBoss(999); };
+    window.__killBoss = () => { if (boss && boss.state === 'walk') damageBoss(999, newChain()); };
     window.__toMoon = () => { const z = zombies.find(o => o.state === 'walk' && o.type !== 'boss'); if (z) moonHit(z, moonNow.X + rand(-0.4, 0.4) * moonNow.r, moonNow.Y + rand(-0.4, 0.4) * moonNow.r); return !!z; };
     let idc = 0;
     window.__fin = () => {
@@ -4073,10 +4154,10 @@ async function bootInner() {
   if (window.ZB_DEBUG) window.__zb = () => ({
     running, elapsed, score, kills, feverT, maxCombo, aim: { x: aim.x, y: aim.y }, W, H, zombies: zombies.length, parts: parts.length, chunks: chunks.length, gibs: gibs.length, pr,
     calls: renderer.info.render.calls, tris: renderer.info.render.triangles,
-    targets: zombies.filter(z => z.state === 'walk').map(z => { const s = toScreen(z.x, z.z, 1.1 * z.size); return { x: s.X, y: s.Y, z: z.z, type: z.type }; }),
+    targets: zombies.filter(z => z.state === 'walk').map(z => { const s = toScreen(z.x, z.z, 1.1 * z.size), hd = toScreen(z.x, z.z, z.h + 1.64 * z.size); return { x: s.X, y: s.Y, hy: hd.Y, z: z.z, type: z.type }; }),
     cars: cars.map(c => { const s = toScreen(c.x, c.z, 0.8); return { x: s.X, y: s.Y, z: c.z, s: c.state }; }),
     boss: boss ? (() => { const s = toScreen(boss.x, boss.z, 1.25 * boss.size); return { x: s.X, y: s.Y, z: boss.z, hp: boss.hp, state: boss.state }; })() : null,
-    moonBroken, moonHits, bldDown, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
+    moonBroken, moonHits, bldDown, bestChain, carsBlown, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
     blocks: city.blocks.filter(b => b.group && !b.ruined && b.z1 > 12).map(b => { const zc = clamp((b.z0 + b.z1) / 2, 12, b.z1), s = toScreen(b.side * b.xf, zc, Math.min(b.h * 0.5, 6)); return { x: s.X, y: s.Y, z: zc, hp: b.hp }; }),
   });
   if (window.ZB_GLFAIL === 'shader') {
@@ -4105,8 +4186,9 @@ function resetBuildings() {
   }
   bldDown = 0; smolderT = 0;
 }
-function damageBlock(b, dmg, z, h, big) {
+function damageBlock(b, dmg, z, h, big, ch) {
   if (!b.group || b.ruined || !running) return;
+  if (ch) b.ch = ch;   // the shot that brings it down owns whatever it lands on
   b.hp -= dmg; b.acc += dmg;
   if (big || b.acc >= 0.7) { b.acc = 0; addHole(b, z, h, big ? rand(1, 1.45) : rand(0.5, 0.75)); }
   if (b.hp <= 0) collapseBlock(b);
@@ -4117,11 +4199,11 @@ function addHole(b, z, h, r) {
   b.holes.push({ z: clamp(z, zMin, zMax), h: clamp(h, r + 0.2, b.h - r * 0.8), r, rot: rand(0, 6.28), seed: Math.random() });
   if (b.holes.length > 14) b.holes.shift();
 }
-function bulletFacade(b, z, h) {
-  damageBlock(b, feverT > 0 ? 0.06 : 0.035, z, h, false);
+function bulletFacade(b, z, h, ch) {
+  damageBlock(b, feverT > 0 ? 0.06 : 0.035, z, h, false, ch);
 }
 // a rocket slams into a wall: fire and glass blow out over the sidewalk
-function facadeBlast(b, z, h, power) {
+function facadeBlast(b, z, h, power, ch) {
   const out = -b.side, x = b.side * b.xf + out * 0.2, near = Math.min(1.6, 14 / z);
   const fx = (parts.length > 1900 * LOD ? 0.5 : 1) * (coarse ? 0.8 : 1), n = c => Math.max(1, Math.round(c * fx));
   boom(power, z);
@@ -4146,11 +4228,11 @@ function facadeBlast(b, z, h, power) {
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(BOOM_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(24 * near * power, 26, 64) });
   }
   // low on the wall it also catches the horde on the sidewalk
-  if (h < 3.5) blastDamage(x + out * 1.2, z, power * 0.85, 2.8 * power);
-  damageBlock(b, power, z, h, true);
+  if (h < 3.5) blastDamage(x + out * 1.2, z, power * 0.85, 2.8 * power, ch);
+  damageBlock(b, power, z, h, true, ch);
 }
 // a blast down on the street hurts a wall close enough
-function blastFacades(x, z, h, power, skip) {
+function blastFacades(x, z, h, power, skip, ch) {
   if (!running) return;
   const R = 3 * power;
   for (const b of city.blocks) {
@@ -4158,7 +4240,7 @@ function blastFacades(x, z, h, power, skip) {
     const d = b.xf - Math.abs(x);
     if (d > R * 0.8 || z < b.z0 - R * 0.3 || z > b.z1 + R * 0.3) continue;
     const f = 1 - Math.max(0, d) / (R * 0.8);
-    damageBlock(b, power * 0.8 * f, z, clamp(h, 0.8, 3) + rand(0, 1.5), f > 0.55);
+    damageBlock(b, power * 0.8 * f, z, clamp(h, 0.8, 3) + rand(0, 1.5), f > 0.55, ch);
   }
 }
 // the block comes down: the lights go out, it drops into the ground with a lean toward the street,
@@ -4175,19 +4257,22 @@ function collapseBlock(b) {
   blastLight(X + out * 2, midZ, 2, 1.4);
   for (let i = 0; i < 18; i++) addPart({ k: 'dust', x: X + out * rand(0, 1.2), z: rand(za, zb), h: rand(0.2, 3), vx: out * rand(0.5, 3), vz: rand(-1, 1.5), vh: rand(0.3, 1.5), r: rand(0.6, 1.1), grow: rand(0.8, 1.4), drag: 1.5, life: rand(1.8, 2.8), a: 0.45, f: 4 });
   for (let i = 0; i < 18; i++) addPart({ k: 'spark', x: X + out * 0.3, z: rand(za, zb), h: rand(1, Math.min(b.h, 10)), vx: out * rand(2, 9), vz: rand(-3, 3), vh: rand(-2, 6), g: 12, drag: 0.6, r: rand(0.03, 0.05), life: rand(0.4, 0.9) });
-  // whatever stood on that side of the street is under it now
+  // its front comes down across the street, and whatever walked on that half of it is under it now (2026-10-25: the lane is
+  // narrow on a phone, and only the few at its very edge used to be caught)
+  for (let i = 0; i < 26; i++) addChunk({ x: X + out * rand(0.4, 1.6), z: rand(za, zb), h: rand(3, Math.min(b.h, 11)), vx: out * rand(2.5, 6.5), vz: rand(-1, 1), vh: rand(-1, 3), sx: rand(0.2, 0.5), sy: rand(0.14, 0.32), sz: rand(0.2, 0.5), c: Math.random() < 0.6 ? CH.conc : b.tint, life: rand(2.6, 3.6), bounce: 0.15 });
+  for (let i = 0; i < 10; i++) addPart({ k: 'dust', x: out * rand(-0.2, 2.6) + b.side * 0.4, z: rand(za, zb), h: rand(0.2, 1.4), vx: out * rand(0.3, 1.5), vz: rand(-0.6, 0.6), vh: rand(0.2, 1), r: rand(0.6, 1), grow: 1.2, drag: 1.5, life: rand(1.6, 2.4), a: 0.42, f: 4 });
   let k = 0;
   for (const o of zombies) {
-    if (o.state !== 'walk' || o.type === 'boss' || o.x * b.side < 0.8 || o.z < b.z0 - 1.5 || o.z > b.z1 + 1.5) continue;
-    killZombie(o, { dx: out * 0.5, dz: 0.4, d: 0.7, f: 0.45, power: 0.75 }); k++;
+    if (o.state !== 'walk' || o.type === 'boss' || o.x * b.side < -0.1 || o.z < b.z0 - 1.5 || o.z > b.z1 + 1.5) continue;
+    killZombie(o, { dx: out * 0.5, dz: 0.4, d: 0.7, f: 0.45, power: 0.75, ch: b.ch }); k++;
   }
-  if (k) registerKills(k, X + out * 2, midZ, 'ビルの下敷き!', true);
-  for (const c of cars) if (c.x * b.side > 0 && c.z > b.z0 - 2 && c.z < b.z1 + 2) carBoom(c, rand(0.15, 0.5));
+  if (k) registerKills(k, X + out * 2, midZ, 'ビルの下敷き!', true, b.ch);
+  for (const c of cars) if (c.x * b.side > 0 && c.z > b.z0 - 2 && c.z < b.z1 + 2) carBoom(c, rand(0.15, 0.5), b.ch);
   if (running) {
-    score += 15000; addFever(12); bldDown++;
+    score += BONUS.block; addFever(12); bldDown++;
     const f = floaters.find(o => o.bld), sp = toScreen(X, midZ, 4);
-    if (f) { f.n++; f.life = 1.5; f.text = `ビル倒壊!! ×${f.n}`; f.sub = `+${(15000 * f.n).toLocaleString()}`; }
-    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: 'ビル倒壊!!', sub: '+15000', life: 1.5, big: true });
+    if (f) { f.n++; f.life = 1.5; f.text = `ビル倒壊!! ×${f.n}`; f.sub = `+${(BONUS.block * f.n).toLocaleString()}`; }
+    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: 'ビル倒壊!!', sub: `+${BONUS.block.toLocaleString()}`, life: 1.5, big: true });
     say('incredible', 3);
   }
 }
@@ -4513,8 +4598,10 @@ function bossSlam(z) {
   groundBlow(z.x, fz, 4.5, 26);
   bossShove(z, z.x, fz, 3);
 }
-function damageBoss(d) {
-  if (!boss || boss.state !== 'walk' || !running) return;
+function damageBoss(d, ch) {
+  // only our own shots and what they set off hurt it: cars it stomps flat do not, so it never dies on its own
+  if (!boss || boss.state !== 'walk' || !running || !ch) return;
+  boss.ch = ch;   // its death blasts belong to the shot that killed it
   boss.hp -= d;
   if (d >= 5 || elapsed - (boss.flT || -1) > 0.25) { boss.flash = 0.06; boss.flT = elapsed; }
   if (boss.hp <= 0) bossDeath();
@@ -4522,10 +4609,10 @@ function damageBoss(d) {
 function bossDeath() {
   const z = boss;
   z.state = 'dying'; z.dyingT = 0; bossKilled = true; kills++;
-  for (let i = 0; i < 5; i++) explosionsQ.push({ x: z.x + rand(-1.4, 1.4), z: z.z + rand(-0.8, 0.3), t: 0.08 + i * 0.15, power: 1.0, h: rand(0.8, 3.2) });
+  for (let i = 0; i < 5; i++) explosionsQ.push({ x: z.x + rand(-1.4, 1.4), z: z.z + rand(-0.8, 0.3), t: 0.08 + i * 0.15, power: 1.0, h: rand(0.8, 3.2), ch: z.ch });
   if (!reduceMotion) slowmo = Math.max(slowmo, 1.2);
-  score += 30000;
-  showBanner('BOSS撃破!!', '+30000', C.flare, 1.4, true, true);
+  score += BONUS.boss;
+  showBanner('BOSS撃破!!', `+${BONUS.boss.toLocaleString()}`, C.flare, 1.4, true, true);
   speedLines = 1; roar(); say('knockout', 4);
 }
 // time ran out with it still standing: no points and no trip to the moon, it shudders under the finale's blasts...
@@ -4557,7 +4644,7 @@ function startMoonshot(z) {
   z.ms = { t: 0, T: 1.6, X0: s0.X, Y0: s0.Y, d0, A0: 1.75 * z.size / d0, side: Math.random() < 0.5 ? -1 : 1 };
   z.q.setFromEuler(_eu.set(0, 0, 0));
   z.w.set(rand(6, 9), rand(-2, 2), rand(-3, 3));
-  explode(z.x, z.z, 1.2, 0.3);
+  explode(z.x, z.z, 1.2, 0.3, null, z.ch);
   whoosh(); speedLines = 1.2; say('moon', 4);
   BOSS_U.fogK.value = 0;
 }
@@ -4728,7 +4815,8 @@ function dentMoon(dx, dy) {
 function moonHit(z, X, Y) {
   z.gone = true; moonHits++;
   dentMoon(clamp((X - moonNow.X) / moonNow.r, -0.7, 0.7), clamp((Y - moonNow.Y) / moonNow.r, -0.7, 0.7));
-  moonFlash = 0.6; score += 3000; addFever(15);
+  moonFlash = 0.6;
+  if (z.ch) { score += 3000; addFever(15); }
   boom(0.7, 40); say('bullseye', 1);
   // repeated hits stack into one counter at the moon instead of piling up text
   const f = floaters.find(o => o.moon);
@@ -4766,8 +4854,8 @@ function moonShatter(z) {
   boom(2, 4); boom(1.2, 8);
   shake = 20; flashScreen = 0.16; speedLines = 1.4;
   if (!reduceMotion) zoom = Math.min(1.15, zoom + 0.12);
-  score += 50000;
-  showBanner('PERFECT!!!', '月まで飛んだ!! +50000', C.flare, 2.2, true, true); say('perfect', 5);
+  score += BONUS.moon;
+  showBanner('PERFECT!!!', `月まで飛んだ!! +${BONUS.moon.toLocaleString()}`, C.flare, 2.2, true, true); say('perfect', 5);
   if (!running) requestShot(0.3);   // broken after the whistle: that is the picture to share
   moonLight.intensity = 0.55;
 }
@@ -4921,6 +5009,9 @@ function bannerSize(b) {
   }
   return b.size;
 }
+// the combo counter steps aside while a mid-screen banner (the giant's death, the moon) is up: on a phone the two ran into
+// each other and read as 「6BOSS撃破!!」
+const comboShown = () => running && combo >= 5 && !(bannerObj && bannerObj.low);
 // score callouts stay readable: they keep clear of the banner and of each other, and never run
 // off the screen or under the HUD. Big ones are placed first; anything in the way pushes a text down.
 function layoutFloaters() {
@@ -4929,7 +5020,7 @@ function layoutFloaters() {
     const b = bannerObj, size = bannerSize(b), y = bannerY(b, size), tilt = W * 0.025;
     taken.push({ x0: 0, x1: W, y0: y - size * 0.62 - tilt, y1: y + (b.sub ? size * 0.72 + Math.max(16, size * 0.26) * 0.6 : size * 0.6) + tilt });
   }
-  if (running && combo >= 5) {   // the combo counter on the left
+  if (comboShown()) {   // the combo counter on the left
     const x = Math.max(16, W * 0.03), y = H * 0.52, size = 40 + comboPulse * 12;
     taken.push({ x0: x - 4, x1: x + Math.max(84, size * 0.75 * String(combo).length + 8), y0: y - size * 0.8, y1: y + 28 });
   }
@@ -5017,7 +5108,7 @@ function drawOverlays() {
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
     outlined('巨大ゾンビ', x, y - 4, 14, C.bone); ctx.restore();
   }
-  if (running && combo >= 5) {
+  if (comboShown()) {
     const size = 40 + comboPulse * 12;
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     const x = Math.max(16, W * 0.03), y = H * 0.52;
@@ -5111,8 +5202,10 @@ async function buildCard(o) {
   };
   g.textBaseline = 'alphabetic'; g.textAlign = 'left';
   text('ゾンビ爆散', 60, 122, 78, D, '#ffd25e', '#120c17', '#ff7a2f');
-  text(o.rank, 60, 420, 250, D, '#ffd25e', '#120c17', '#ff7a2f');
   g.font = `250px ${D}`;
+  const rs = Math.min(250, 250 * 430 / g.measureText(o.rank).width);   // SS and SSS shrink into the same room
+  text(o.rank, 60, 420 - (250 - rs) * 0.3, rs, D, '#ffd25e', '#120c17', '#ff7a2f');
+  g.font = `${rs}px ${D}`;
   const col = 60 + g.measureText(o.rank).width + 44, room = 1160 - col;
   text('SCORE', col, 258, 26, B, 'rgba(243,233,220,.75)');
   g.font = `96px ${D}`;
