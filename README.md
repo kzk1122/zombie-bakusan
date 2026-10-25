@@ -31,3 +31,4 @@
 - 効果音は Web Audio でその場で合成しています
 - 実況とうめき声は [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M)（Apache-2.0）で生成し、ファイルに埋め込んでいます
 - フォントは Google Fonts の [Dela Gothic One](https://fonts.google.com/specimen/Dela+Gothic+One) と [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License）です
+- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ランク・点数）とシェアのボタンをイベントとして送ります
