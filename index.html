@@ -692,6 +692,7 @@ function makeAtlas() {
     const edge = 0.64 + (n - 0.5) * 0.36 + Math.sin(a * 5 + ox) * 0.05;
     return sm(edge + 0.05, edge - 0.03, r) * (0.86 + 0.14 * n);
   });
+  img(18, (u, v) => Math.exp(-v * v * 9) * sm(1, 0.9, Math.abs(u)));   // a rope: a line the same thickness end to end
   cell(17, g => {   // the cracks running out from it, thinning as they go
     const C = S / 2;
     g.strokeStyle = '#fff'; g.lineCap = 'round';
@@ -2258,7 +2259,7 @@ const IRON = new THREE.Color('#2a2a30');
 function spawnManhole(zAt) {
   let walking = 0;
   for (const z of zombies) if (z.state === 'walk') walking++;
-  if (walking > zCap || (boss && boss.state === 'drop')) return;
+  if (walking > zCap || bosses.some(b => b.state === 'drop')) return;
   const x = rand(-1, 1) * halfX * 0.7, z0 = zAt || rand(8.5, 12.5), n = 2 + (Math.random() < 0.4 ? 1 : 0);
   craters.push({ x, z: z0, r: 0.42, rot: rand(0, 6.28), life: 30 });   // a cold hole: no glow, it is not a blast
   addChunk({ x, z: z0, h: 0.05, vx: rand(-1, 1), vz: rand(-1.5, 0.5), vh: rand(8, 11), sx: 0.72, sy: 0.07, sz: 0.72, c: IRON, life: 3, bounce: 0.35, w: new THREE.Vector3(rand(-9, 9), rand(-2, 2), rand(-9, 9)) });
@@ -2360,6 +2361,23 @@ function poseZombie(z, R) {
     const yaw = z.yaw + clamp(z.vxs * 0.3, -0.4, 0.4);
     R.root.position.set(z.x, z.h + 0.95 * z.size + bob * z.size, -z.z);
     R.root.quaternion.setFromEuler(_eu.set(0, yaw, Math.sin(t) * 0.04));
+  } else if (z.state === 'hang') {
+    // off the airship's ropes by both hands, legs kicking, head lolling about
+    const f = now * 6 + L.seed;
+    for (let i = 0; i < 2; i++) {
+      const s = i ? 1 : -1;
+      setR(R.sh[i], -2.95 + Math.sin(f * 0.7 + i) * 0.08, 0, -s * 0.18);
+      setR(R.el[i], -0.12 - Math.max(0, Math.sin(f * 0.5 + i * 2)) * 0.3);
+      setR(R.wr[i], 0.2);
+      setR(R.hp[i], Math.sin(f + i * Math.PI) * 0.6 - 0.15, 0, s * 0.08);
+      setR(R.kn[i], 0.3 + Math.max(0, Math.sin(f + i * Math.PI + 1.2)) * 0.9);
+      setR(R.an[i], 0.4);
+    }
+    setR(R.spine, 0.05 + Math.sin(f * 0.5) * 0.1, Math.sin(f * 0.3) * 0.2, 0);
+    setR(R.neck, -0.3 + Math.sin(f * 0.4) * 0.25, Math.sin(f * 0.23 + L.seed) * 0.5, L.tilt);
+    setR(R.jaw, jawOpen + 0.25);
+    R.root.position.set(z.x, z.h + 0.95 * z.size, -z.z);
+    R.root.quaternion.copy(z.q);
   } else {
     // airborne: flailing; down: sprawled
     const fly = z.state === 'fly', k = fly ? 1 : Math.max(0, 1 - z.dead * 3);
@@ -2545,9 +2563,23 @@ function raySphere(O, D, cx, cy, cz, r) {
 function rayZombies(O, D, assistPx) {
   let best = null, bt = Infinity, near = null, nScore = Infinity;
   for (const z of zombies) {
-    if ((z.state !== 'walk' && z.state !== 'fly') || z.z < 1.8) continue;
+    if ((z.state !== 'walk' && z.state !== 'fly' && z.state !== 'hang') || z.z < 1.8) continue;
     const s = z.size, cx = z.x, cz = -z.z;
-    if (z.state === 'walk') {
+    if (z.dog) {
+      // the giant dog: a string of spheres down its body from the pose last drawn, its head counting as a head
+      if (!z.hs || z.state !== 'walk') continue;
+      let t = -1, head = false;
+      for (const S of z.hs) { const ts = raySphere(O, D, S[0], S[1], S[2], S[3]); if (ts > 0 && (t < 0 || ts < t)) { t = ts; head = S[4]; } }
+      if (t > 0) { if (t < bt) { bt = t; best = { z, t, head, inside: true }; } continue; }
+      for (const S of z.hs) {
+        const ox = S[0] - O.x, oy = S[1] - O.y, oz = S[2] - O.z, ts = ox * D.x + oy * D.y + oz * D.z;
+        if (ts <= 0) continue;
+        const missPx = Math.max(0, Math.hypot(ox - D.x * ts, oy - D.y * ts, oz - D.z * ts) - S[3]) * pxPerM(ts);
+        if (missPx < assistPx && missPx < nScore) { nScore = missPx; near = { z, t: ts, head: false, inside: false, sp: S }; }
+      }
+      continue;
+    }
+    if (z.state === 'walk' || z.state === 'hang') {
       const r = 0.25 * s * z.look.w, top = 1.5 * s + z.h;
       let t = rayCyl(O, D, cx, cz, r, z.h, top), head = false;
       if (!z.headless) { const th = raySphere(O, D, cx, z.h + 1.64 * s, cz + 0.03, 0.15 * s); if (th > 0 && (t < 0 || th < t)) { t = th; head = true; } }
@@ -2568,6 +2600,7 @@ function rayZombies(O, D, assistPx) {
   const hit = best || near;
   if (!hit) return null;
   if (hit.inside) hit.p = new THREE.Vector3().copy(O).addScaledVector(D, hit.t);
+  else if (hit.sp) hit.p = new THREE.Vector3(hit.sp[0] + rand(-0.1, 0.1), hit.sp[1], hit.sp[2] + hit.sp[3] * 0.7);
   else hit.p = new THREE.Vector3(hit.z.x + rand(-0.12, 0.12), hit.py, -hit.z.z + 0.2);
   return hit;
 }
@@ -2661,6 +2694,8 @@ function raySolid(O, D) {
   }
   const th = rayHeli(O, D);
   if (th > 0 && th < best.t) best = { t: th, kind: 'heli' };
+  const ts = rayShip(O, D);
+  if (ts > 0 && ts < best.t) best = { t: ts, kind: 'ship' };
   if (best.t === Infinity) best.t = 60;
   best.p = new THREE.Vector3().copy(O).addScaledVector(D, best.t);
   return best;
@@ -2711,15 +2746,17 @@ function shootBullet() {
   const tc = fev ? hueRGB(((performance.now() / 1400) + 0.3) % 1, 5) : [5, 3, 1.1];
   addPart({ k: 'tracer', x: _wp.x + dx * 0.56, z: -(_wp.z + dz * 0.56), h: _wp.y + dy * 0.56, vx: 0, vz: 0, vh: 0, r: fev ? 0.07 : 0.045, life: 0.05, dx: dx * 0.42, dy: dy * 0.42, dz: dz * 0.42, c: tc });
   const P = end, gx = P.x, gz = -P.z, gh = P.y, ch = newChain();
-  if (A.kind === 'zombie') hitZombie(A.hit, fev ? 2 : 1, _D.clone(), ch);
+  if (A.kind === 'zombie') { hitZombie(A.hit, fev ? 2 : 1, _D.clone(), ch); if (pipe && Math.random() < 0.3) pipeShot(gx, gz, ch); }
   else if (A.kind === 'car') hitCar(A.car, fev ? 2 : 1, gx, gz, gh, ch);
   else if (A.kind === 'heli') hitHeli(fev ? 2 : 1, ch, gx, gh, gz);
+  else if (A.kind === 'ship') hitShip(fev ? 2 : 1, ch, gx, gh, gz);
   else if (A.kind === 'facade') {
     for (let i = 0; i < 4; i++) addPart({ k: 'spark', x: gx, z: gz, h: gh, vx: -A.side * rand(1, 5), vz: rand(-3, 3), vh: rand(-1, 4), g: 12, r: 0.03, life: rand(0.15, 0.35) });
     addPart({ k: 'dust', x: gx - A.side * 0.15, z: gz, h: gh, vx: -A.side * 0.6, vz: 0, vh: 0.2, r: 0.18, grow: 0.8, drag: 2, life: 0.6, a: 0.5 });
     if (Math.random() < 0.5) addChunk({ x: gx - A.side * 0.1, z: gz, h: gh, vx: -A.side * rand(1, 3), vz: rand(-1, 1), vh: rand(0, 2), sx: 0.05, sy: 0.04, sz: 0.05, c: CH.conc, life: 1.2 });
     if (A.block) bulletFacade(A.block, gz, gh, ch);
   } else if (A.kind === 'ground') {
+    pipeShot(gx, gz, ch);
     addPart({ k: 'dust', x: gx, z: gz, h: 0.1, vx: 0, vz: 0, vh: 0.6, r: 0.16, grow: 0.9, drag: 2, life: 0.5, a: 0.5 });
     for (let i = 0; i < 3; i++) addPart({ k: 'spark', x: gx, z: gz, h: 0.04, vx: rand(-3, 3), vz: rand(-3, 3), vh: rand(2, 5), g: 14, r: 0.025, life: rand(0.12, 0.3) });
     if (Math.random() < 0.6) addChunk({ x: gx, z: gz, h: 0.05, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(2, 4.5), sx: 0.04, sy: 0.03, sz: 0.05, c: CH.asphalt, life: 0.8 });
@@ -2793,15 +2830,17 @@ function updateRockets(dt) {
     addPart({ k: 'fire', x: r.x - r.vx * 0.006, z: r.z - r.vz * 0.006, h: r.h - r.vh * 0.006, vx: -r.vx * 0.05, vz: -r.vz * 0.05, vh: -r.vh * 0.05, r: rand(0.1, 0.16), life: 0.09, heat: 1.3, f: 1 });
     let hitZ = null, hitC = null;
     for (const z of zombies) {
+      if (z.state === 'hang' && Math.abs(z.z - r.z) < 0.5 && Math.abs(z.x - r.x) < 0.45 * z.size && r.h > z.h && r.h < z.h + 2.1 * z.size) { hitZ = z; break; }
       if (z.state !== 'walk' || Math.abs(z.z - r.z) > 0.6 * Math.max(1, z.size * 0.5)) continue;
       if (Math.abs(z.x - r.x) < 0.45 * z.size && r.h < ZOMBIE_H * z.size) { hitZ = z; break; }
     }
     if (!hitZ) hitC = cars.find(c => (c.state === 'park' || c.state === 'roll') && Math.abs(c.x - r.x) < c.hw + 0.09 && Math.abs(c.z - r.z) < c.hl + 0.1 && r.h < c.ht + 0.05);
-    const hitH = !hitZ && !hitC && heliNear(r.x, r.h, r.z, 1.9);
-    if (hitZ || hitC || hitH || r.t >= r.T) {
+    const hitH = !hitZ && !hitC && heliNear(r.x, r.h, r.z, 1.9), hitS = !hitZ && !hitC && !hitH && shipNear(r.x, r.h, r.z, 0.15);
+    if (hitZ || hitC || hitH || hitS || r.t >= r.T) {
       r.done = true;
       if (hitH) downHeli(r.ch);
-      if (hitZ && hitZ.type === 'boss') damageBoss(22, r.ch);
+      if (hitS) hitShip(14, r.ch, r.x, r.h, r.z);
+      if (hitZ && hitZ.type === 'boss') damageBoss(22, r.ch, hitZ);
       const b = !hitZ && !hitC && r.kind === 'facade' ? blockAt(r.side, r.z) : null;
       if (b && !b.ruined) facadeBlast(b, r.z, r.h, 1.15, r.ch);
       else explode(r.x, r.z, 1.25, r.h, null, r.ch);
@@ -2984,10 +3023,12 @@ function shellTouch(s) {
     if (s.hit.has(zb)) continue;
     const sz = zb.size;
     if (zb.type === 'boss') {
-      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(70, s.ch); s.done = true; return; }
+      if (zb.state === 'walk' && Math.abs(zb.z - gz) < 0.6 * Math.max(1, sz * 0.5) && Math.abs(zb.x - gx) < 0.45 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); damageBoss(70, s.ch, zb); s.done = true; return; }
       continue;
     }
-    if (zb.state === 'walk') {
+    if (zb.state === 'hang') {
+      if (Math.abs(zb.z - gz) < 0.5 && Math.abs(zb.x - gx) < 0.5 * sz && gh > zb.h && gh < zb.h + 2.1 * sz) { s.hit.add(zb); dropHanger(zb, s.ch, true); registerKills(1, zb.x, zb.z, null, false, s.ch); }
+    } else if (zb.state === 'walk') {
       if (Math.abs(zb.z - gz) < 0.5 && Math.abs(zb.x - gx) < 0.55 * sz && gh < ZOMBIE_H * sz) { s.hit.add(zb); skewer(zb, s); }
     } else if (zb.state === 'fly' && Math.abs(zb.z - gz) < 0.7 && Math.abs(zb.x - gx) < 0.7 && Math.abs(zb.h - gh) < 1) {
       s.hit.add(zb);
@@ -3000,6 +3041,7 @@ function shellTouch(s) {
     if ((c.state === 'park' || c.state === 'roll') && Math.abs(c.x - gx) < c.hw + 0.09 && Math.abs(c.z - gz) < c.hl + 0.1 && gh < c.ht + 0.05) { s.kind = 'car'; s.done = true; return; }
   }
   if (heliNear(gx, gh, gz, 1.8)) { downHeli(s.ch); s.done = true; }
+  if (shipNear(gx, gh, gz, 0.15)) { hitShip(30, s.ch, gx, gh, gz); s.done = true; }
 }
 function skewer(zb, s) {
   const dx = s.dir.x, dz = -s.dir.z, d = Math.hypot(dx, dz) || 1;
@@ -3119,6 +3161,7 @@ function updateHoles(dt) {
     let hit = s.t >= s.T;
     if (!hit) hit = cars.some(c => (c.state === 'park' || c.state === 'roll') && Math.abs(c.x - s.x) < c.hw + 0.1 && Math.abs(c.z - s.z) < c.hl + 0.1 && s.h < c.ht + 0.1);
     if (!hit && heliNear(s.x, s.h, s.z, 1.9)) { downHeli(s.ch); hit = true; }
+    if (!hit && shipNear(s.x, s.h, s.z, 0.3)) { hitShip(40, s.ch, s.x, s.h, s.z); hit = true; }
     if (hit) { s.done = true; openHole(s.x, s.z, s.ch); }
   }
   holeShells = holeShells.filter(s => !s.done);
@@ -3200,7 +3243,7 @@ function tickHole(H, dt) {
     }
     if (n && running) registerKills(n, H.x, H.z, null, true, H.ch);
     // the giant is too big to lift, but it tears at it: two holes on it and the gun finish it
-    if (boss && boss.state === 'walk' && Math.hypot(boss.x - H.x, boss.z - H.z) < R + 2.5) damageBoss(60 * dt, H.ch);
+    for (const b of bosses) if (b.state === 'walk' && Math.hypot(b.x - H.x, b.z - H.z) < R + 2.5) damageBoss(60 * dt, H.ch, b);
     // cars come off the road and get dragged round, to go up when it does; the lorry and the bus are too heavy, and wait
     // for the blast
     for (const c of cars) {
@@ -3436,7 +3479,7 @@ function fireRail(A) {
     const ox = zb.x - x0 - dx * t, oz = zb.z - z0 - dz * t, od = Math.hypot(ox, oz) || 1, ph = h0 + dh * t;
     if (zb.type === 'boss') {
       if (zb.state !== 'walk') continue;
-      damageBoss(RAIL_BOSS, ch);
+      damageBoss(RAIL_BOSS, ch, zb);
       for (let i = 0; i < 14; i++) addPart({ k: 'spark', x: zb.x, z: zb.z - 0.6, h: ph, vx: rand(-5, 5), vz: rand(-6, 2), vh: rand(-2, 6), g: 12, r: 0.035, life: rand(0.2, 0.5) });
       bloodBurst(zb.x, zb.z - 0.5, ph, 16, 6, 5);
       continue;
@@ -3474,6 +3517,7 @@ function fireRail(A) {
   }
   const th = rayHeli(M, D);
   if (th > 0 && th < L) downHeli(ch);
+  shipBeam(M, D, L, 25, ch);
   // where it goes in: a wall takes a bite, the road a blast and a furrow where the beam ran low along it
   const hitIt = S.t <= RAIL_LEN, ez = -E.z;
   if (hitIt && S.kind === 'facade' && S.block && !S.block.ruined) facadeBlast(S.block, ez, E.y, 1.4, ch);
@@ -3638,7 +3682,7 @@ function waveHit(Wv, dt, S, L) {
       if (zb.state !== 'walk') continue;
       const q = near(zb.x, zb.z, 0, ZOMBIE_H * zb.size);
       if (q.d < q.R + 0.45 * zb.size) {
-        damageBoss(WAVE_BOSS * dt, ch);
+        damageBoss(WAVE_BOSS * dt, ch, zb);
         if (Math.random() < dt * 30) addPart({ k: 'spark', x: zb.x + rand(-1, 1), z: zb.z - 0.6, h: rand(1, 4), vx: rand(-6, 6), vz: rand(-4, 4), vh: rand(0, 7), g: 12, r: 0.04, life: rand(0.2, 0.5) });
       }
       continue;
@@ -3673,6 +3717,7 @@ function waveHit(Wv, dt, S, L) {
     else if (c.state === 'fly' && !c.held) { c.vx += ux * 20 * dt; c.vz += uz * 20 * dt; c.vh += 14 * dt; }
   }
   if (heli && heli.state !== 'crash' && near(heli.x, heli.z, heli.h - 1, heli.h + 1).d < waveReach(heli.z) + 1.5) downHeli(ch);
+  if (ship && (ship.state === 'in' || ship.state === 'hover') && near(ship.x, ship.z, ship.h - SHIP_R - 2.5, ship.h + SHIP_R).d < waveReach(ship.z) + SHIP_R) downShip(ch);
   // where it ends: a building comes down, the road goes up again and again
   if (Wv.head >= 1 && S.t <= WAVE_LEN) {
     const ez = -E.z;
@@ -4166,6 +4211,106 @@ function rotorSnd(on) {
   rotorNodes = { src, lfo, g };
 }
 
+// the gas main: a rumble and a hiss under the street that build up, the covers clattering on it, then a pillar of fire
+let pipeNodes = null;
+function pipeSnd(on) {
+  if (!on) {
+    if (!pipeNodes) return;
+    const t = actx.currentTime, R = pipeNodes;
+    pipeNodes = null;
+    try { R.g.gain.setTargetAtTime(0.0001, t, 0.08); R.src.stop(t + 0.5); } catch (e) {}
+    return;
+  }
+  if (!live() || pipeNodes) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.8);
+  const hiss = actx.createGain(); hiss.gain.value = 0.2;
+  src.connect(filt('lowpass', 110, 1.2)).connect(g);
+  src.connect(filt('bandpass', 2400, 1.5)).connect(hiss).connect(g);
+  g.connect(master); src.start(t);
+  pipeNodes = { src, g, hiss };
+}
+function pipeLevel(k) {
+  if (!pipeNodes) return;
+  const t = actx.currentTime;
+  pipeNodes.g.gain.setTargetAtTime(0.3 + 0.5 * k, t, 0.3); pipeNodes.hiss.gain.setTargetAtTime(0.2 + 0.5 * k, t, 0.3);
+}
+function rattleSnd(z) {
+  if (!live()) return;
+  const t = actx.currentTime, near = clamp(12 / z, 0.35, 1);
+  for (let i = 0; i < 2; i++) { const tt = t + i * rand(0.03, 0.06); noiseSrc(tt, 0.05).connect(filt('bandpass', rand(1400, 2600), 7)).connect(gain(tt, 0.16 * near, 0.001, 0.05)).connect(master); }
+  noiseSrc(t, 0.08).connect(filt('lowpass', 500)).connect(gain(t, 0.12 * near, 0.002, 0.07)).connect(master);
+}
+function jetSnd(z) {
+  if (!live()) return;
+  const t = actx.currentTime, near = clamp(12 / z, 0.35, 1);
+  const bp = filt('bandpass', 500, 1); bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(1400, t + 0.2);
+  noiseSrc(t, 0.45).connect(bp).connect(gain(t, 0.22 * near, 0.03, 0.38)).connect(master);
+}
+function pillarSnd(z) {
+  if (!live()) return;
+  const t = actx.currentTime, near = clamp(14 / z, 0.45, 1.2);
+  // a jet of burning gas: a roar that opens up, then drops away
+  const lp = filt('lowpass', 300, 1.2); lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(1600, t + 0.15); lp.frequency.exponentialRampToValueAtTime(400, t + 1.5);
+  noiseSrc(t, 1.7).connect(lp).connect(gain(t, 0.8 * near, 0.02, 1.5)).connect(master);
+  noiseSrc(t, 1.2).connect(filt('bandpass', 700, 0.8)).connect(gain(t, 0.25 * near, 0.03, 1.1)).connect(master);
+}
+
+// the airship's engines: a low drone with the beat of the propellers in it
+let shipNodes = null;
+function shipSnd(on) {
+  if (!on) {
+    if (!shipNodes) return;
+    const t = actx.currentTime, R = shipNodes;
+    shipNodes = null;
+    try { R.g.gain.setTargetAtTime(0.0001, t, 0.15); R.src.stop(t + 0.8); R.o.stop(t + 0.8); R.lfo.stop(t + 0.8); } catch (e) {}
+    return;
+  }
+  if (!live() || shipNodes) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const o = osc('sawtooth', 52, t), am = actx.createGain(); am.gain.value = 0.6;
+  const lfo = osc('sine', 17, t), depth = actx.createGain(); depth.gain.value = 0.4;
+  lfo.connect(depth).connect(am.gain);
+  const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 2.5);
+  src.connect(filt('lowpass', 240, 1.2)).connect(am); o.connect(filt('lowpass', 300)).connect(am);
+  am.connect(g).connect(master);
+  src.start(t); o.start(t); lfo.start(t);
+  shipNodes = { src, o, lfo, g };
+}
+// the giant dog's howl: a wolf's cry climbing and wavering through a throaty band, a snarl under it (dying: a yelp that
+// falls away). k turns it down for one far off down the avenue
+function howlSnd(dying, k = 1) {
+  if (!live()) return;
+  const t = actx.currentTime, T = dying ? 1.2 : 2.1, f0 = dying ? 520 : 210, f1 = dying ? 170 : 440;
+  const env = peak => {
+    const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.25); g.gain.linearRampToValueAtTime(peak * 0.8, t + T * 0.75); g.gain.exponentialRampToValueAtTime(0.0001, t + T);
+    return g;
+  };
+  for (const [type, m, pk] of [['sawtooth', 1, 0.2], ['sawtooth', 1.012, 0.14], ['triangle', 2.01, 0.07]]) {
+    const o = osc(type, f0 * m, t);
+    o.frequency.linearRampToValueAtTime(f1 * m, t + T * 0.3); o.frequency.linearRampToValueAtTime(f1 * 0.9 * m, t + T * 0.75); o.frequency.exponentialRampToValueAtTime(f1 * 0.5 * m, t + T);
+    const lfo = osc('sine', 5.2, t), lg = actx.createGain(); lg.gain.value = 7 * m; lfo.connect(lg).connect(o.frequency);
+    o.connect(filt('bandpass', 950, 1.4)).connect(env(pk * k)).connect(master);
+    o.start(t); o.stop(t + T + 0.05); lfo.start(t); lfo.stop(t + T + 0.05);
+  }
+  noiseSrc(t, T).connect(filt('bandpass', 1400, 1.2)).connect(env(0.08 * k)).connect(master);
+  if (voiceBufs.roar) {
+    const src = actx.createBufferSource(); src.buffer = voiceBufs.roar; src.playbackRate.value = rand(1.25, 1.4);
+    const g = actx.createGain(); g.gain.value = 0.9 * k; src.connect(g).connect(groanIn); src.start(t);
+  }
+}
+// キラーン: a bright little chime, ringing high
+function twinkleSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (const [f, d, pk] of [[2093, 0, 0.16], [3136, 0.06, 0.13], [4186, 0.12, 0.1], [6272, 0.16, 0.05]]) {
+    const o = osc('sine', f, t + d); o.connect(gain(t + d, pk, 0.005, 0.9)).connect(master); o.start(t + d); o.stop(t + d + 1);
+  }
+}
+
 // ---------- music: 150 BPM step sequencer, louder layers during FEVER ----------
 const BPM = 150, STEP = 60 / BPM / 4;
 const BASS = [40, 40, 43, 40, 45, 40, 47, 45, 40, 40, 43, 40, 50, 48, 47, 43];
@@ -4200,7 +4345,7 @@ function mStab(t, m) {
   }
 }
 function playStep(i, t) {
-  const s = i % 16, fev = feverT > 0, bossOn = boss && boss.state === 'walk';
+  const s = i % 16, fev = feverT > 0, bossOn = bosses.some(b => b.state === 'walk');
   const note = BASS[(i >> 1) % 16];
   if (s % 4 === 0 || (fev && s === 14) || (bossOn && s === 10)) mKick(t);
   if (s === 4 || s === 12 || (fev && s === 15)) mSnare(t);
@@ -4246,12 +4391,12 @@ function buzz(p, lv = 1) {
 const DURATION = 15, FEVER_TIME = 4.5;
 // what the set pieces pay on top of the kills they take with them (2026-10-25: a block coming down paid what three zombies
 // did, so nobody aimed at one)
-const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000, gold: 50000 };
+const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000, gold: 50000, twin: 100000, star: 100000 };
 // lines drawn from bot rounds (2026-10-25, redrawn for the bigger horde, about three times the kills; 8 rounds a style): the
 // street is so full that blind firing scores as well as clean shooting, both 7.5 to 9.3 million, mostly SS; a person is
 // slower than the bots, so S to SS; SSS for the best rounds only; doing nothing is C
 const RANKS = [{ r: 'SSS', min: 9200000 }, { r: 'SS', min: 7800000 }, { r: 'S', min: 6000000 }, { r: 'A', min: 4000000 }, { r: 'B', min: 1200000 }, { r: 'C', min: 0 }];
-let running = false, endT = 0, boss = null;
+let running = false, endT = 0;
 let explosionsQ = [], floaters = [], bannerObj = null;
 let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
 let shake = 0, hitstop = 0, slowmo = 0, zoom = 1, speedLines = 0, flashScreen = 0;
@@ -4346,8 +4491,9 @@ function updateChains(dt) {
 // rate FEVER's did (2026-10-25: at the old rate a strike came every few seconds, three a round), and it stops in the last
 // STRIKE_LAST seconds, when the bombs would still be falling at the whistle
 const STRIKE_FILL = 0.5, STRIKE_LAST = 2.2;
+let noStrike = false;   // tests only (window.__noStrike): a happening seen on its own, without the jets coming in over it
 function addFever(v) {
-  if (!running || feverT > 0 || spReady || DURATION - elapsed < STRIKE_LAST) return;
+  if (!running || feverT > 0 || spReady || noStrike || DURATION - elapsed < STRIKE_LAST) return;
   fever = Math.min(100, fever + v * STRIKE_FILL);
   if (fever >= 100) strikeReady();
 }
@@ -4361,7 +4507,7 @@ function startFever() {
   sting(); say('fever', 3);
 }
 // the giant's death and flight and the moon breaking are the show: no combo callouts and no air strike over them
-function showOn() { return (boss && (boss.state === 'dying' || boss.state === 'moonshot')) || (moonBroken && moonBreakT < 2.2); }
+function showOn() { return bossFlying() || (moonBroken && moonBreakT < 2.2); }
 function showBanner(text, sub, color, dur, force, low) {
   if (!running && !force) return;   // after time-up only FINISH and the giant's own banners
   if (!force && showOn()) return;
@@ -4383,7 +4529,17 @@ function hitZombie(hit, dmg, D, ch) {
   if (z.type !== 'boss' && Math.random() < 0.35) addChunk({ m: 'meat', x: gx, z: gz, h: gh, vx: D.x * rand(1, 3) + rand(-1, 1), vz: -D.z * rand(1, 3) + rand(-0.5, 0.5), vh: rand(1, 4), sx: 0.035, sy: 0.028, sz: 0.04, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(1.5, 2.5), blood: true, bounce: 0.1 });
   for (let i = 0; i < 5; i++) addPart({ k: 'blood', x: gx, z: gz, h: gh, vx: D.x * rand(1, 4) + rand(-1.5, 1.5), vz: -D.z * rand(1, 4) + rand(-1, 1), vh: rand(0.5, 3.5), g: 14, r: rand(0.025, 0.06), life: 1.2, dark: Math.random() < 0.3 });
   addPart({ k: 'mist', x: gx, z: gz + 0.1, h: gh, vx: D.x, vz: -D.z, vh: 0.2, r: 0.12, grow: 1.6, drag: 3, life: 0.3, a: 0.5 });
-  if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg, ch); if (Math.random() < 0.25) squelch(false); return; }
+  if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg, ch, z); if (Math.random() < 0.25) squelch(false); return; }
+  if (z.state === 'hang') {
+    // one off the airship's ropes
+    z.hp -= hit.head ? dmg * 3 : dmg; z.flash = 0.07;
+    if (z.hp <= 0) {
+      if (hit.head) { headshots++; squelch(true); popHead(z, true); }
+      dropHanger(z, ch, true);
+      registerKills(1, z.x, z.z, hit.head ? 'HEADSHOT!' : '撃ち落とし!', false, ch, hit.head ? 2 : 1);
+    }
+    return;
+  }
   if (z.state === 'fly') {
     // juggle bodies in the air
     z.vh = Math.max(z.vh, 7); z.vz += 0.8; z.vx += rand(-1, 1); z.w.x -= rand(2, 5);
@@ -4411,12 +4567,12 @@ function popHead(zb, shot) {
   makeGib(zb, LIMBS.head, { x: zb.vx * 0.5 + rand(-1.5, 1.5), y: shot ? rand(12, 16) : rand(8, 14), z: zb.vz * 0.7 }, rand(14, 26));
   zb.headless = true;
   // the skull bursts: brain, bits of bone, an eye
-  const hh = 1.62 * zb.size;
+  const h0 = zb.state === 'hang' ? zb.h : 0, hh = h0 + 1.62 * zb.size;   // one on the airship's ropes is up in the air
   for (let i = 0; i < 6; i++) addChunk({ m: 'meat', x: zb.x, z: zb.z, h: hh, vx: rand(-3, 3), vz: rand(-2, 3), vh: rand(4, 10), sx: rand(0.04, 0.06), sy: 0.035, sz: rand(0.05, 0.07), c: CH.brain, life: rand(2.5, 4), blood: true, bounce: 0.08 });
   for (let i = 0; i < 4; i++) addChunk({ x: zb.x, z: zb.z, h: hh, vx: rand(-4, 4), vz: rand(-2, 4), vh: rand(5, 11), sx: rand(0.03, 0.06), sy: 0.012, sz: rand(0.03, 0.05), c: CH.bone, life: 2.5 });
   if (Math.random() < 0.6) addChunk({ m: 'meat', x: zb.x, z: zb.z, h: hh, vx: rand(-2, 2), vz: rand(-1, 3), vh: rand(6, 10), sx: 0.042, sy: 0.042, sz: 0.042, c: CH.eye, life: 3, bounce: 0.35 });
-  for (let i = 0; i < 8; i++) addPart({ k: 'blood', x: zb.x, z: zb.z, h: 1.5 * zb.size, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(5, 10), g: 14, r: rand(0.04, 0.09), life: 1.4, dark: Math.random() < 0.3 });
-  addPart({ k: 'mist', x: zb.x, z: zb.z, h: 1.55 * zb.size, vx: 0, vz: 0, vh: 1, r: 0.25, grow: 2.4, drag: 3, life: 0.45, a: 0.6 });
+  for (let i = 0; i < 8; i++) addPart({ k: 'blood', x: zb.x, z: zb.z, h: h0 + 1.5 * zb.size, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(5, 10), g: 14, r: rand(0.04, 0.09), life: 1.4, dark: Math.random() < 0.3 });
+  addPart({ k: 'mist', x: zb.x, z: zb.z, h: h0 + 1.55 * zb.size, vx: 0, vz: 0, vh: 1, r: 0.25, grow: 2.4, drag: 3, life: 0.45, a: 0.6 });
 }
 function killZombie(zb, o) {
   if (zb.state !== 'walk' || zb.type === 'boss') return;
@@ -4552,7 +4708,7 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
     const sp = toScreen(x, z, hh + 2.4);
     floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(BOOM_TXT), rot: rand(-0.35, 0.35), life: 0.7, max: 0.7, size: clamp(24 * near * power, 26, 64) });
   }
-  blastDamage(x, z, power, R, ch);
+  blastDamage(x, z, power, R, ch, hh);
   blastFacades(x, z, hh, power, skip, ch);
 }
 // the road goes up with the blast (2026-10-24, kazu: the road blowing up too would be even better): slabs of asphalt, some with
@@ -4576,12 +4732,12 @@ function roadBlast(x, z, power, low) {
   }
 }
 // what a blast does to the bodies, the loose limbs and the cars around it
-function blastDamage(x, z, power, R, ch) {
+function blastDamage(x, z, power, R, ch, h = 0.3) {
   let k = 0;
   for (const zb of zombies) {
     const dx = zb.x - x, dz = zb.z - z, d = Math.hypot(dx, dz);
     if (zb.type === 'boss') {
-      if (zb.state === 'walk' && d < R + 1.2) damageBoss(13 * (1 - d / (R + 1.2)) * power + 1.5, ch);
+      if (zb.state === 'walk' && d < R + 1.2) damageBoss(13 * (1 - d / (R + 1.2)) * power + 1.5, ch, zb);
       continue;
     }
     if (zb.state === 'fly' || zb.state === 'dead') {
@@ -4605,6 +4761,8 @@ function blastDamage(x, z, power, R, ch) {
     if (d < R) { const f = 1 - d / R; g.vh = Math.max(g.vh, 8 * f * power + 3); g.vx += dx / (d + 0.01) * 6 * f; g.vz += dz / (d + 0.01) * 6 * f + 2; g.life = Math.max(g.life, 2); }
   }
   for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.hypot(Math.max(0, Math.abs(c.x - x) - c.hw + 0.86), Math.max(0, Math.abs(c.z - z) - c.hl + 2.1)) < R + 1.2) carBoom(c, 0.12, ch);
+  pipeBlast(x, z, R, ch);
+  shipBlast(x, z, h, R, power, ch);
   if (k > 0 && running) {
     registerKills(k, x, z, null, true, ch);
     if (k >= 3 && !reduceMotion) hitstop = 0.05 + Math.min(k, 8) * 0.012;
@@ -4911,7 +5069,8 @@ function finish() {
   if (goldKills) badges.push(`金ピカ ×${goldKills}`);
   for (const k of hapDone) badges.push(HAPS[k].name.replace('!!', ''));
   if (strikeKills) badges.push(`空爆で${strikeKills}体`);
-  if (bossKilled) badges.push('巨大ゾンビ撃破');
+  if (bossKilled) badges.push(bossLabel());
+  if (bossStars) badges.push('キラーン');
   if (moonBroken) badges.push('月を破壊');
   if (moonHits) badges.push(`月面着弾 ×${moonHits}`);
   if (bldDown) badges.push(`ビル倒壊 ×${bldDown}`);
@@ -4922,7 +5081,7 @@ function finish() {
   if (weapon === 'hole' || weapon === 'rail' || weapon === 'wave') badges.unshift(WEAPON_NAME[weapon]);
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
   settleMissions();
-  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled, badges, weapon });
+  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled ? bossLabel() : '', badges, weapon });
   track('game_end', { weapon, rank: RANKS[i].r, score });
   let best = '';
   try {
@@ -4947,7 +5106,7 @@ function fxDecay(raw) {
   flashScreen = Math.max(0, flashScreen - raw);
   speedLines = Math.max(0, speedLines - raw * 1.2);
   zoom += (1 - zoom) * Math.min(1, raw * 6);
-  const bg = bossTiltGoal(), sg = strikeTiltGoal();
+  const bg = Math.max(bossTiltGoal(), shipTiltGoal()), sg = strikeTiltGoal();
   look.tilt += (Math.max(bg, sg) - look.tilt) * Math.min(1, raw * (sg > bg ? 3.5 : 2.2));
   gunRecoil = Math.max(0, gunRecoil - raw * 14);
   tubeRecoil = Math.max(0, tubeRecoil - raw * 4);
@@ -5000,7 +5159,7 @@ function update(dt, raw) {
     finaleTick(raw);
     endT -= raw;
     if (endT <= 0) {
-      if (bossBusy()) endT = 0.15;   // a giant on its way to the moon gets there before the results come up
+      if (bossBusy() || shipBusy()) endT = 0.15;   // a giant on its way to the moon, or an airship on its way down, gets there before the results come up
       else if (moonBroken && !moonWait && moonBreakT < 1.6) { moonWait = true; endT = 1.6 - moonBreakT; }   // and the moon is seen breaking
       else finish();
     }
@@ -5022,6 +5181,8 @@ function update(dt, raw) {
   updateStrike(dt);
   updateCars(dt);
   updateHeli(dt);
+  updatePipe(dt);
+  updateShip(dt);
   updateBuildings(dt);
   updateBoss(dt, raw);
   updateChains(dt);
@@ -5115,7 +5276,7 @@ function update(dt, raw) {
       a.x = c.x + (a.x >= c.x ? 1 : -1) * (c.hw + 0.34);
     }
     // and step round the giant's feet
-    if (boss && boss.state === 'walk' && Math.abs(a.z - boss.z) < 1.3 && Math.abs(a.x - boss.x) < 1.5) a.x = clamp(boss.x + (a.x >= boss.x ? 1.5 : -1.5), -halfLane, halfLane);
+    for (const b of bosses) if (b.state === 'walk' && a.z > b.z - 1.3 && a.z < b.z + (b.dog ? 1.5 * b.size : 1.3) && Math.abs(a.x - b.x) < 1.5) a.x = clamp(b.x + (a.x >= b.x ? 1.5 : -1.5), -halfLane, halfLane);   // the dog's whole length
   }
   // bowling: fast bodies knock down the zombies they fly into
   for (const fz of zombies) {
@@ -5224,7 +5385,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -5296,7 +5457,7 @@ function fakeBlack() {
   renderer.setRenderTarget(null); renderer.setClearColor(0x000000, 1); renderer.clear(true, false, false); renderer.setClearColor(c, a);
 }
 function onResize() { placeMoon(); placeGun(); placeTank(); }
-const CANVAS_GLYPHS = 'タンクローリー突入撃てば大爆発観光満員でご到着取材ヘリ接近落とせ墜石油可燃性高圧ガス火気厳禁金ピカ大当たり倒デブ爆散ドバァッブッシャバチュン空左ボタ発動キか主砲射機銃連鎖体串刺しき,巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
+const CANVAS_GLYPHS = 'タンクローリー突入撃てば大爆発観光満員でご到着取材ヘリ接近落とせ墜石油可燃性高圧ガス火気厳禁金ピカ大当たり倒デブ爆散ドバァッブッシャバチュン空左ボタ発動キか主砲射機銃連鎖体串刺しき,巨大ゾンビ接近月面着弾飛壊すとはビル倒壊下敷の散居酒屋ホテルカラオケラーメン焼肉麻雀薬質営業中最終防衛ライン立入禁止車ごとドカン爆殺ストライク場外ホームランナイス首ダドズガーボゴォバグチャァブシャベッ撃破マシンガン倍ロケット撃ち放題までんだここが×・+!パチンコ漫画酒寿司ゲーム24HBARスナック止まれ爆散通り発的エナジー危ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-管破裂寸前マンホル遊覧船飛行襲来撃墜ゴン犬';
 async function boot() {
   try { await bootInner(); }
   catch (e) {
@@ -5324,9 +5485,14 @@ async function bootInner() {
     window.__ready = () => { if (running && feverT <= 0) { fever = 100; strikeReady(); } };
     window.__fcount = () => frameCount;
     window.__prep = n => { const t = performance.now(); for (let i = 0; i < n; i++) { render(1 / 60); drawOverlay(); } return (performance.now() - t) / n; };
-    window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, drawBuildingFx, bossM };
+    window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, drawBuildingFx, bossRigs, dogRig };
     window.__boss = () => { if (!bossSpawned) { elapsed = Math.max(elapsed, bossAt); spawnBoss(); } };
     window.__hap = k => { hapKind = ''; startHappening(k); };
+    window.__noStrike = v => { noStrike = v; };
+    window.__noBoss = () => { bossSpawned = true; };
+    window.__noHap = () => { hapAt = 99; };
+    window.__aimHit = (x, y) => { const A = aimHit(x, y, 40); return { kind: A.kind, p: A.p && A.p.toArray().map(v => +v.toFixed(2)), z: A.hit && A.hit.z.state }; };
+    window.__pipeLight = i => lightPipe(i, newChain());
     window.__hole = (x, z) => openHole(x, z, newChain());
     window.__wave = () => wave && { phase: wave.phase, t: +wave.t.toFixed(2), head: wave.head, blasts: wave.blasts, M: wave.M.toArray().map(v => +v.toFixed(2)), E: wave.E.toArray().map(v => +v.toFixed(2)) };
     // whole frames, drawn and copied for the replay as the real loop does, for tests that need the picture each frame
@@ -5334,7 +5500,9 @@ async function bootInner() {
     // what whole frames cost, split: the simulation, getting the scene ready to draw, and drawing it
     window.__cost = (n, dt = 1 / 30) => { let u = 0, r = 0, g = 0; for (let i = 0; i < n; i++) { const t0 = performance.now(); demoTick(dt); update(slowmo > 0 ? dt * 0.35 : dt, dt); const t1 = performance.now(); render(dt); const t2 = performance.now(); renderPicture(dt); renderer.getContext().finish(); const t3 = performance.now(); u += t1 - t0; r += t2 - t1; g += t3 - t2; } return { u: u / n, r: r / n, g: g / n }; };
     window.__rp = () => ({ off: rpOff, best: rpBest && { n: rpBest.n, kept: rpBest.kept }, clip: rpClip && { n: rpClip.n, frames: rpClip.frames.length, span: +(rpClip.frames[rpClip.frames.length - 1].t - rpClip.frames[0].t).toFixed(2), y: +rpClip.y.toFixed(2) } });
-    window.__killBoss = () => { if (boss && boss.state === 'walk') damageBoss(999, newChain()); };
+    window.__killBoss = all => { for (const b of bosses) if (b.state === 'walk') { damageBoss(999, newChain(), b); if (!all) break; } };
+    window.__bossKind = k => { forceBoss = k || ''; };
+    window.__hapKind = k => { forceHap = k || ''; };
     window.__toMoon = () => { const z = zombies.find(o => o.state === 'walk' && o.type !== 'boss'); if (z) moonHit(z, moonNow.X + rand(-0.4, 0.4) * moonNow.r, moonNow.Y + rand(-0.4, 0.4) * moonNow.r); return !!z; };
     let idc = 0;
     window.__fin = () => {
@@ -5366,7 +5534,7 @@ async function bootInner() {
       return true;
     };
     window.__noCars = () => { for (const c of cars) if (!c.scenery) removeCar(c); cars = cars.filter(c => c.scenery); carRespawn = []; };
-    window.__clear = () => { for (const z of zombies) if (z.state === 'walk' && z.type !== 'boss') killZombie(z, { gun: true }); if (boss) { boss.gone = true; boss.state = 'gone'; } };
+    window.__clear = () => { for (const z of zombies) if (z.state === 'walk' && z.type !== 'boss') killZombie(z, { gun: true }); for (const b of bosses) { b.gone = true; b.state = 'gone'; } };
     window.__dropBlock = i => { const b = city.blocks.filter(o => o.group && !o.ruined)[i || 0]; if (b) { b.hp = 0.01; damageBlock(b, 1, (b.z0 + b.z1) / 2, 4, true); } return !!b; };
   }
   if (window.ZB_DEBUG) window.__zb = () => ({
@@ -5374,10 +5542,14 @@ async function bootInner() {
     calls: renderer.info.render.calls, tris: renderer.info.render.triangles,
     targets: zombies.filter(z => z.state === 'walk').map(z => { const s = toScreen(z.x, z.z, 1.1 * z.size), hd = toScreen(z.x, z.z, z.h + 1.64 * z.size); return { x: s.X, y: s.Y, hy: hd.Y, z: z.z, type: z.type }; }),
     cars: cars.map(c => { const s = toScreen(c.x, c.z, c.big ? 1.4 : 0.8); return { x: s.X, y: s.Y, z: c.z, s: c.state, big: c.kind && c.big ? c.kind : '' }; }),
-    boss: boss ? (() => { const s = toScreen(boss.x, boss.z, 1.25 * boss.size); return { x: s.X, y: s.Y, z: boss.z, hp: boss.hp, state: boss.state }; })() : null,
+    boss: bosses[0] ? (() => { const b = bosses.find(o => o.state === 'walk') || bosses[0], s = toScreen(b.x, b.z, (b.dog ? 1.1 : 1.25) * b.size); return { x: s.X, y: s.Y, z: b.z, hp: b.hp, state: b.state }; })() : null,
+    bosses: bosses.map(b => { const s = toScreen(b.x, b.z, (b.dog ? 1.1 : 1.25) * b.size); return { x: s.X, y: s.Y, gx: +b.x.toFixed(2), z: +b.z.toFixed(2), hp: +b.hp.toFixed(1), state: b.state, dest: b.dest || '', dog: !!b.dog, wall: !!b.atWall, top: b.dog ? +(b.top || 0).toFixed(2) : 0 }; }), bossKind, bossKills, bossStars,
     moonBroken, moonHits, bldDown, bestChain, carsBlown, spReady, strikes, strikeKills, fever, goldKills, hapAt, bossAt, lastHap, hapDone,
     headshots, longestFlight, juggles, bossKilled, bossKillT, fatPops, bombesShot, weapon, holesLeft, railsLeft, waveLoad, holes: holes.map(H => ({ x: H.x, z: H.z, t: H.t, held: zombies.filter(z => z.held === H).length, sw: H.sw.length })), mis: { act: mis.act.slice(), now: misNow.slice(), medals: mis.medals },
-    heli: heli ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: heli.z, state: heli.state }; })() : null, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
+    heli: heli ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: heli.z, state: heli.state }; })() : null,
+    tilt: +look.tilt.toFixed(3),
+    ship: ship ? (() => { const s = toScreen(ship.x, ship.z, ship.h); return { x: s.X, y: s.Y, z: +ship.z.toFixed(1), h: +ship.h.toFixed(1), state: ship.state, hp: ship.hp, hang: ship.hangers.filter(z => z.state === 'hang').length, hy: ship.hangers.filter(z => z.state === 'hang').map(z => toScreen(z.x, z.z, z.h + 1).Y | 0) }; })() : null,
+    pipe: pipe ? { lit: pipe.lit, t: +pipe.t.toFixed(2), holes: pipe.holes.map(o => { const s = toScreen(o.x, o.z, 0.05); return { x: s.X, y: s.Y, z: o.z, st: o.state, c: o.cover.state }; }) } : null, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
     blocks: city.blocks.filter(b => b.group && !b.ruined && b.z1 > 12).map(b => { const zc = clamp((b.z0 + b.z1) / 2, 12, b.z1), s = toScreen(b.side * b.xf, zc, Math.min(b.h * 0.5, 6)); return { x: s.X, y: s.Y, z: zc, hp: b.hp }; }),
   });
   if (window.ZB_GLFAIL === 'shader') {
@@ -5773,18 +5945,27 @@ function drawBuildingFx() {
   }
 }
 
-// ===== the giant: drops out of the sky, stomps up the avenue, pounds the street; kill it and it flies to the moon =====
-const SLAM_T = 1.5;
+// ===== the giants: one drops out of the sky, stomps up the avenue, pounds the street; kill it and it flies to the moon =====
+// 2026-10-26 (kazu chose more happenings): a round brings one of three kinds, never the same kind twice running:
+// one: the giant as before.
+// twins: two a little smaller drop side by side, mirror images with the huge arm on the outside. The first one killed
+//   breaks the moon; the other, with the moon taken or gone, is shot off into the stars and twinkles out (キラーン).
+// dog: a giant zombie dog comes galloping up the avenue out of the fog, weaving and flinging the horde aside; at its stop
+//   it rears up and slams its forepaws down on the street.
+// Each giant has its own rig and materials: a hit flashes only the one hit, and only the one on its way up leaves the fog.
+const SLAM_T = 1.5, TWIN_S = 2.5, TWIN_HP = 180, DOG_S = 2.5, DOG_HP = 220, DOG_SLAM = 1.7, DOG_STOP = 16.5, DOG_REAR = 2.68;   // DOG_REAR: its head reared up, in sizes
+const BOSS_KINDS = ['one', 'twins', 'dog'];
 let bossAt = 6.5;   // a different moment every round (76-happen.js)
-let bossM = null, bossSpawned = false, bossKilled = false, bossLandT = 0, bossKillT = 99;   // 「着地から◯秒で倒す」
-// shared by all of its materials: how much fog it takes (none on the way to the moon), and a glow added on top
-// (white when hit, fire-orange on the way to the moon)
-const BOSS_U = { fogK: { value: 1 }, flash: { value: new THREE.Color(0, 0, 0) } };
-function bossMat(o) {
+let bossKind = 'one', lastBoss = '', forceBoss = '', bosses = [], bossRigs = [], dogRig = null, bossTex = null, twinkles = [];
+let bossSpawned = false, bossKilled = false, bossKills = 0, bossStars = 0, bossLandT = 0, bossKillT = 99;   // 「着地から◯秒で倒す」
+// a rig's own uniforms: how much fog it takes (none on the way up), and a glow added on top (white when hit, fire-orange
+// on the way up). All the rigs share the one shader program; only these values differ
+const bossU = () => ({ fogK: { value: 1 }, flash: { value: new THREE.Color(0, 0, 0) } });
+function bossMat(o, U) {
   const m = zombieMat(Object.assign({ vertexColors: true }, o)), skin = m.onBeforeCompile;
   m.onBeforeCompile = sh => {
     skin(sh);
-    sh.uniforms.fogK = BOSS_U.fogK; sh.uniforms.bossFlash = BOSS_U.flash;
+    sh.uniforms.fogK = U.fogK; sh.uniforms.bossFlash = U.flash;
     sh.fragmentShader = 'uniform float fogK; uniform vec3 bossFlash;\n' + sh.fragmentShader.replace('#include <fog_fragment>', `#ifdef USE_FOG
         float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );
         gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor * fogK );
@@ -5858,26 +6039,52 @@ function makeBossFace() {
   }
   return { map, em: ctex(ec) };
 }
-// the giant is the zombie rig again with its own meshes: a hulking torso, a small sunk head, one huge clawed arm, bone spikes
-function buildBoss() {
-  const R = buildRig(), face = makeBossFace();
-  const M = {
-    skin: bossMat({ map: makeBossSkin(false), roughness: 0.6 }), chest: bossMat({ map: makeBossSkin(true), roughness: 0.5 }),
-    head: bossMat({ map: face.map, emissiveMap: face.em, emissive: 0xffffff, emissiveIntensity: 4, roughness: 0.45 }),
-    pants: bossMat({ map: ZP.pelvis.m.material.map, roughness: 0.8 }), bone: bossMat({ roughness: 0.35 }),
+// one set of textures for all the rigs, a set of materials for each
+function bossMats(U) {
+  if (!bossTex) bossTex = { skin: makeBossSkin(false), chest: makeBossSkin(true), face: makeBossFace() };
+  const T = bossTex;
+  return {
+    skin: bossMat({ map: T.skin, roughness: 0.6 }, U), chest: bossMat({ map: T.chest, roughness: 0.5 }, U),
+    head: bossMat({ map: T.face.map, emissiveMap: T.face.em, emissive: 0xffffff, emissiveIntensity: 4, roughness: 0.45 }, U),
+    pants: bossMat({ map: ZP.pelvis.m.material.map, roughness: 0.8 }, U), bone: bossMat({ roughness: 0.35 }, U),
   };
+}
+// a piece hung on a rig joint, its colour baked into its vertices
+function rigAdd(slot, geo, mat, c, pos = [0, 0, 0], scl = [1, 1, 1], rot = [0, 0, 0]) {
+  const g = geo.clone(), n = g.attributes.position.count, cl = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
+  const m = new THREE.Mesh(g, mat); m.position.set(...pos); m.scale.set(...scl); m.rotation.set(...rot);
+  m.frustumCulled = false; m.userData.c = c; slot.add(m);
+  return m;
+}
+// then the pieces on each joint are welded into one mesh per material: a few dozen draws a rig instead of a hundred
+function weldRig(root) {
+  const joints = [];
+  root.traverse(o => { if (!o.isMesh) joints.push(o); });
+  for (const j of joints) {
+    const by = new Map();
+    for (const m of j.children) if (m.isMesh) { if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(m); }
+    for (const [mat, list] of by) {
+      if (list.length < 2) continue;
+      const G = new GeoBuf();
+      for (const m of list) {
+        m.updateMatrix();
+        const g = m.geometry.clone().applyMatrix4(m.matrix);
+        G.geom(g, m.userData.c); g.dispose();
+        j.remove(m); m.geometry.dispose();
+      }
+      G.mesh(mat, 0, j).frustumCulled = false;
+    }
+  }
+}
+// the giant is the zombie rig again with its own meshes: a hulking torso, a small sunk head, one huge clawed arm, bone spikes
+function buildGiant() {
+  const R = buildRig(), U = bossU(), M = bossMats(U), add = rigAdd;
   const SK = new THREE.Color('#8e8492'), FEET = new THREE.Color('#5e5462'), PANT = new THREE.Color('#3b2d3f'), BONE = new THREE.Color('#e3dccb');
   const claw = new THREE.ConeGeometry(0.018, 0.1, 5).rotateX(Math.PI).translate(0, -0.05, 0);
   const spike = new THREE.ConeGeometry(0.035, 0.18, 6).translate(0, 0.09, 0);
   const hump = new THREE.SphereGeometry(1, 12, 8);
-  const add = (slot, geo, mat, c, pos = [0, 0, 0], scl = [1, 1, 1], rot = [0, 0, 0]) => {
-    const g = geo.clone(), n = g.attributes.position.count, cl = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) { cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
-    g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
-    const m = new THREE.Mesh(g, mat); m.position.set(...pos); m.scale.set(...scl); m.rotation.set(...rot);
-    m.frustumCulled = false; slot.add(m);
-    return m;
-  };
   const S = R.S;
   // broad shoulders, wide hips
   R.sh[0].position.x = -0.27; R.sh[1].position.x = 0.3; R.sh[0].position.y = R.sh[1].position.y = 0.38;
@@ -5901,37 +6108,158 @@ function buildBoss() {
   for (const [x, y, z, rx, rz, s] of [[-0.21, 0.2, -0.02, -0.3, 0.6, 1], [-0.12, 0.25, -0.07, -0.5, 0.25, 1.25], [0.13, 0.25, -0.07, -0.5, -0.25, 1.2], [0.23, 0.2, -0.02, -0.3, -0.6, 1.05], [0, 0.2, -0.17, -1.1, 0, 0.9], [0.02, 0.07, -0.19, -1.3, 0, 0.75]]) {
     add(S.torso, spike, M.bone, BONE, [x, y, z], [s, s, s], [rx, 0, rz]);
   }
+  weldRig(R.root);
   R.root.visible = false; scene.add(R.root);
-  bossM = { R, M };
+  return { R, M, U };
 }
-// compile the giant's and the ruins' shaders up front, so neither stalls the frame it first appears in
+// the giant dog: a rig of its own, facing +z like the others, its root in the middle of the back between the two pairs of
+// legs. A deep chest and a tucked-up waist torn open to the ribs on one flank with the guts hanging out, bone spikes down
+// the spine, a wolf's head with a long muzzle of fangs, four long clawed legs, a ragged tail ending in bare bone
+const DOG_Y = 0.87;
+// where bullets find it: [joint, x, y, z, radius, head] in rig units
+const DOG_HIT = [['head', 0, 0.02, 0.1, 0.2, true], ['head', 0, -0.02, 0.32, 0.11, true], ['neck', 0, 0, 0.24, 0.19, false], ['body', 0, 0.02, 0.5, 0.42, false], ['body', 0, 0.07, -0.05, 0.3, false], ['body', 0, 0.1, -0.58, 0.32, false]];
+function buildDog() {
+  const U = bossU(), M = bossMats(U), J = () => new THREE.Group(), add = rigAdd;
+  const two = () => [J(), J()];
+  const R = { root: J(), body: J(), neck: J(), head: J(), jaw: J(), fl: two(), fe: two(), fw: two(), hl: two(), hk: two(), ha: two(), tail: [J(), J(), J()], guts: two() };
+  const { root, body, neck, head, jaw } = R;
+  root.add(body);
+  body.add(neck); neck.position.set(0, 0.2, 0.86);
+  neck.add(head); head.position.set(0, 0, 0.42);
+  head.add(jaw); jaw.position.set(0, -0.065, 0.05);
+  for (let i = 0; i < 2; i++) {
+    const s = i ? 1 : -1;
+    body.add(R.fl[i]); R.fl[i].position.set(0.2 * s, -0.14, 0.62); R.fl[i].add(R.fe[i]); R.fe[i].position.y = -0.4; R.fe[i].add(R.fw[i]); R.fw[i].position.y = -0.36;
+    body.add(R.hl[i]); R.hl[i].position.set(0.19 * s, -0.02, -0.62); R.hl[i].add(R.hk[i]); R.hk[i].position.set(0, -0.4, 0.04); R.hk[i].add(R.ha[i]); R.ha[i].position.y = -0.42;
+  }
+  body.add(R.tail[0]); R.tail[0].position.set(0, 0.24, -0.86); R.tail[0].add(R.tail[1]); R.tail[1].position.z = -0.28; R.tail[1].add(R.tail[2]); R.tail[2].position.z = -0.25;
+  body.add(R.guts[0]); R.guts[0].position.set(0.16, -0.12, 0.12); body.add(R.guts[1]); R.guts[1].position.set(0.1, -0.17, -0.04);
+  const SK = new THREE.Color('#867b8c'), DK = new THREE.Color('#5c5262'), BONE = new THREE.Color('#e3dccb'), RAW = new THREE.Color('#8a1420'), GUM = new THREE.Color('#4a0a10'), NOSE = new THREE.Color('#151014');
+  const sph = new THREE.SphereGeometry(1, 20, 14), knob = new THREE.SphereGeometry(1, 10, 8);
+  const down = (r0, r1, h) => new THREE.CylinderGeometry(r0, r1, h, 12).translate(0, -h / 2, 0);   // hangs from its joint
+  const fwd = (r0, r1, h) => new THREE.CylinderGeometry(r1, r0, h, 12).rotateX(Math.PI / 2).translate(0, 0, h / 2);   // juts forward
+  const aft = (r0, r1, h) => new THREE.CylinderGeometry(r1, r0, h, 8).rotateX(-Math.PI / 2).translate(0, 0, -h / 2);   // trails back
+  const fang = new THREE.ConeGeometry(0.016, 0.075, 6).rotateX(Math.PI).translate(0, -0.0375, 0);   // points down from its root
+  const tooth = new THREE.ConeGeometry(0.01, 0.035, 5).rotateX(Math.PI).translate(0, -0.0175, 0);
+  const claw = new THREE.ConeGeometry(0.018, 0.09, 5).rotateX(Math.PI / 2).translate(0, 0, 0.045);   // points forward
+  const spike = new THREE.ConeGeometry(0.035, 0.2, 6).translate(0, 0.1, 0);
+  const ear = new THREE.ConeGeometry(0.055, 0.17, 6).translate(0, 0.085, 0);
+  const rib = new THREE.TorusGeometry(0.29, 0.018, 5, 12, 2.1).rotateZ(-1.05);   // an arc round the +x flank
+  // the body
+  add(body, sph, M.chest, SK, [0, 0, 0.5], [0.36, 0.43, 0.5]);
+  add(body, sph, M.skin, SK, [0, 0.25, 0.48], [0.3, 0.21, 0.36]);   // the withers
+  add(body, sph, M.skin, DK, [0, 0.07, -0.06], [0.25, 0.27, 0.5]);   // the waist
+  add(body, sph, M.skin, SK, [0, 0.1, -0.58], [0.3, 0.31, 0.36]);   // the rump
+  for (let i = 0; i < 2; i++) {
+    add(body, sph, M.skin, SK, [0.2 * (i ? 1 : -1), -0.05, 0.62], [0.15, 0.25, 0.2]);   // the shoulders
+    add(R.hl[i], sph, M.skin, SK, [0, -0.14, 0.04], [0.14, 0.27, 0.19]);   // the haunches
+  }
+  // torn open down the +x flank: raw meat, the ribs over it, the guts hanging out under it
+  add(body, sph, M.skin, RAW, [0.18, 0.02, 0.06], [0.1, 0.25, 0.3]);
+  for (let k = 0; k < 5; k++) add(body, rib, M.bone, BONE, [0.03, 0.04 - k * 0.012, -0.15 + k * 0.1], [1, 1 - k * 0.05, 1], [0, rand(-0.08, 0.08), 0]);
+  add(R.guts[0], down(0.035, 0.03, 0.34), M.skin, RAW); add(R.guts[0], knob, M.skin, RAW, [0, -0.34, 0], [0.045, 0.045, 0.045]);
+  add(R.guts[1], down(0.03, 0.025, 0.24), M.skin, RAW);
+  // bone spikes down the spine
+  for (const [z, y, s] of [[0.86, 0.38, 0.8], [0.66, 0.45, 1.1], [0.46, 0.46, 1.3], [0.25, 0.4, 1.15], [0.03, 0.35, 1], [-0.22, 0.35, 0.95], [-0.45, 0.4, 1.1], [-0.68, 0.39, 0.9]]) add(body, spike, M.bone, BONE, [0, y, z], [s, s, s], [-0.45, 0, 0]);
+  // the neck, with a ridge of smaller spikes
+  add(neck, fwd(0.21, 0.15, 0.48), M.skin, SK);
+  for (let k = 0; k < 3; k++) add(neck, spike, M.bone, BONE, [0, 0.16 - k * 0.012, 0.08 + k * 0.13], [0.6, 0.6, 0.6], [-0.9, 0, 0]);
+  // the head: skull, brow, cheeks, a long muzzle with a black nose, ears laid back (one torn), fangs and teeth
+  add(head, sph, M.skin, SK, [0, 0.03, 0.02], [0.19, 0.17, 0.21]);
+  add(head, sph, M.skin, DK, [0, 0.1, 0.1], [0.17, 0.055, 0.1]);
+  for (const s of [-1, 1]) add(head, sph, M.skin, SK, [0.1 * s, -0.03, 0.08], [0.085, 0.08, 0.12]);
+  add(head, fwd(0.105, 0.062, 0.34), M.skin, SK, [0, 0, 0.08], [1, 0.72, 1]);
+  add(head, sph, M.skin, NOSE, [0, 0.015, 0.42], [0.048, 0.036, 0.035]);
+  add(head, fwd(0.09, 0.05, 0.31), M.skin, GUM, [0, -0.035, 0.1], [1, 0.42, 1]);   // the gums, drawn back off the teeth
+  add(head, sph, M.skin, GUM, [0, -0.07, 0.18], [0.075, 0.04, 0.16]);   // the inside of the mouth
+  for (const s of [-1, 1]) {
+    add(head, ear, M.skin, DK, [0.1 * s, 0.16, -0.06], s < 0 ? [1, 0.55, 1] : [1, 1, 1], [-0.65, 0, -0.35 * s]);
+    add(head, fang, M.bone, BONE, [0.045 * s, -0.05, 0.36], [1.3, 1.3, 1.3]);
+    for (let k = 0; k < 4; k++) add(head, tooth, M.bone, BONE, [(0.062 - k * 0.004) * s, -0.052, 0.14 + k * 0.05]);
+  }
+  // the lower jaw, on its hinge
+  add(jaw, fwd(0.078, 0.048, 0.32), M.skin, SK, [0, -0.02, 0.03], [1, 0.58, 1]);
+  add(jaw, fwd(0.058, 0.034, 0.28), M.skin, GUM, [0, 0.012, 0.05], [1, 0.32, 1]);   // the tongue
+  for (const s of [-1, 1]) {
+    add(jaw, fang, M.bone, BONE, [0.04 * s, 0.025, 0.3], [1.1, 1.1, 1.1], [Math.PI, 0, 0]);
+    for (let k = 0; k < 3; k++) add(jaw, tooth, M.bone, BONE, [0.05 * s, 0.012, 0.12 + k * 0.055], [1, 1, 1], [Math.PI, 0, 0]);
+  }
+  // the legs: upper and lower, knobbly joints, big paws with claws
+  for (let i = 0; i < 2; i++) {
+    add(R.fl[i], down(0.095, 0.07, 0.42), M.skin, SK);
+    add(R.fe[i], knob, M.skin, SK, [0, 0, 0], [0.075, 0.08, 0.075]);
+    add(R.fe[i], down(0.066, 0.05, 0.38), M.skin, DK);
+    add(R.hl[i], down(0.11, 0.075, 0.42), M.skin, SK, [0, 0, 0.02]);
+    add(R.hk[i], knob, M.skin, SK, [0, 0, 0], [0.08, 0.085, 0.08]);
+    add(R.hk[i], down(0.07, 0.05, 0.43), M.skin, DK);
+    for (const P of [R.fw[i], R.ha[i]]) {
+      add(P, sph, M.skin, DK, [0, -0.025, 0.04], [0.075, 0.045, 0.1]);
+      for (let f = -1; f <= 1; f++) add(P, claw, M.bone, BONE, [f * 0.032, -0.045, 0.12], [1.3, 1.3, 1.3], [0.35, f * 0.15, 0]);
+    }
+  }
+  add(R.fe[0], down(0.022, 0.012, 0.2), M.bone, BONE, [0.05, -0.08, 0.02], [1, 1, 1], [0.3, 0, -0.5]);   // a bone out through the skin
+  // the tail: two ragged lengths, then bare vertebrae
+  add(R.tail[0], aft(0.06, 0.045, 0.3), M.skin, DK);
+  add(R.tail[1], aft(0.045, 0.03, 0.27), M.skin, DK);
+  for (let k = 0; k < 3; k++) add(R.tail[2], knob, M.bone, BONE, [0, 0, -0.04 - k * 0.07], [0.03 - k * 0.006, 0.03 - k * 0.006, 0.035]);
+  weldRig(root);
+  root.visible = false; scene.add(root);
+  return { R, M, U, dog: true };
+}
+function buildBoss() { bossRigs = [buildGiant(), buildGiant()]; dogRig = buildDog(); }
+const allRigs = () => dogRig ? [...bossRigs, dogRig] : bossRigs;
+// compile the giants' and the ruins' shaders up front, so none of them stalls the frame it first appears in
 function prepBig() {
   MAT.rubble = new THREE.MeshLambertMaterial({ vertexColors: true });
   const tmp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), MAT.rubble); tmp.position.set(0, -5, 0); scene.add(tmp);
-  bossM.R.root.visible = true;
+  for (const r of allRigs()) r.R.root.visible = true;
   try { renderer.compile(scene, camera); } catch (e) {}
-  bossM.R.root.visible = false; scene.remove(tmp); tmp.geometry.dispose();
+  for (const r of allRigs()) r.R.root.visible = false;
+  scene.remove(tmp); tmp.geometry.dispose();
 }
 function resetBoss() {
-  boss = null; bossSpawned = false; bossKilled = false; bossLandT = 0; bossKillT = 99;
-  BOSS_U.fogK.value = 1; BOSS_U.flash.value.setRGB(0, 0, 0);
-  if (bossM) bossM.R.root.visible = false;
+  for (const z of bosses) z.gone = true;
+  bosses = []; twinkles = []; bossSpawned = false; bossKilled = false; bossKills = 0; bossStars = 0; bossLandT = 0; bossKillT = 99;
+  bossKind = forceBoss || pick(BOSS_KINDS.filter(k => k !== lastBoss)); lastBoss = bossKind;
+  for (const r of allRigs()) { r.U.fogK.value = 1; r.U.flash.value.setRGB(0, 0, 0); r.R.root.visible = false; }
 }
-// the giant stands taller than the long lens shows: while it is on its feet the camera tilts up to keep its head in view
+// the giants stand taller than the long lens shows: while one is on its feet the camera tilts up to keep its head in view
 function bossTiltGoal() {
-  const z = boss;
-  if (!z || z.gone || !(z.state === 'walk' || z.state === 'final' || z.state === 'dying')) return 0;
-  const e = Math.atan2(1.75 * z.size + 0.35 - CAM_H, Math.max(z.z, 1));
-  return clamp(pitch0 + e - Math.atan(0.88 * tanV), 0, 0.14);
+  let g = 0;
+  for (const z of bosses) {
+    if (z.gone || !(z.state === 'walk' || z.state === 'final' || z.state === 'dying')) continue;
+    // the dog rears faster than the camera follows: from just short of its stop, look up for its full height already
+    const top = z.dog && (z.atWall || z.z < DOG_STOP + 4) && z.state === 'walk' ? Math.max(z.top, DOG_REAR * z.size) : z.top;
+    const e = z.dog ? Math.atan2(top - CAM_H, Math.max(z.topZ, 1)) : Math.atan2(1.75 * z.size + 0.35 - CAM_H, Math.max(z.z, 1));
+    g = Math.max(g, clamp(pitch0 + e - Math.atan(0.88 * tanV), 0, 0.14));
+  }
+  return g;
 }
-const bossBusy = () => boss && (boss.state === 'drop' || boss.state === 'dying' || boss.state === 'moonshot' || boss.state === 'final');
+const bossBusy = () => bosses.some(z => z.state === 'drop' || z.state === 'dying' || z.state === 'moonshot' || z.state === 'final');
+const bossFlying = () => bosses.some(z => z.state === 'dying' || z.state === 'moonshot');
+const bossLabel = () => bossKind === 'dog' ? '巨大ゾンビ犬撃破' : bossKills >= 2 ? '巨大ゾンビ2体撃破' : '巨大ゾンビ撃破';
+// the twins stand apart by most of what the screen shows of the street where they stop
+const twinX = () => clamp(halfX / (Z_WALL * 0.92) * wallZ({ size: TWIN_S, type: 'boss' }) * 0.6, 1.15, 1.7);
 function spawnBoss() {
   bossSpawned = true;
-  const z = makeZombie('boss', 0, Z_FAR - 7);
-  z.state = 'drop'; z.h = 70; z.vh = -25; z.yaw = 0; z.whoosh = false;
-  boss = z; zombies.push(z);
-  showBanner('WARNING!!', '巨大ゾンビ接近', C.blood, 1.6);
+  if (bossKind === 'dog') { spawnDog(); return; }
+  const tw = bossKind === 'twins';
+  for (let i = 0; i < (tw ? 2 : 1); i++) {
+    const z = makeZombie('boss', 0, Z_FAR - 7);
+    z.state = 'drop'; z.h = 70; z.vh = -25; z.yaw = 0; z.whoosh = false; z.rig = bossRigs[i]; z.mir = 1; z.wait = 0;
+    if (tw) { z.size = TWIN_S; z.hp = z.maxHp = TWIN_HP; z.mir = i ? 1 : -1; z.x = z.mir * twinX(); z.z += i * 0.7; z.wait = i * 0.55; }
+    bosses.push(z); zombies.push(z);
+  }
+  showBanner('WARNING!!', tw ? '巨大ゾンビが2体!!' : '巨大ゾンビ接近', C.blood, 1.6);
   say('warning', 4); shake = Math.max(shake, 8);
+}
+function spawnDog() {
+  const z = makeZombie('boss', 0, Z_FAR + 13);
+  z.dog = true; z.size = DOG_S; z.hp = z.maxHp = DOG_HP; z.rig = dogRig; z.mir = 1; z.wait = 0; z.yaw = 0;
+  z.wv = rand(0, 6.28); z.x = dogWeave(z) * Math.sin(z.wv); z.top = 1.6 * DOG_S; z.topZ = z.z;
+  bosses.push(z); zombies.push(z);
+  showBanner('WARNING!!', '巨大ゾンビ犬接近', C.blood, 1.6);
+  say('warning', 4); howlSnd(false, 0.55);   // far off down the avenue
 }
 function stompSnd(k = 1) {
   if (!live()) return;
@@ -5952,7 +6280,7 @@ function groundBlow(x, z, R, n) {
   }
   addDecal(x, z, R * 0.45, 'scorch', 20);
 }
-// whatever stands near the giant when it lands or pounds goes flying
+// whatever stands near a giant when it lands or pounds goes flying
 function bossShove(z, x0, z0, R) {
   let k = 0;
   for (const o of zombies) {
@@ -5964,7 +6292,7 @@ function bossShove(z, x0, z0, R) {
   if (k) registerKills(k, x0, z0, null, true);
 }
 function bossLand(z) {
-  bossLandT = elapsed;
+  if (!bossLandT) bossLandT = elapsed;
   shake = 24; flashScreen = Math.max(flashScreen, 0.08);
   if (!reduceMotion) { zoom = Math.min(1.12, zoom + 0.06); hitstop = Math.max(hitstop, 0.05); }
   boom(1.4, z.z); stompSnd(1.5); roar(); buzz(130, 2);
@@ -5991,33 +6319,37 @@ function bossSlam(z) {
   groundBlow(z.x, fz, 4.5, 26);
   bossShove(z, z.x, fz, 3);
 }
-function damageBoss(d, ch) {
+function damageBoss(d, ch, z) {
   // only our own shots and what they set off hurt it: cars it stomps flat do not, so it never dies on its own
-  if (!boss || boss.state !== 'walk' || !running || !ch) return;
-  boss.ch = ch;   // its death blasts belong to the shot that killed it
-  boss.hp -= d;
-  if (d >= 5 || elapsed - (boss.flT || -1) > 0.25) { boss.flash = 0.06; boss.flT = elapsed; }
-  if (boss.hp <= 0) bossDeath();
+  if (!z || z.state !== 'walk' || !running || !ch) return;
+  z.ch = ch;   // its death blasts belong to the shot that killed it
+  z.hp -= d;
+  if (d >= 5 || elapsed - (z.flT || -1) > 0.25) { z.flash = 0.06; z.flT = elapsed; }
+  if (z.hp <= 0) bossDeath(z);
 }
-function bossDeath() {
-  const z = boss;
-  z.state = 'dying'; z.dyingT = 0; bossKilled = true; kills++; bossKillT = elapsed - bossLandT;
-  for (let i = 0; i < 5; i++) explosionsQ.push({ x: z.x + rand(-1.4, 1.4), z: z.z + rand(-0.8, 0.3), t: 0.08 + i * 0.15, power: 1.0, h: rand(0.8, 3.2), ch: z.ch });
+function bossDeath(z) {
+  z.state = 'dying'; z.dyingT = 0; kills++; bossKills++;
+  if (!bossKilled) { bossKilled = true; bossKillT = bossLandT ? elapsed - bossLandT : 0; }   // the dog can go down before it is out of the fog
+  // the moon goes to the first one killed; one more, with the moon taken or already gone, is off to the stars
+  z.dest = !moonBroken && !bosses.some(o => o !== z && o.dest === 'moon') ? 'moon' : 'star';
+  for (let i = 0; i < 5; i++) explosionsQ.push({ x: z.x + rand(-1.4, 1.4), z: z.z + rand(-0.8, 0.3) + (z.dog ? rand(0, 1.3) * z.size : 0), t: 0.08 + i * 0.15, power: 1.0, h: rand(0.8, 3.2), ch: z.ch });
   if (!reduceMotion) slowmo = Math.max(slowmo, 1.2);
-  score += BONUS.boss;
-  showBanner('BOSS撃破!!', `+${BONUS.boss.toLocaleString()}`, C.flare, 1.4, true, true);
-  speedLines = 1; roar(); say('knockout', 4); buzz([90, 40, 280], 3);
+  const both = bossKind === 'twins' && bossKills === 2, pts = BONUS.boss + (both ? BONUS.twin : 0);
+  score += pts;
+  showBanner(both ? 'ダブル撃破!!' : 'BOSS撃破!!', `+${pts.toLocaleString()}`, C.flare, 1.4, true, true);
+  speedLines = 1; if (z.dog) howlSnd(true); else roar();
+  say('knockout', 4); buzz([90, 40, 280], 3);
 }
 // time ran out with it still standing: no points and no trip to the moon, it shudders under the finale's blasts...
 function bossFinal(z) {
   z.state = 'final'; z.atWall = false;
-  roar();
+  if (z.dog) howlSnd(true); else roar();
 }
 // ...and comes apart: slabs of meat and bone rain down the avenue
 function bossBurst(z) {
   if (z.gone) return;
-  z.gone = true; z.state = 'gone'; bossM.R.root.visible = false;
-  const x = z.x, zz = z.z;
+  z.gone = true; z.state = 'gone'; z.rig.R.root.visible = false;
+  const x = z.x, zz = z.z + (z.dog ? 0.6 * z.size : 0);
   explode(x, zz, 1.7, 2.4);
   for (let i = 0; i < 3; i++) explosionsQ.push({ x: x + rand(-1.6, 1.6), z: zz + rand(-0.6, 0.6), h: rand(1.5, 4.8), t: 0.05 + i * 0.07, power: 1.0 });
   for (let i = 0; i < 26; i++) {
@@ -6031,32 +6363,43 @@ function bossBurst(z) {
   roar(); squelch(true); buzz([90, 40, 280], 3);
   shake = 24;
 }
-function startMoonshot(z) {
+// off it goes, to the moon or (star) to a spot in the sky across the screen from it
+function startFlight(z, star) {
   z.state = 'moonshot';
-  const s0 = toScreen(z.x, z.z, 0.95 * z.size), d0 = Math.hypot(z.x - camera.position.x, 0.95 * z.size - camera.position.y, -z.z - camera.position.z);
-  z.ms = { t: 0, T: 1.6, X0: s0.X, Y0: s0.Y, d0, A0: 1.75 * z.size / d0, side: Math.random() < 0.5 ? -1 : 1 };
+  const p = z.rig.R.root.position, s0 = toScreen(p.x, -p.z, p.y), d0 = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
+  z.ht = z.dog ? 1.5 : 1.75;   // how tall the rig stands, in its own units
+  z.ms = { t: 0, T: star ? 1.45 : 1.6, X0: s0.X, Y0: s0.Y, d0, A0: z.ht * z.size / d0, side: Math.random() < 0.5 ? -1 : 1, star };
+  if (star) {
+    const L = moonNow.X > W / 2;
+    z.ms.SX = W * (L ? rand(0.16, 0.26) : rand(0.74, 0.84)); z.ms.SY = hudH + H * rand(0.05, 0.1); z.ms.side = L ? -1 : 1;
+  }
   z.q.setFromEuler(_eu.set(0, 0, 0));
   z.w.set(rand(6, 9), rand(-2, 2), rand(-3, 3));
-  explode(z.x, z.z, 1.2, 0.3, null, z.ch);
-  whoosh(); speedLines = 1.2; say('moon', 4);
-  BOSS_U.fogK.value = 0;
+  explode(z.x, z.z + (z.dog ? 0.6 * z.size : 0), 1.2, 0.3, null, z.ch);
+  whoosh(); speedLines = 1.2; say(star ? 'homerun' : 'moon', 4);
+  z.rig.U.fogK.value = 0;
 }
-// on the way to the moon: a curve across the screen, the size easing from the giant's own down to about the
-// moon's radius (as in the 2D game). Only the screen matters, so it is drawn a few metres out along that line of
+// on the way up: a curve across the screen, the size easing from the giant's own down to about the moon's radius (as in
+// the 2D game), or to a speck for a star. Only the screen matters, so it is drawn a few metres out along that line of
 // sight, in front of the smoke of its own death
 const _msP = new THREE.Vector3();
 function msPos(z) {
-  const m = z.ms, u = Math.min(1, m.t / m.T), e = u * u * (3 - 2 * u), mw = moonMesh.position;
-  const ms = toScreen(mw.x, -mw.z, mw.y), X1 = (m.X0 + ms.X) / 2 + m.side * W * 0.08, Y1 = Math.min(m.Y0, ms.Y) - H * 0.25, a = 1 - e;
-  const X = a * a * m.X0 + 2 * a * e * X1 + e * e * ms.X, Y = a * a * m.Y0 + 2 * a * e * Y1 + e * e * ms.Y;
+  const m = z.ms, u = Math.min(1, m.t / m.T), e = u * u * (3 - 2 * u);
+  let EX, EY, A1;
+  if (m.star) { EX = m.SX; EY = m.SY; A1 = 2.5 / (H / 2) * tanV; }
+  else { const mw = moonMesh.position, ms = toScreen(mw.x, -mw.z, mw.y); EX = ms.X; EY = ms.Y; A1 = moonScr.r / (H / 2) * tanV; }
+  const X1 = (m.X0 + EX) / 2 + m.side * W * 0.08, Y1 = Math.min(m.Y0, EY) - H * (m.star ? 0.1 : 0.25), a = 1 - e;
+  const X = a * a * m.X0 + 2 * a * e * X1 + e * e * EX, Y = a * a * m.Y0 + 2 * a * e * Y1 + e * e * EY;
   const d = 6.5 + (m.d0 - 6.5) * (1 - clamp(u / 0.1, 0, 1));
-  const A1 = moonScr.r / (H / 2) * tanV, A = m.A0 * Math.pow(A1 / m.A0, e);
+  const A = m.A0 * Math.pow(A1 / m.A0, e);
   rayAt(X, Y);
-  return { p: _msP.copy(_O).addScaledVector(_D, d), s: A * d / 1.75, A, d };
+  return { p: _msP.copy(_O).addScaledVector(_D, d), s: A * d / z.ht, A, d };
 }
 function updateBoss(dt, raw) {
-  const z = boss;
-  if (!z || z.gone) return;
+  for (const z of bosses) if (!z.gone) (z.dog ? updateDog : updateGiant)(z, dt, raw);
+}
+function updateGiant(z, dt, raw) {
+  if (z.wait > 0) { z.wait -= dt; return; }   // the second twin follows the first down
   z.flash = Math.max(0, z.flash - dt);
   if (z.state === 'drop') {
     z.vh -= 40 * dt; z.h += z.vh * dt;
@@ -6074,24 +6417,29 @@ function updateBoss(dt, raw) {
       const k1 = (z.attackT / SLAM_T) % 1;
       if ((k0 < 0.68 && k1 >= 0.68) || (k1 < k0 && k0 < 0.68)) bossSlam(z);
     }
-  } else if (z.state === 'final') {
+  } else bossDown(z, dt, raw);
+}
+// shuddering under the finale, dying, on its way up: the same for every kind
+function bossDown(z, dt, raw) {
+  const back = z.dog ? rand(0, 1.3) * z.size : 0;
+  if (z.state === 'final') {
     z.flash = (performance.now() / 60 | 0) % 2 ? 0.05 : 0;
     z.x += rand(-0.04, 0.04);
-    if (Math.random() < 0.6) addPart({ k: 'fire', x: z.x + rand(-1, 1), z: z.z, h: rand(1, 5), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.8), grow: 0.6, drag: 2, life: rand(0.4, 0.6), heat: 1, f: 1 });
+    if (Math.random() < 0.6) addPart({ k: 'fire', x: z.x + rand(-1, 1), z: z.z + back, h: rand(1, 5), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.8), grow: 0.6, drag: 2, life: rand(0.4, 0.6), heat: 1, f: 1 });
   } else if (z.state === 'dying') {
     z.dyingT += raw;
     z.flash = (z.dyingT * 16 | 0) % 2 ? 0.05 : 0;
     z.x += rand(-0.03, 0.03);
-    if (Math.random() < 0.5) addPart({ k: 'fire', x: z.x + rand(-1, 1), z: z.z, h: rand(1, 4), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.8), grow: 0.6, drag: 2, life: rand(0.4, 0.6), heat: 1, f: 1 });
-    if (z.dyingT > 1.0) startMoonshot(z);
+    if (Math.random() < 0.5) addPart({ k: 'fire', x: z.x + rand(-1, 1), z: z.z + back, h: rand(1, 4), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.8), grow: 0.6, drag: 2, life: rand(0.4, 0.6), heat: 1, f: 1 });
+    if (z.dyingT > 1.0) startFlight(z, z.dest === 'star');
   } else if (z.state === 'moonshot') {
     z.ms.t += raw;
-    if (z.ms.t >= z.ms.T) moonShatter(z);
+    if (z.ms.t >= z.ms.T) (z.ms.star ? starTwinkle : moonShatter)(z);
   }
 }
 function poseBoss(z, R) {
   const now = performance.now() / 1000, t = z.phase, s = z.size;
-  R.root.scale.setScalar(s);
+  R.root.scale.set(s * z.mir, s, s);
   let bob = 0, roll = 0, lift = 0;
   if (z.state === 'drop') {
     // dropping in: arms up and out, knees drawn up
@@ -6145,33 +6493,241 @@ function poseBoss(z, R) {
 }
 const _eyeL = new THREE.Vector3(), _eyeR = new THREE.Vector3();
 function drawBoss(raw) {
-  if (!bossM) return;
-  const z = boss, R = bossM.R;
-  if (!z || z.gone) { R.root.visible = false; return; }
+  if (!bossRigs.length) return;
+  for (const r of allRigs()) r.used = false;
+  for (const z of bosses) {
+    if (z.gone || z.wait > 0) continue;
+    z.rig.used = true;
+    (z.dog ? drawDog : drawGiant)(z, raw);
+  }
+  for (const r of allRigs()) if (!r.used) r.R.root.visible = false;
+}
+function drawGiant(z, raw) {
+  const R = z.rig.R;
   R.root.visible = true;
   poseBoss(z, R);
-  if (z.state === 'moonshot') {
-    const P = msPos(z);
-    R.root.position.copy(P.p); R.root.scale.setScalar(P.s);
-    const wl = z.w.length();
-    if (wl > 0.01) { _ax.copy(z.w).divideScalar(wl); _q.setFromAxisAngle(_ax, wl * raw); z.q.premultiply(_q); }
-    R.root.quaternion.copy(z.q);
-    // a comet tail of fire and smoke, started just behind it so the giant stays in front of its own trail
-    const r0 = P.A * P.d * 0.3, bk = P.s * 0.9, X = P.p.x + _D.x * bk, Y = P.p.y + _D.y * bk, Z = -(P.p.z + _D.z * bk);
-    for (let i = 0; i < 2; i++) addPart({ k: 'fire', nf: 1, x: X + rand(-0.5, 0.5) * r0, z: Z, h: Y + rand(-0.5, 0.5) * r0, vx: 0, vz: 0, vh: 0, r: r0 * rand(0.7, 1.2), life: rand(0.22, 0.35), heat: 1.3, f: 1 + i });
-    addPart({ k: 'smoke', nf: 1, x: X, z: Z, h: Y, vx: 0, vz: 0, vh: 0, r: r0 * 1.1, grow: r0 * 0.8, life: rand(0.5, 0.8), a: 0.45, warm: 1 });
-  }
-  if (z.flash > 0) BOSS_U.flash.value.setRGB(0.45, 0.45, 0.45);
-  else if (z.state === 'moonshot') BOSS_U.flash.value.setRGB(0.34, 0.11, 0.03);   // burning on its way up
-  else BOSS_U.flash.value.setRGB(0, 0, 0);
+  if (z.state === 'moonshot') flightPose(z, R, raw);
+  bossGlow(z);
   R.root.updateMatrixWorld(true);
   if (z.state !== 'moonshot') {
     // red eyes burning in the dark
     _eyeL.set(-0.035, -0.015, 0.13).applyMatrix4(R.S.head.matrixWorld); _eyeR.set(0.035, -0.015, 0.13).applyMatrix4(R.S.head.matrixWorld);
-    const fl = 0.8 + 0.2 * Math.sin(performance.now() / 70);
-    for (const e of [_eyeL, _eyeR]) { ADD.push(e.x, e.y, e.z, 0.16, 0, 0, 0, 6 * fl, 0.7 * fl, 0.3 * fl, 1); ADD.push(e.x, e.y, e.z, 0.6, 0, 0, 0, 0.9 * fl, 0.08, 0.04, 1); }
-    if (z.state === 'drop') addShadow(z.x, z.z, 1.6 * (0.5 + 0.5 * clamp(1 - z.h / 70, 0, 1)), 0.6 * clamp(1 - z.h / 70, 0, 1));
-    else addShadow(z.x, z.z, 1.5, 0.55);
+    eyeGlow(0.6, 0);
+    const k = z.size / 2.8;
+    if (z.state === 'drop') addShadow(z.x, z.z, 1.6 * k * (0.5 + 0.5 * clamp(1 - z.h / 70, 0, 1)), 0.6 * clamp(1 - z.h / 70, 0, 1));
+    else addShadow(z.x, z.z, 1.5 * k, 0.55);
+  }
+}
+// on the way up: placed and sized along its curve, tumbling, a comet tail of fire and smoke started just behind it so
+// the giant stays in front of its own trail
+function flightPose(z, R, raw) {
+  const P = msPos(z);
+  R.root.position.copy(P.p); R.root.scale.set(P.s * z.mir, P.s, P.s);
+  const wl = z.w.length();
+  if (wl > 0.01) { _ax.copy(z.w).divideScalar(wl); _q.setFromAxisAngle(_ax, wl * raw); z.q.premultiply(_q); }
+  R.root.quaternion.copy(z.q);
+  const r0 = P.A * P.d * 0.3, bk = P.s * 0.9, X = P.p.x + _D.x * bk, Y = P.p.y + _D.y * bk, Z = -(P.p.z + _D.z * bk);
+  for (let i = 0; i < 2; i++) addPart({ k: 'fire', nf: 1, x: X + rand(-0.5, 0.5) * r0, z: Z, h: Y + rand(-0.5, 0.5) * r0, vx: 0, vz: 0, vh: 0, r: r0 * rand(0.7, 1.2), life: rand(0.22, 0.35), heat: 1.3, f: 1 + i });
+  addPart({ k: 'smoke', nf: 1, x: X, z: Z, h: Y, vx: 0, vz: 0, vh: 0, r: r0 * 1.1, grow: r0 * 0.8, life: rand(0.5, 0.8), a: 0.45, warm: 1 });
+}
+function bossGlow(z) {
+  const F = z.rig.U.flash.value;
+  if (z.flash > 0) F.setRGB(0.45, 0.45, 0.45);
+  else if (z.state === 'moonshot') F.setRGB(0.34, 0.11, 0.03);   // burning on its way up
+  else F.setRGB(0, 0, 0);
+}
+// the two eyes in _eyeL and _eyeR; mode 10 burns through the fog
+function eyeGlow(halo, mode) {
+  const fl = 0.8 + 0.2 * Math.sin(performance.now() / 70);
+  for (const e of [_eyeL, _eyeR]) { ADD.push(e.x, e.y, e.z, 0.16, 0, 0, mode, 6 * fl, 0.7 * fl, 0.3 * fl, 1); ADD.push(e.x, e.y, e.z, halo, 0, 0, mode, 0.9 * fl, 0.08, 0.04, 1); }
+}
+
+// ----- the dog -----
+// how far it weaves from side to side: wide down the avenue, settling as it closes in on its stop
+const dogWeave = z => clamp((z.z - DOG_STOP) * 0.12, 0, 1.6);
+function updateDog(z, dt, raw) {
+  z.flash = Math.max(0, z.flash - dt);
+  if (z.state !== 'walk') { bossDown(z, dt, raw); return; }
+  if (!z.atWall) {
+    if (!bossLandT && z.z < Z_FAR) bossLandT = elapsed;   // 「着地から」 counts from when it comes out of the fog
+    const v = lerp(4.5, 9.5, clamp((z.z - DOG_STOP) / 14, 0, 1)), p0 = z.phase;
+    z.z = Math.max(DOG_STOP, z.z - v * dt);
+    z.wv += dt * 1.8;
+    const x1 = dogWeave(z) * Math.sin(z.wv), vx = (x1 - z.x) / Math.max(dt, 1e-4);
+    z.x = x1;
+    z.yaw += (clamp(Math.atan2(vx, v) * 1.5, -0.5, 0.5) - z.yaw) * Math.min(1, dt * 5);
+    z.phase += dt * (6 + v * 0.55);   // the stride quickens with its speed
+    if (Math.floor(p0 / Math.PI) !== Math.floor(z.phase / Math.PI)) dogStep(z, Math.floor(z.phase / Math.PI) & 1);
+    if (z.z < Z_FAR + 2) dogPlough(z);
+    if (z.z <= DOG_STOP) { z.atWall = true; z.attackT = 0; dogSkid(z); }
+  } else {
+    // it turns a little one way and then the other between slams, so we see it side-on enough to tell it is a dog
+    z.yaw += ((Math.floor(z.attackT / DOG_SLAM) % 2 ? 0.3 : -0.3) - z.yaw) * Math.min(1, dt * 2.5);
+    const k0 = (z.attackT / DOG_SLAM) % 1;
+    z.attackT += dt;
+    const k1 = (z.attackT / DOG_SLAM) % 1;
+    if (z.attackT - dt < 0.2 && z.attackT >= 0.2) howlSnd();   // the first time up, it howls
+    if ((k0 < 0.68 && k1 >= 0.68) || (k1 < k0 && k0 < 0.68)) dogSlam(z);
+  }
+}
+// a pair of paws hits the street (0 the fore, 1 the hind)
+function dogStep(z, i) {
+  const P = z.paws;
+  if (!P) return;
+  shake = Math.max(shake, z.z < Z_FAR ? 5 : 2); stompSnd(z.z < Z_FAR ? 0.6 : 0.3);
+  for (let j = i * 2; j < i * 2 + 2; j++) {
+    const x = P[j][0], zz = -P[j][2];
+    for (let k = 0; k < 5; k++) addPart({ k: 'dust', x: x + rand(-0.4, 0.4), z: zz + rand(-0.3, 0.3), h: 0.15, vx: rand(-1.8, 1.8), vz: rand(0, 2.5), vh: rand(0.3, 1.2), r: rand(0.3, 0.55), grow: 1.2, drag: 2.5, life: rand(0.6, 1), a: 0.45 });
+    if (zz < Z_FAR) addDecal(x, zz, 0.5, 'scorch', 10);
+  }
+  if (running && i === 0 && z.z < Z_FAR + 2 && performance.now() - lastSfxT > 600) {
+    lastSfxT = performance.now();
+    const sp = toScreen(P[0][0] < z.x ? P[0][0] - 1 : P[0][0] + 1, -P[0][2], 0.2);   // beside its forepaws, clear of its head
+    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: 'ドドッ!!', rot: rand(-0.2, 0.2), life: 0.5, max: 0.5, size: 34 });
+  }
+}
+// What the dog hits it tosses straight up, not out: flung out low and fast, bodies bowl the horde over and set off the
+// drums, the cars and the rest, all of it for nothing (2026-10-26: one charge took the whole horde). The ones worth
+// something to us (a drum, a gas bottle, a fat one, a gold one) it only shoulders aside
+function dogToss(x0, z0, R, shove) {
+  let k = 0;
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.type === 'boss' || o.rise > 0) continue;
+    const dx = o.x - x0, dz = o.z - z0, d = Math.hypot(dx, dz);
+    if (d > R) continue;
+    if (o.type !== 'walker' && o.type !== 'runner' && o.type !== 'tank') { if (shove) o.x = clamp(x0 + (dx >= 0 ? 1.2 : -1.2), -ROAD + 0.4, ROAD - 0.4); continue; }
+    killZombie(o, { dx: 0, dz: -0.714, d: 1, f: 0.3 + 0.5 * (1 - d / R), power: 0.65 });
+    o.vx += dx / (d + 0.01) * 2.2; o.vz += dz / (d + 0.01) * 2.2;
+    k++;
+  }
+  if (k) squelch(false);
+  return k;
+}
+// it runs straight through the horde, tossing whoever is in front of its chest
+function dogPlough(z) {
+  if (dogToss(z.x + Math.sin(z.yaw) * 0.3 * z.size, z.z - 0.5 * z.size, 1.1, true)) shake = Math.max(shake, 4);
+}
+// skidding to a stop at the end of its run
+function dogSkid(z) {
+  shake = Math.max(shake, 14); stompSnd(1.2); boom(0.4, z.z); roar(); buzz(100, 2);
+  groundBlow(z.x, z.z - 0.3, 3.5, 22);
+  dogToss(z.x, z.z - 0.8, 2.6);
+}
+// forepaws down on the asphalt
+function dogSlam(z) {
+  const P = z.paws, fx = P ? (P[0][0] + P[1][0]) / 2 : z.x, fz = P ? -(P[0][2] + P[1][2]) / 2 : z.z - 0.8;
+  shake = Math.max(shake, 13); stompSnd(1.3); boom(0.55, fz); barricadeHit(true);
+  if (!reduceMotion) zoom = Math.min(1.1, zoom + 0.02);
+  groundBlow(fx, fz, 4.5, 26);
+  dogToss(fx, fz, 3);
+}
+function poseDog(z, R) {
+  const now = performance.now() / 1000, t = z.phase, s = z.size, st = z.state, sm = x => x * x * (3 - 2 * x);
+  let pitch = 0, bob = 0, roll = 0;
+  if (st === 'walk' && !z.atWall) {
+    // the gallop: the forelegs and then the hind legs, each pair a beat apart, the back rocking over them
+    for (let i = 0; i < 2; i++) {
+      const pf = t + i * 0.45, ph = t + Math.PI + 0.3 + i * 0.4;
+      const ff = Math.max(0, -Math.cos(pf)), fh = Math.max(0, -Math.cos(ph));   // into the forward swing, the leg folds
+      setR(R.fl[i], 0.62 * Math.sin(pf)); setR(R.fe[i], 1.0 * ff); setR(R.fw[i], 0.7 * ff);
+      setR(R.hl[i], -0.3 + 0.55 * Math.sin(ph)); setR(R.hk[i], 0.55 + 0.6 * fh); setR(R.ha[i], -0.35 - 0.5 * fh);
+    }
+    pitch = 0.07 * Math.sin(t + 0.4); bob = 0.07 * Math.abs(Math.sin(t)) - 0.02;
+    setR(R.neck, -0.5 + 0.1 * Math.sin(t + 1.4)); setR(R.head, 0.45 - 0.08 * Math.sin(t + 1.4));
+    setR(R.jaw, 0.22 + 0.22 * Math.max(0, Math.sin(now * 9)));
+    for (let i = 0; i < 3; i++) setR(R.tail[i], (i ? -0.25 : 0.3) + 0.22 * Math.sin(t - i * 0.8), 0.25 * Math.sin(t * 0.5 - i * 0.6));
+    roll = -z.yaw * 0.25;   // leaning into the weave
+  } else if (st === 'walk') {
+    // at its stop: up on its hind legs with the forepaws raking the air, then down on the asphalt, head low and snapping
+    const u = (z.attackT / DOG_SLAM) % 1;
+    const k = u < 0.55 ? sm(u / 0.55) : u < 0.68 ? 1 - sm((u - 0.55) / 0.13) : 0, hit = u >= 0.68 ? Math.max(0, 1 - (u - 0.68) / 0.3) : 0;
+    pitch = -0.62 * k + 0.1 * hit;
+    for (let i = 0; i < 2; i++) {
+      const rake = Math.sin(now * 9 + i * 1.6) * 0.35 * k;
+      setR(R.fl[i], -1.05 * k - 0.35 * hit + rake); setR(R.fe[i], 0.95 * k + 0.1 + rake * 0.5); setR(R.fw[i], 0.6 * k);
+      setR(R.hl[i], -0.3 - pitch - 0.3 * k); setR(R.hk[i], 0.55 + 0.5 * k); setR(R.ha[i], -0.35 - 0.3 * k);
+    }
+    setR(R.neck, -0.5 - 0.3 * k + 0.35 * hit); setR(R.head, 0.45 + 0.2 * k - 0.1 * hit);
+    setR(R.jaw, 0.3 + 0.45 * k + (hit > 0 ? 0.3 * Math.max(0, Math.sin(now * 18)) : 0));
+    for (let i = 0; i < 3; i++) setR(R.tail[i], (i ? -0.2 : 0.4) + 0.3 * k + 0.15 * Math.sin(now * 4 - i), 0.3 * Math.sin(now * 2.5 - i * 0.7));
+  } else {
+    // blowing apart, and kicking all the way up
+    const f = now * 15;
+    for (let i = 0; i < 2; i++) {
+      const g = f + i * 2.1;
+      setR(R.fl[i], Math.sin(g) * 1.1 - 0.4); setR(R.fe[i], 0.4 + Math.max(0, Math.sin(g * 1.3)) * 1.1); setR(R.fw[i], 0.5);
+      setR(R.hl[i], Math.sin(g * 0.9 + 1) * 0.9 - 0.3); setR(R.hk[i], 0.6 + Math.max(0, Math.sin(g + 2)) * 0.9); setR(R.ha[i], -0.4);
+    }
+    setR(R.neck, -0.6 + Math.sin(f * 0.7) * 0.5, Math.sin(f * 0.5) * 0.4); setR(R.head, 0.3 + Math.sin(f * 0.9) * 0.3);
+    setR(R.jaw, 0.9);
+    for (let i = 0; i < 3; i++) setR(R.tail[i], Math.sin(f * 0.8 - i) * 0.7, Math.sin(f * 0.6 - i) * 0.6);
+    if (st !== 'moonshot') pitch = -0.2 + Math.sin(f * 0.4) * 0.1;
+  }
+  R.body.rotation.set(pitch, 0, 0);
+  for (let i = 0; i < 2; i++) setR(R.guts[i], 0.3 * Math.sin(now * 5 + i * 1.3) - pitch * 0.8, 0, 0.25 * Math.sin(now * 4.2 + i));   // swinging under it
+  if (st === 'moonshot') return;
+  // rearing turns it about its hind hips, so the root climbs and slides back as the body tips up; the root itself sits
+  // behind the chest, which is where z.x, z.z put the dog
+  const py = -0.02, pz = -0.62, c = Math.cos(pitch), sn = Math.sin(pitch);
+  const dy = py - (py * c - pz * sn), off = (pz - (py * sn + pz * c) - 0.62) * s;
+  R.root.scale.setScalar(s);
+  R.root.position.set(z.x + Math.sin(z.yaw) * off, z.h + (DOG_Y + bob + dy) * s, -z.z + Math.cos(z.yaw) * off);
+  R.root.quaternion.setFromEuler(_eu.set(0, z.yaw, roll + (st === 'dying' || st === 'final' ? Math.sin(now * 13) * 0.08 : 0)));
+}
+const _dv = new THREE.Vector3();
+function drawDog(z, raw) {
+  const R = z.rig.R, s = z.size;
+  R.root.visible = true;
+  poseDog(z, R);
+  if (z.state === 'moonshot') flightPose(z, R, raw);
+  bossGlow(z);
+  R.root.updateMatrixWorld(true);
+  if (z.state === 'moonshot') return;
+  // where bullets find it, and where its paws are
+  if (!z.hs) { z.hs = DOG_HIT.map(() => [0, 0, 0, 0, false]); z.paws = [0, 1, 2, 3].map(() => [0, 0, 0]); }
+  DOG_HIT.forEach(([j, x, y, zz, r, head], i) => { _dv.set(x, y, zz).applyMatrix4(R[j].matrixWorld); const H = z.hs[i]; H[0] = _dv.x; H[1] = _dv.y; H[2] = _dv.z; H[3] = r * s; H[4] = head; });
+  [R.fw[0], R.fw[1], R.ha[0], R.ha[1]].forEach((P, i) => { _dv.set(0, -0.07, 0.04).applyMatrix4(P.matrixWorld); z.paws[i][0] = _dv.x; z.paws[i][1] = _dv.y; z.paws[i][2] = _dv.z; });
+  // how high its head is, for the camera: held a moment, so the camera does not bob with every rear
+  _dv.set(0, 0.2, 0.1).applyMatrix4(R.head.matrixWorld);
+  z.top = Math.max(_dv.y + 0.15 * s, z.top - raw * 0.8); z.topZ = -_dv.z;
+  // red eyes burning in the dark, through the fog while it is still far off
+  _eyeL.set(-0.075, 0.075, 0.23).applyMatrix4(R.head.matrixWorld); _eyeR.set(0.075, 0.075, 0.23).applyMatrix4(R.head.matrixWorld);
+  eyeGlow(0.55, z.z > Z_FAR ? 10 : 0);
+  // flames licking up off its back
+  if (Math.random() < raw * 40) {
+    const u = Math.random();
+    _dv.set(rand(-0.08, 0.08), 0.46 - 0.06 * Math.abs(u - 0.4), 0.8 - u * 1.5).applyMatrix4(R.body.matrixWorld);
+    addPart({ k: 'fire', x: _dv.x, z: -_dv.z, h: _dv.y, vx: rand(-0.4, 0.4), vz: rand(0, 1.5), vh: rand(1.5, 3), r: rand(0.35, 0.6), grow: 0.5, drag: 1.5, life: rand(0.3, 0.5), heat: 1.1, f: 1 + (Math.random() < 0.5 ? 1 : 0) });
+  }
+  if (Math.random() < raw * 6) { _dv.set(0, 0.5, rand(-0.6, 0.7)).applyMatrix4(R.body.matrixWorld); addPart({ k: 'ember', x: _dv.x, z: -_dv.z, h: _dv.y, vx: rand(-1, 1), vz: rand(0, 1.5), vh: rand(2, 4), r: rand(0.03, 0.05), drag: 0.6, life: rand(0.8, 1.4) }); }
+  // drool and blood off its jaw
+  if (Math.random() < raw * 7) { _dv.set(0, -0.03, 0.3).applyMatrix4(R.jaw.matrixWorld); addPart({ k: 'blood', x: _dv.x, z: -_dv.z, h: _dv.y, vx: rand(-0.4, 0.4), vz: rand(-0.6, 0.2), vh: rand(-0.5, 0.5), g: 14, r: rand(0.04, 0.08), life: 1.1, dark: Math.random() < 0.4 }); }
+  const sy = Math.sin(z.yaw), cy = Math.cos(z.yaw);
+  addShadow(z.x, z.z, 1.15, 0.5); addShadow(z.x - sy * 1.24 * s, z.z + cy * 1.24 * s, 1.1, 0.45);
+}
+// the second giant up goes キラーン: a star flares where it vanished
+function starTwinkle(z) {
+  z.gone = true; z.state = 'gone'; z.rig.R.root.visible = false;
+  twinkles.push({ x: z.ms.SX, y: z.ms.SY, t: 0 });
+  twinkleSnd(); buzz(40, 1);
+  score += BONUS.star; bossStars++;
+  floaters.push({ screen: true, x: clamp(z.ms.SX, 110, W - 110), y: z.ms.SY + 54, text: 'キラーン!!', sub: `+${BONUS.star.toLocaleString()}`, life: 1.6, big: true });
+}
+// a four-pointed glint with a soft glow, flaring up and fading as it turns
+function drawTwinkles() {
+  for (const s of twinkles) {
+    const u = s.t, k = u < 0.12 ? u / 0.12 : Math.max(0, 1 - (u - 0.12) / 0.95);
+    if (k <= 0) continue;
+    const r = Math.min(W, H) * 0.1 * (0.7 + 0.3 * Math.min(1, u / 0.12));
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(u * 0.9); ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, `rgba(255,255,240,${k})`); g.addColorStop(0.3, `rgba(255,225,140,${0.45 * k})`); g.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+    ctx.fillStyle = `rgba(255,255,235,${k})`;
+    for (const [a, l, w] of [[0, 1.7, 0.09], [Math.PI / 2, 1.7, 0.09], [Math.PI / 4, 0.8, 0.06], [-Math.PI / 4, 0.8, 0.06]]) {
+      ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-r * l, 0); ctx.lineTo(0, -r * w); ctx.lineTo(r * l, 0); ctx.lineTo(0, r * w); ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    ctx.restore();
   }
 }
 
@@ -6209,15 +6765,16 @@ function moonHit(z, X, Y) {
   z.gone = true; moonHits++;
   dentMoon(clamp((X - moonNow.X) / moonNow.r, -0.7, 0.7), clamp((Y - moonNow.Y) / moonNow.r, -0.7, 0.7));
   moonFlash = 0.6;
-  if (z.ch) { score += 3000; addFever(15); }
+  const pts = z.ch ? 3000 : 0;   // one the giants flung up there scores nothing, and says so
+  if (pts) { score += pts; addFever(15); }
   boom(0.7, 40); say('bullseye', 1);
   // repeated hits stack into one counter at the moon instead of piling up text
   const f = floaters.find(o => o.moon);
-  if (f) { f.n++; f.life = 1.3; f.y = moonNow.Y + moonNow.r + 26; f.text = `月面着弾 ×${f.n}!`; f.sub = `+${(3000 * f.n).toLocaleString()}`; }
-  else floaters.push({ screen: true, moon: true, n: 1, x: clamp(moonNow.X, 90, W - 90), y: moonNow.Y + moonNow.r + 26, text: '月面着弾!', sub: '+3000', life: 1.3, big: true });
+  if (f) { f.n++; f.pts += pts; f.life = 1.3; f.y = moonNow.Y + moonNow.r + 26; f.text = `月面着弾 ×${f.n}!`; f.sub = f.pts ? `+${f.pts.toLocaleString()}` : ''; }
+  else floaters.push({ screen: true, moon: true, n: 1, pts, x: clamp(moonNow.X, 90, W - 90), y: moonNow.Y + moonNow.r + 26, text: '月面着弾!', sub: pts ? '+3000' : '', life: 1.3, big: true });
 }
 function moonShatter(z) {
-  z.gone = true; z.state = 'gone'; bossM.R.root.visible = false;
+  z.gone = true; z.state = 'gone'; z.rig.R.root.visible = false;
   moonBroken = true; moonBreakT = 0;
   const n = 8, bounds = [], RM = 0.469;
   for (let i = 0; i < n; i++) bounds.push(i / n * Math.PI * 2 + rand(-0.15, 0.15));
@@ -6258,6 +6815,7 @@ function drawMoonFx(raw) {
   const mp = moonMesh.position, s = toScreen(mp.x, -mp.z, mp.y);
   moonNow.X = s.X; moonNow.Y = s.Y; moonNow.r = moonScr.r * camera.zoom;
   moonFlash = Math.max(0, moonFlash - raw);
+  if (twinkles.length) { for (const s of twinkles) s.t += raw; twinkles = twinkles.filter(s => s.t < 1.2); }
   const halo = haloMesh.material.uniforms.gain;
   if (!moonBroken) { halo.value = 1 + moonFlash * 3; return; }
   moonBreakT += raw;
@@ -6286,7 +6844,7 @@ function chainBlast(x, z, power, h) { fxSoft = z < 10; explode(x, z, power, h); 
 function startFinale() {
   over = true; carRespawn = [];
   fin = { t: 0, ev: [] };
-  const toMoon = boss && (boss.state === 'dying' || boss.state === 'moonshot');
+  const toMoon = bosses.some(b => (b.state === 'dying' || b.state === 'moonshot') && b.dest === 'moon');
   const at = (t, f) => fin.ev.push({ t, f });
   // blast sites: walkers nearest first, one blast per bunch, so the chain rolls away down the avenue.
   // Fewer at the wire and set back a little from it: the dust of a blast right there would fog the whole screen
@@ -6306,11 +6864,13 @@ function startFinale() {
   const tEnd = 0.3 + (sites.length - 1) * 0.1;
   // the cars go up as the chain passes them
   if (heli && heli.state !== 'crash') at(0.5, () => downHeli(null));
+  if (pipe && pipe.lit < 0) at(0.35, () => lightPipe(0, null));
+  if (ship && (ship.state === 'in' || ship.state === 'hover')) at(0.4, () => downShip(null));
   for (const c of cars) if (c.state === 'park' || c.state === 'roll') at(0.3 + clamp((c.z - 6) / 22, 0, 1) * (tEnd - 0.3) + rand(0, 0.06), () => carBoom(c, 0));
   // a giant still on its feet shudders under the blasts and bursts
-  if (boss && boss.state === 'walk') {
-    bossFinal(boss);
-    const z = boss;
+  for (const z of bosses) {
+    if (z.state !== 'walk') continue;
+    bossFinal(z);
     for (const [t, h] of [[0.45, 1.6], [0.72, 3.4], [0.98, 5.2]]) at(t, () => explode(z.x + rand(-1.2, 1.2), z.z - 0.4, 1.0, h));
     at(1.2, () => bossBurst(z));
   }
@@ -6326,7 +6886,7 @@ function finaleTick(raw) {
   fin.t += raw;
   while (fin.ev.length && fin.ev[0].t <= fin.t) fin.ev.shift().f();
   // a giant that only just landed is not left walking at us either
-  if (boss && boss.state === 'walk') { bossFinal(boss); const z = boss; fin.ev.push({ t: fin.t + 0.5, f: () => bossBurst(z) }); fin.ev.sort((a, b) => a.t - b.t); }
+  for (const z of bosses) if (z.state === 'walk') { bossFinal(z); fin.ev.push({ t: fin.t + 0.5, f: () => bossBurst(z) }); fin.ev.sort((a, b) => a.t - b.t); }
   if (!fin.ev.length) fin = null;
 }
 // the shock rolls across the whole street, a pillar of fire climbs past the top of the screen
@@ -6710,14 +7270,17 @@ function drawOverlays() {
     ctx.strokeStyle = `hsla(${hue},100%,60%,.85)`; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, H - 8);
   }
   if (speedLines > 0 && !reduceMotion) drawSpeedLines(speedLines);
-  if (boss && boss.state === 'walk' && (running || endT > 0)) {
-    // the giant's health along the bottom
+  const bw = bosses.filter(z => z.state === 'walk');
+  if (bw.length && (running || endT > 0)) {
+    // the giant's health along the bottom; the twins share one bar
     const w = Math.min(380, W - 32), x = (W - w) / 2, y = H - 30;
+    const hp = bw.reduce((a, z) => a + Math.max(0, z.hp), 0), mx = (bossKind === 'twins' ? bosses : bw).reduce((a, z) => a + z.maxHp, 0);
     ctx.fillStyle = 'rgba(18,12,23,.75)'; ctx.fillRect(x - 3, y - 3, w + 6, 16);
-    ctx.fillStyle = C.blood; ctx.fillRect(x, y, w * Math.max(0, boss.hp / boss.maxHp), 10);
+    ctx.fillStyle = C.blood; ctx.fillRect(x, y, w * hp / mx, 10);
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    outlined('巨大ゾンビ', x, y - 4, 14, C.bone); ctx.restore();
+    outlined(bossKind === 'dog' ? '巨大ゾンビ犬' : bw.length > 1 ? '巨大ゾンビ ×2' : '巨大ゾンビ', x, y - 4, 14, C.bone); ctx.restore();
   }
+  if (twinkles.length) drawTwinkles();
   if (comboShown()) {
     const size = 40 + comboPulse * 12;
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
@@ -6746,29 +7309,36 @@ function drawOverlays() {
 //   up and the ones still on board come out the hard way.
 // heli: a news helicopter comes in low over the street with its searchlight on the horde. Shoot it down and it spins
 //   into the horde and goes up.
+// pipe: the gas main under the avenue is about to go (76-pipe.js).
+// ship: a sightseeing airship with zombies dangling off it hangs over the far end of the street (76-ship.js).
 // Nothing it does costs us anything, and only what we set off scores. A lorry or a bus left alone goes up in the finale.
 // The lorry and the bus ride on the cars' code (shot, blasted, thrown, burnt out); each has the one mesh, built at boot.
 const HAPS = {
   tanker: { banner: 'タンクローリー突入!!', sub: '撃てば大爆発!!', bonus: 100000, name: 'タンクローリー爆破!!', w: 1.18, l: 4.5, ht: 2.95, hp: 45 },
   bus: { banner: 'ゾンビ観光バス!!', sub: '満員でご到着', bonus: 50000, name: '観光バス爆破!!', w: 1.25, l: 4.6, ht: 3.1, hp: 40 },
   heli: { banner: '取材ヘリ接近!!', sub: '撃ち落とせ!!', bonus: 100000, name: 'ヘリ撃墜!!' },
+  pipe: { banner: 'ガス管が破裂寸前!!', sub: 'マンホールを撃て!!', bonus: 100000, name: 'ガス管大爆発!!' },
+  ship: { banner: 'ゾンビ飛行船襲来!!', sub: '撃ち落とせ!!', bonus: 150000, name: '飛行船撃墜!!' },
 };
 const BUS_LOAD = 24;
-let hapKind = '', hapAt = 99, lastHap = '', hapDone = [], heli = null, hapMesh = {};
+let hapKind = '', hapAt = 99, lastHap = '', forceHap = '', hapDone = [], heli = null, hapMesh = {};
 // the round's plan: when the giant drops, and which happening comes when
 function resetHappening() {
   bossAt = rand(5.2, 8.2);
-  hapKind = pick(Object.keys(HAPS).filter(k => k !== lastHap)); lastHap = hapKind;
-  hapAt = bossAt > 6.8 ? rand(2.6, bossAt - 2.4) : rand(bossAt + 3.4, hapKind === 'heli' ? 11 : 10.2);   // a lorry or a bus needs time to arrive
+  hapKind = forceHap || pick(Object.keys(HAPS).filter(k => k !== lastHap)); lastHap = hapKind;
+  hapAt = bossAt > 6.8 ? rand(2.6, bossAt - 2.4) : rand(bossAt + 3.4, hapKind === 'heli' ? 11 : hapKind === 'ship' ? 9 : 10.2);   // a lorry or a bus needs time to arrive
   hapDone = [];
   for (const k of ['tanker', 'bus']) { const M = hapMesh[k]; if (M) { M.g.visible = false; M.restore(); } }
   if (hapMesh.heli) { hapMesh.heli.g.visible = false; hapMesh.heli.beam.visible = false; }
   heli = null; rotorSnd(false);
+  resetPipe(); resetShip();
 }
 function startHappening(kind) {
   const H = HAPS[kind];
   showBanner(H.banner, H.sub, C.flare, 1.5);
   if (kind === 'heli') { startHeli(); return; }
+  if (kind === 'pipe') { startPipe(); return; }
+  if (kind === 'ship') { startShip(); return; }
   const M = hapMesh[kind];
   M.restore(); M.g.visible = true;
   const x = rand(-0.5, 0.5);
@@ -6924,7 +7494,7 @@ function busMesh() {
   return R;
 }
 function buildHappenings() {
-  hapMesh.tanker = tankerMesh(); hapMesh.bus = busMesh(); hapMesh.heli = heliMesh();
+  hapMesh.tanker = tankerMesh(); hapMesh.bus = busMesh(); hapMesh.heli = heliMesh(); buildPipe(); buildShip();
   // in view at boot so their shaders are ready (prepBig), hidden at reset
   hapMesh.tanker.g.position.set(-3, 0, -40); hapMesh.bus.g.position.set(3, 0, -40); hapMesh.heli.g.position.set(0, 8, -40);
 }
@@ -7060,6 +7630,596 @@ function rayHeli(O, D) {
   return raySphere(O, D, c.x, c.h, -c.z, 1.7);
 }
 const heliNear = (x, h, z, r) => heli && heli.state !== 'crash' && Math.hypot(heli.x - x, heli.h - h, heli.z - z) < r;
+
+// ===== 76-pipe.js
+// ---------- the gas main (2026-10-26, kazu: more happenings) ----------
+// A row of manhole covers down the middle of the avenue starts to jump and clatter: the gas main under the street is about
+// to go. Fire licks out round their rims, the iron glows hotter and hotter, the street rumbles. Shoot one, or set off a blast
+// near one, and it goes up in a pillar of fire that throws its cover high into the sky and the zombies over it after it;
+// then the next one goes, and the next, up and down the street. Bodies coming down into a pillar go up again. A cover
+// coming back down can flatten a zombie. Left alone it waits for us, rattling harder and harder, and goes up in the finale.
+const PIPE_N = 6, PIPE_FUSE = 4, PIPE_STEP = 0.17, PIPE_BURN = 1.5, PIPE_R = 0.36;
+let pipe = null, pipeMesh = null, pipeHeat = 0;
+const _pq = new THREE.Quaternion(), _pa = new THREE.Vector3(), _pe = new THREE.Euler();
+function makeCoverTex() {
+  const S = 256, C = S / 2, [c, g] = canvas(S, S);
+  g.fillStyle = '#2e282e'; g.fillRect(0, 0, S, S);
+  // the rim, a ring of studs, and a grid of raised diamonds round the gas company's mark
+  g.strokeStyle = '#6e646c'; g.lineWidth = 12; g.beginPath(); g.arc(C, C, C - 9, 0, 6.29); g.stroke();
+  g.lineWidth = 5; g.beginPath(); g.arc(C, C, C - 36, 0, 6.29); g.stroke();
+  g.fillStyle = '#6e646c';
+  for (let i = 0; i < 28; i++) { const a = i / 28 * 6.283; g.beginPath(); g.arc(C + Math.cos(a) * (C - 24), C + Math.sin(a) * (C - 24), 4, 0, 6.29); g.fill(); }
+  g.save(); g.beginPath(); g.arc(C, C, C - 42, 0, 6.29); g.clip(); g.translate(C, C); g.rotate(Math.PI / 4);
+  for (let x = -S; x < S; x += 21) for (let y = -S; y < S; y += 21) g.fillRect(x + 3, y + 3, 13, 13);
+  g.restore();
+  g.fillStyle = '#2e282e'; g.beginPath(); g.arc(C, C, 40, 0, 6.29); g.fill();
+  g.strokeStyle = '#6e646c'; g.lineWidth = 5; g.beginPath(); g.arc(C, C, 40, 0, 6.29); g.stroke();
+  g.fillStyle = '#7a7078'; g.font = `38px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('ガス', C, C + 2);
+  grain(g, S, S, 16, 6);
+  return ctex(c, false);
+}
+function buildPipe() {
+  const mat = new THREE.MeshStandardMaterial({ map: makeCoverTex(), metalness: 0.6, roughness: 0.5, envMap, envMapIntensity: 0.6 });
+  const geo = new THREE.CylinderGeometry(PIPE_R, PIPE_R, 0.07, 28);
+  const covers = [];
+  // in view at boot so the shader is ready (prepBig), hidden at reset
+  for (let i = 0; i < PIPE_N; i++) { const m = new THREE.Mesh(geo, mat); m.position.set(i - 3, 0.04, -40); scene.add(m); covers.push(m); }
+  pipeMesh = { mat, covers };
+}
+function resetPipe() {
+  pipe = null; pipeHeat = 0; pipeSnd(false);
+  if (pipeMesh) { for (const m of pipeMesh.covers) m.visible = false; pipeMesh.mat.emissive.setRGB(0, 0, 0); }
+}
+// the covers run down the middle of the street from just past the wire, zigzagging through the horde
+function startPipe() {
+  const s = Math.random() < 0.5 ? 1 : -1;
+  pipe = { t: 0, lit: -1, ch: null, sfxT: 0.4, holes: [] };
+  for (let i = 0; i < PIPE_N; i++) {
+    const z = 10.5 + i * 3.2, x = (i % 2 ? 1 : -1) * s * rand(0.3, 0.55);
+    pipe.holes.push({ x, z, state: 'shut', at: -1, burn: 0, emit: 0, lift: 0, vl: 0, hopT: rand(0.1, 0.6), jetT: 0.3 + i * 0.2, tx: 0, tz: 0, rot: rand(0, 6.28),
+      cover: { state: 'on', x, z, h: 0, vx: 0, vz: 0, vh: 0, q: new THREE.Quaternion(), w: new THREE.Vector3(), hit: false } });
+  }
+  for (const m of pipeMesh.covers) m.visible = true;
+  pipeSnd(true);
+}
+// set off from one cover: the fire runs along the main both ways
+function lightPipe(i, ch) {
+  const P = pipe;
+  if (!P || P.lit >= 0) return;
+  P.lit = i; P.ch = ch || null;
+  P.holes.forEach((o, j) => { o.at = Math.abs(j - i) * PIPE_STEP; });
+  pipeSnd(false);
+  if (running && ch) {
+    score += HAPS.pipe.bonus; hapDone.push('pipe');
+    const o = P.holes[i];
+    floaters.push({ x: o.x, z: o.z, h: 3.4, text: HAPS.pipe.name, sub: `+${HAPS.pipe.bonus.toLocaleString()}`, life: 1.7, big: true });
+    say('unstoppable', 3);
+  }
+}
+// a bullet into the road by a cover (or, now and then, one through a zombie standing on it), or a blast that reaches one
+function pipeShot(x, z, ch) {
+  if (!pipe || pipe.lit >= 0) return;
+  const i = pipe.holes.findIndex(o => Math.hypot(o.x - x, o.z - z) < 0.9);
+  if (i >= 0) lightPipe(i, ch);
+}
+function pipeBlast(x, z, R, ch) {
+  if (!pipe || pipe.lit >= 0) return;
+  let best = -1, bd = 1e9;
+  pipe.holes.forEach((o, i) => { const d = Math.hypot(o.x - x, o.z - z); if (d < bd) { bd = d; best = i; } });
+  if (bd < R * 0.45 + 0.3) lightPipe(best, ch);
+}
+// up it goes: whatever stands on the cover goes with it, straight up on the fire; bodies already down or in the air are
+// thrown up again. Returns whether it killed one
+function pillarLaunch(zb, o, dx, dz, d, ch) {
+  if (zb.type === 'boss' || zb.gone) return false;
+  if (zb.state === 'walk') {
+    killZombie(zb, { dx, dz, d, f: rand(0.3, 0.9), power: 1.1, ch });
+    if (zb.state === 'fly' && !zb.gone) { zb.vx = dx * 1.4 + rand(-1, 1); zb.vz = dz * 1.4 + rand(-0.3, 1.4); zb.vh = rand(17, 24); }
+    return zb.state !== 'walk';
+  }
+  if ((zb.state === 'fly' || zb.state === 'dead') && zb.vh < 5 && zb.h < 5) {
+    zb.state = 'fly'; zb.dead = 0; zb.vh = rand(14, 20); zb.vx = dx + rand(-1, 1); zb.vz = dz + rand(-0.3, 1.2);
+    zb.w.x -= rand(4, 9);
+    if (ch) zb.ch = ch;
+  }
+  return false;
+}
+function pipeErupt(o) {
+  const ch = pipe.ch;
+  o.state = 'burn'; o.burn = PIPE_BURN; o.at = -1;
+  // the cover goes spinning up far higher than anything else
+  const c = o.cover;
+  c.state = 'fly'; c.x = o.x; c.z = o.z; c.h = 0.1; c.vx = rand(-1.2, 1.2); c.vz = rand(-0.4, 1.8); c.vh = rand(19, 25);
+  c.q.setFromEuler(_pe.set(o.tx, o.rot, o.tz)); c.w.set(rand(-15, 15), rand(-4, 4), rand(-15, 15));
+  let k = 0;
+  for (const zb of zombies) {
+    const dx = zb.x - o.x, dz = zb.z - o.z, d = Math.hypot(dx, dz);
+    if (d < 1.6 && pillarLaunch(zb, o, dx, dz, d, ch)) k++;
+  }
+  if (k && running) registerKills(k, o.x, o.z, null, true, ch);
+  // not a fireball: the pillar is the show. A bang, a ring of shock along the road, the road torn open round the hole
+  // and the blast that throws the rest of the bunch about
+  const near = Math.min(1.4, 14 / o.z);
+  boom(0.9, o.z); pillarSnd(o.z); buzz(70, 2);
+  shake = Math.min(shake + 7 * near, 24);
+  blastLight(o.x, o.z, 2, 0.9);
+  addCrater(o.x, o.z, 0.5); addDecal(o.x, o.z, 1.2, 'scorch', 22);
+  addPart({ k: 'core', x: o.x, z: o.z, h: 0.5, vx: 0, vz: 0, vh: 0, r: 0.9, life: 0.25, fade: 0.6 });
+  addPart({ k: 'shock', x: o.x, z: o.z, h: 0.1, vx: 0, vz: 0, vh: 0, r: 0.3, R: 3.4, life: 0.3, a: 0.6 });
+  for (let i = 0; i < 18; i++) { const a = rand(0, 6.28), e = rand(0.6, 1.5), sp = rand(6, 16); addPart({ k: 'spark', x: o.x, z: o.z, h: 0.3, vx: Math.cos(a) * Math.cos(e) * sp, vz: Math.sin(a) * Math.cos(e) * sp, vh: Math.sin(e) * sp, g: 12, drag: 0.6, r: 0.04, life: rand(0.4, 0.9) }); }
+  for (let i = 0; i < 6; i++) { const a = rand(0, 6.28), v = rand(2, 5); addPart({ k: 'brand', x: o.x, z: o.z, h: 0.4, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vh: rand(12, 20), g: 18, r: rand(0.07, 0.12), life: rand(1.3, 1.9) }); }
+  for (let i = 0; i < 8; i++) { const a = rand(0, 6.28), sp = rand(1.5, 4); addChunk({ x: o.x + Math.cos(a) * 0.4, z: o.z + Math.sin(a) * 0.4, h: 0.1, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(6, 12), sx: rand(0.15, 0.32), sy: rand(0.05, 0.09), sz: rand(0.15, 0.3), c: i % 2 ? CH.asphalt : CH.asphalt2, life: 2.4, hot: i % 3 ? 0 : 0.6 }); }
+  for (let i = 0; i < 5; i++) { const a = rand(0, 6.28), sp = rand(0.5, 2); addPart({ k: 'dust', x: o.x, z: o.z, h: 0.2, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(1, 3), r: rand(0.3, 0.5), grow: 1.2, drag: 1.8, life: rand(0.8, 1.2), a: 0.35 }); }
+  addPart({ k: 'flame', x: o.x, z: o.z, h: 0, vx: 0, vz: 0, vh: 0, r: 0.55, life: PIPE_BURN + 2.5 });
+  blastDamage(o.x, o.z, 0.9, 2.6, ch);
+}
+function updatePipe(dt) {
+  const P = pipe;
+  if (!P) return;
+  P.t += dt;
+  const heat = P.lit < 0 ? clamp(P.t / PIPE_FUSE, 0, 1) : 0;
+  pipeHeat = P.lit < 0 ? heat : Math.max(0, pipeHeat - dt * 0.5);
+  if (P.lit < 0) {
+    pipeLevel(heat);
+    // the street rumbles
+    if ((P.sfxT -= dt) <= 0 && running) {
+      P.sfxT = rand(0.7, 1.0) - heat * 0.3;
+      const o = pick(P.holes), s = toScreen(o.x, o.z, 0.8);
+      if (!s.behind) floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 60, W - 60), y: clamp(s.Y - rand(10, 40), hudH + 30, H - 40), text: 'ゴゴゴ', rot: rand(-0.25, 0.25), life: 0.6, max: 0.6, size: 26 + heat * 10 });
+      shake = Math.max(shake, 1 + heat * 2);
+    }
+  }
+  let nk = 0, kx = 0, kz = 0;
+  for (const o of P.holes) {
+    if (o.at >= 0 && (o.at -= dt) < 0) pipeErupt(o);
+    if (o.state === 'shut') {
+      // the cover jumps on the pressure under it, harder and more often as it builds; fire licks out from under it
+      o.vl -= 30 * dt; o.lift += o.vl * dt;
+      if (o.lift <= 0) { if (o.vl < -1.2) rattleSnd(o.z); o.lift = 0; o.vl = 0; o.tx *= 0.5; o.tz *= 0.5; }
+      if ((o.hopT -= dt) <= 0) {
+        o.hopT = rand(0.3, 0.8) * (1.15 - 0.75 * heat); o.vl = rand(1.0, 2.0) * (0.5 + heat); o.tx = rand(-0.3, 0.3) * (0.3 + heat); o.tz = rand(-0.3, 0.3) * (0.3 + heat);
+        for (let i = 0; i < 3 + heat * 4; i++) {
+          const a = rand(0, 6.28);
+          addPart({ k: 'fire', x: o.x + Math.cos(a) * PIPE_R, z: o.z + Math.sin(a) * PIPE_R, h: 0.05, vx: Math.cos(a) * 1.3, vz: Math.sin(a) * 1.3, vh: rand(1.5, 3.5) * (0.5 + heat), r: rand(0.1, 0.2) * (0.7 + heat), grow: 0.5, drag: 2, life: rand(0.25, 0.45), heat: 1, f: 12 });
+        }
+      }
+      // a column of steam, and every so often a jet of fire, that show over the heads of the horde
+      if (Math.random() < dt * 7) addPart({ k: 'dust', x: o.x + rand(-0.2, 0.2), z: o.z + rand(-0.2, 0.2), h: 0.3, vx: rand(-0.2, 0.2), vz: rand(-0.2, 0.2), vh: rand(2.5, 4), r: rand(0.2, 0.3), grow: 0.8, drag: 0.5, life: rand(1.4, 2), a: 0.26 });
+      if ((o.jetT -= dt) <= 0) {
+        o.jetT = rand(0.6, 1.3) * (1.1 - 0.6 * heat);
+        for (let i = 0, N = 6 + heat * 6; i < N; i++) addPart({ k: 'plume', x: o.x + rand(-0.1, 0.1), z: o.z + rand(-0.1, 0.1), h: 0.2, vx: rand(-0.4, 0.4), vz: rand(-0.4, 0.4), vh: rand(9, 14) * (0.75 + 0.5 * heat), r: rand(0.2, 0.34), grow: 0.6, drag: 2, life: rand(0.35, 0.5), heat: 1.1, f: 1 + (i % 2) });
+        if (running && o.z < 22) jetSnd(o.z);
+      }
+    } else if (o.state === 'burn') {
+      // the pillar: burning gas roaring straight up out of the hole and past the top of the screen
+      o.burn -= dt;
+      const k = Math.max(0, o.burn / PIPE_BURN), step = coarse ? 0.03 : 0.022;
+      for (o.emit -= dt; o.emit <= 0; o.emit += step) {
+        addPart({ k: 'plume', x: o.x + rand(-0.12, 0.12), z: o.z + rand(-0.12, 0.12), h: 0.15, vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vh: rand(15, 22) * (0.45 + 0.55 * k), r: rand(0.32, 0.55) * (0.6 + 0.4 * k), grow: 1.1, drag: 1.3, life: rand(0.5, 0.75), heat: 1.25, f: 1 + (Math.random() * 2 | 0) });
+        // white-hot at its heart
+        if (Math.random() < 0.5) addPart({ k: 'glow', x: o.x, z: o.z, h: 0.3, vx: 0, vz: 0, vh: rand(14, 20) * (0.45 + 0.55 * k), drag: 1.3, r: 0.3, life: rand(0.35, 0.5), c: [3, 1.7, 0.6], a: k });
+      }
+      if (Math.random() < dt * 24 * k) addPart({ k: 'spark', x: o.x, z: o.z, h: rand(0.5, 3), vx: rand(-5, 5), vz: rand(-5, 5), vh: rand(6, 16), g: 12, drag: 0.6, r: 0.04, life: rand(0.4, 0.9) });
+      if (Math.random() < dt * 5 * k) addPart({ k: 'smoke', x: o.x, z: o.z, h: rand(6, 8), vx: rand(-0.6, 0.6), vz: rand(-0.6, 0.6), vh: rand(1, 2), r: rand(0.8, 1.2), grow: 1, drag: 0.7, life: rand(1.6, 2.4), a: 0.5 });
+      // anyone walking into it, or coming down into it, goes up
+      for (const zb of zombies) {
+        const dx = zb.x - o.x, dz = zb.z - o.z, d = Math.hypot(dx, dz);
+        if (d < 0.8 && pillarLaunch(zb, o, dx, dz, d, P.ch)) { nk++; kx = o.x; kz = o.z; }
+      }
+      for (const b of bosses) if (b.state === 'walk' && Math.hypot(b.x - o.x, b.z - o.z) < 2) damageBoss(6 * dt, P.ch, b);
+      if (o.burn <= 0) o.state = 'out';
+    }
+    // the cover in the air, and back down: a clang, a bounce, and it lies where it lands
+    const c = o.cover;
+    if (c.state === 'fly') {
+      c.vh -= 18 * dt; c.x += c.vx * dt; c.z += c.vz * dt; c.h += c.vh * dt;
+      const wl = c.w.length(); if (wl > 0.01) { _pa.copy(c.w).divideScalar(wl); _pq.setFromAxisAngle(_pa, wl * dt); c.q.premultiply(_pq); }
+      if (!c.hit && c.vh < 0 && c.h < 2.2) for (const zb of zombies) {
+        if (zb.state !== 'walk' || zb.type === 'boss' || Math.hypot(zb.x - c.x, zb.z - c.z) > 0.5 || c.h > 1.9 * zb.size) continue;
+        c.hit = true; c.vh = 4; c.vx *= -0.5; c.vz *= -0.5;
+        killZombie(zb, { dx: 0, dz: 0.3, d: 0.3, f: 0.3, power: 0.6, ch: P.ch, head: true });
+        if (running && P.ch) registerKills(1, zb.x, zb.z, 'ゴン!!', false, P.ch);
+        clang(); break;
+      }
+      if (c.h < 0.035 && c.vh < 0) {
+        if (c.vh < -6) { clang(); for (let i = 0; i < 6; i++) addPart({ k: 'spark', x: c.x, z: c.z, h: 0.05, vx: rand(-4, 4), vz: rand(-4, 4), vh: rand(2, 6), g: 14, r: 0.03, life: rand(0.2, 0.4) }); addPart({ k: 'dust', x: c.x, z: c.z, h: 0.15, vx: 0, vz: 0, vh: 0.5, r: 0.4, grow: 1, drag: 2, life: 0.7, a: 0.4 }); }
+        c.h = 0.035; c.vh *= -0.35; c.vx *= 0.5; c.vz *= 0.5; c.w.multiplyScalar(0.4);
+        if (Math.abs(c.vh) < 2.5) { c.state = 'rest'; c.vh = 0; c.q.setFromEuler(_pe.set(0, rand(0, 6.28), 0)); }
+      }
+    }
+  }
+  if (nk && running) registerKills(nk, kx, kz, null, true, P.ch);
+}
+function drawPipe() {
+  const P = pipe;
+  if (!P) return;
+  const e = pipeHeat * pipeHeat * (0.85 + 0.15 * Math.sin(performance.now() / 60));
+  pipeMesh.mat.emissive.setRGB(1.6 * e, 0.4 * e, 0.06 * e);
+  P.holes.forEach((o, i) => {
+    const m = pipeMesh.covers[i], c = o.cover;
+    if (c.state === 'on') { m.position.set(o.x, 0.035 + o.lift, -o.z); m.rotation.set(o.tx, o.rot, o.tz); }
+    else { m.position.set(c.x, c.h, -c.z); m.quaternion.copy(c.q); }
+    if (o.state === 'shut') {
+      // the glow of the fire under it, brighter while it is up off the hole
+      const g = (0.4 + 1.6 * pipeHeat + o.lift * 10) * (0.8 + 0.2 * Math.sin(performance.now() / 45 + i));
+      ADD.push(o.x, 0.02, -o.z, PIPE_R * 3, 0, 0, 2, 2.4 * g, 0.7 * g, 0.12 * g, 1);
+    } else if (o.state === 'burn') {
+      const k = o.burn / PIPE_BURN;
+      ADD.push(o.x, 0.03, -o.z, 3.4, 0, 0, 2, 3 * k, 1.1 * k, 0.25 * k, 1);
+      ADD.push(o.x, 0.7, -o.z, 1.6, performance.now() / 300, 0, 0, 4 * k, 2 * k, 0.6 * k, 1);
+      // and a shaft of light up its middle, so each pillar stands out in the smoke of the others
+      const L = 3.2 * Math.min(1, (PIPE_BURN - o.burn) * 5);
+      ADD.push(o.x, 0.3 + L, -o.z, 0.8 * k, 0, 0, 1, 2.2 * k, 1.1 * k, 0.3 * k, 1, 0, L, 0);
+    }
+  });
+}
+
+// ===== 76-ship.js
+// ---------- the zombie airship (2026-10-26, kazu: more happenings) ----------
+// A sightseeing airship comes down the avenue nose first out of the night, swings side on over the far end of the street
+// and hangs there with its engines droning and a row of zombies dangling off ropes under its cabin, kicking. Shoot them off
+// one by one, or bring the whole thing down: a rocket, a shell or a beam tears a big hole in it, the machine gun sets it
+// alight a bit at a time. Down it goes nose first in flames, the ones on the ropes dropping ahead of it, and blows up from
+// end to end in the street, throwing its passengers out of the cabin. Left alone it comes down in the finale, for nothing.
+const SHIP_R = 1.55, SHIP_L = 7.6, SHIP_HP = 40, SHIP_HANG = 6, SHIP_LOAD = 10;
+let ship = null, shipMesh = null;
+const _shM = new THREE.Matrix4(), _shI = new THREE.Matrix4(), _shQ = new THREE.Quaternion(), _shQi = new THREE.Quaternion(), _shE = new THREE.Euler(0, 0, 0, 'YXZ');
+const _shO = new THREE.Vector3(), _shD = new THREE.Vector3(), _shP = new THREE.Vector3(), _shA = new THREE.Vector3(), _shU = new THREE.Vector3(), _shY = new THREE.Vector3(0, 1, 0);
+// the envelope's skin: canvas x runs round it (0 underneath, a quarter up its right side, half over the top), y from the
+// nose (top) to the tail. With lit=true only the lettering, to lay over it glowing
+function makeShipTex(lit) {
+  const W2 = 1024, H2 = 1024, [c, g] = canvas(W2, H2);
+  g.fillStyle = lit ? '#000' : '#d6cfc2'; g.fillRect(0, 0, W2, H2);
+  if (!lit) {
+    // a red belly, a red pinstripe each side, and the panels it is sewn from
+    g.fillStyle = '#a81c26'; g.fillRect(0, 0, 110, H2); g.fillRect(W2 - 110, 0, 110, H2);
+    for (const cx of [W2 / 4, W2 * 3 / 4]) { g.fillRect(cx - 120, 0, 18, H2); g.fillRect(cx + 102, 0, 18, H2); }
+    g.strokeStyle = 'rgba(70,56,58,0.35)'; g.lineWidth = 3;
+    for (let x = 0; x < W2; x += W2 / 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H2); g.stroke(); }
+    g.lineWidth = 2;
+    for (let y = 32; y < H2; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(W2, y); g.stroke(); }
+  }
+  // the name down each side, reading nose to tail on the side the nose points right
+  for (const [cx, rot] of [[W2 / 4, Math.PI / 2], [W2 * 3 / 4, -Math.PI / 2]]) {
+    g.save(); g.translate(cx, H2 / 2); g.rotate(rot);
+    g.font = `104px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (!lit) { g.lineWidth = 14; g.strokeStyle = '#16121a'; g.strokeText('ゾンビ遊覧船', 0, 0); }
+    g.fillStyle = lit ? '#ffd890' : '#f2c84a'; g.fillText('ゾンビ遊覧船', 0, 0);
+    // and a zombie's head for a logo, toward the nose
+    g.translate(-430, 0);
+    if (!lit) {
+      g.fillStyle = '#6f8a4a'; g.beginPath(); g.ellipse(0, 0, 44, 52, 0, 0, 6.3); g.fill();
+      g.fillStyle = '#16121a'; g.beginPath(); g.ellipse(-15, -8, 10, 13, 0, 0, 6.3); g.ellipse(15, -8, 10, 13, 0, 0, 6.3); g.fill();
+      g.fillRect(-20, 22, 40, 10);
+    }
+    g.fillStyle = lit ? '#ff3020' : '#e02a1e'; g.beginPath(); g.arc(-15, -8, 5, 0, 6.3); g.arc(15, -8, 5, 0, 6.3); g.fill();
+    g.restore();
+  }
+  if (!lit) {
+    // blood run down it and grime, and rips that show the dark of the frame inside
+    for (let i = 0; i < 40; i++) {
+      const x = rand(0, W2), y = rand(0, H2), l = rand(30, 160);
+      g.fillStyle = `rgba(${90 + rand(0, 40) | 0},12,18,${rand(0.25, 0.6)})`; g.fillRect(x, y, rand(4, 12), l);
+    }
+    for (let i = 0; i < 7; i++) {
+      g.save(); g.translate(rand(0, W2), rand(100, H2 - 100)); g.rotate(rand(0, 3.14));
+      g.fillStyle = '#1a1418'; jag(g, rand(18, 40), rand(8, 16), 10); g.restore();
+    }
+    grain(g, W2, H2, 12, 8);
+  }
+  return ctex(c, false);
+}
+function buildShip() {
+  const env = new THREE.MeshStandardMaterial({ map: makeShipTex(false), metalness: 0.2, roughness: 0.5, envMap, envMapIntensity: 0.8 });
+  const glow = new THREE.MeshBasicMaterial({ map: makeShipTex(true), color: col(0xffffff, 1.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const paint = new THREE.MeshStandardMaterial({ color: 0xa81c26, metalness: 0.45, roughness: 0.35, envMap, envMapIntensity: 1 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1a181e, metalness: 0.5, roughness: 0.5, envMap, envMapIntensity: 0.6 });
+  const side = new THREE.MeshStandardMaterial({ map: makeBusTex(), metalness: 0.3, roughness: 0.35, envMap, envMapIntensity: 0.9 });
+  // the envelope: a lathe turned nose to +z, fuller at the front, drawn out toward the tail
+  const pts = [];
+  for (let i = 0; i <= 26; i++) { const u = -1 + 2 * i / 26; pts.push(new THREE.Vector2(Math.max(0.001, SHIP_R * Math.sqrt(Math.max(0, 1 - u * u)) * (1 + 0.1 * u)), u * SHIP_L / 2)); }
+  const hull = new THREE.LatheGeometry(pts, 40); hull.rotateX(Math.PI / 2);
+  const g = new THREE.Group();
+  const envM = new THREE.Mesh(hull, env), glowM = new THREE.Mesh(hull, glow);
+  glowM.scale.setScalar(1.006);
+  g.add(envM, glowM);
+  // four tail fins
+  const F = [], D = [], S = [];
+  const add = (list, geo, x, y, z, rz = 0) => { geo = geo.toNonIndexed(); if (geo.attributes.uv) geo.deleteAttribute('uv'); if (rz) geo.rotateZ(rz); geo.translate(x, y, z); list.push(geo); };
+  for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2, fin = new THREE.BoxGeometry(0.07, 1.15, 1.6).toNonIndexed(); fin.deleteAttribute('uv'); fin.translate(0, 1.4, -SHIP_L / 2 + 1.25); fin.rotateZ(a); F.push(fin); }
+  // the cabin slung underneath, its windows full of passengers, with an engine out on each side
+  const cy = -SHIP_R - 0.28;
+  add(D, new THREE.BoxGeometry(1.1, 0.85, 3.2), 0, cy, 0);
+  add(D, new THREE.BoxGeometry(0.9, 0.5, 0.5), 0, cy + 0.05, 1.75);
+  add(D, new THREE.BoxGeometry(0.16, 0.5, 2.4), 0, -SHIP_R + 0.05, 0);
+  for (const s of [-1, 1]) {
+    add(D, new THREE.CylinderGeometry(0.2, 0.15, 0.9, 12).rotateX(Math.PI / 2), s * 1.05, cy + 0.15, -0.5);
+    add(D, new THREE.BoxGeometry(0.5, 0.06, 0.25), s * 0.78, cy + 0.15, -0.5);
+    const p = new THREE.PlaneGeometry(3.2, 0.85); p.rotateY(s * Math.PI / 2); p.translate(s * 0.56, cy, 0); S.push(p);
+  }
+  g.add(new THREE.Mesh(mergeGeometries(F), paint), new THREE.Mesh(mergeGeometries(D), dark), new THREE.Mesh(mergeGeometries(S), side));
+  const props = [];
+  for (const s of [-1, 1]) {
+    const pr = new THREE.Group(); pr.position.set(s * 1.05, cy + 0.15, -1.0);
+    for (const a of [0, Math.PI / 2]) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9, 0.03), dark); bl.rotation.z = a; pr.add(bl); }
+    g.add(pr); props.push(pr);
+  }
+  scene.add(g);
+  // in view at boot so its shaders are ready (prepBig), hidden at reset
+  g.position.set(0, 12, -60);
+  // where the ropes hang from, and spots on the skin that catch fire as it takes damage
+  const ropes = [];
+  for (let i = 0; i < SHIP_HANG; i++) ropes.push(new THREE.Vector3((i % 2 ? 1 : -1) * 0.3, cy - 0.43, -1.35 + i * 0.54));
+  const spots = [];
+  for (let i = 0; i < 12; i++) {
+    const u = rand(-0.65, 0.75), ph = (i % 2 ? Math.PI / 2 : Math.PI * 1.5) + rand(-1, 0.9) * (i % 2 ? 1 : -1), r = SHIP_R * Math.sqrt(1 - u * u) * (1 + 0.1 * u);
+    spots.push(new THREE.Vector3(Math.sin(ph) * r, -Math.cos(ph) * r, u * SHIP_L / 2));
+  }
+  shipMesh = { g, env, glow, props, ropes, spots };
+}
+function resetShip() {
+  if (ship) for (const zb of ship.hangers) if (zb.state === 'hang') zb.gone = true;
+  ship = null; shipSnd(false);
+  if (shipMesh) { shipMesh.g.visible = false; shipMesh.env.emissive.setScalar(0); }
+}
+function startShip() {
+  const s = Math.random() < 0.5 ? -1 : 1;
+  ship = { state: 'in', t: 0, s, x: s * 2.5, z: 80, h: 11, yaw: 0, pitch: 0, roll: 0, vx: 0, vz: 0, vh: 0, hp: SHIP_HP, flash: 0, ch: null,
+    tx: s * 0.6, tz: 27, th: 6.9, hangers: [], fireT: 0, popT: 0 };
+  for (let i = 0; i < SHIP_HANG; i++) {
+    const zb = makeZombie(i % 3 === 1 ? 'runner' : 'walker', ship.x, ship.z);
+    zb.state = 'hang'; zb.hp = 2; zb.rope = { i, len: rand(0.45, 0.9), ph: rand(0, 6.28), ph2: rand(0, 6.28), twist: rand(-0.5, 0.5) };
+    zombies.push(zb); ship.hangers.push(zb);
+  }
+  shipMesh.g.visible = true; shipMesh.env.emissive.setScalar(0);
+  placeShip(0);
+  shipSnd(true);
+}
+// the ship's pose into its mesh and the matrices the hit tests use; the hangers onto the ends of their ropes
+function placeShip(dt) {
+  const c = ship, M = shipMesh;
+  M.g.position.set(c.x, c.h, -c.z);
+  M.g.quaternion.setFromEuler(_shE.set(c.pitch, c.yaw, c.roll));
+  M.g.updateMatrixWorld(true);
+  _shI.copy(M.g.matrixWorld).invert(); _shQi.copy(M.g.quaternion).invert();
+  const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), now = performance.now() / 1000;
+  for (const zb of c.hangers) {
+    if (zb.state !== 'hang') continue;
+    const R = zb.rope;
+    // they swing on their ropes, trail back as it flies and kick about
+    const a = 0.16 * Math.sin(now * 1.7 + R.ph) + 0.05 * Math.sin(now * 4.3 + R.ph2) + clamp(c.vz * fz * -0.02 + c.vx * fx * -0.02, -0.35, 0.35);
+    const b = 0.12 * Math.sin(now * 1.25 + R.ph2);
+    _shA.copy(M.ropes[R.i]).applyMatrix4(M.g.matrixWorld);
+    // the rope: down, swung toward the nose by a and sideways by b
+    _shD.set(fx * Math.sin(a) + fz * Math.sin(b), -Math.cos(a) * Math.cos(b), fz * Math.sin(a) - fx * Math.sin(b)).normalize();
+    R.ax = _shA.x; R.ay = _shA.y; R.az = _shA.z;
+    _shP.copy(_shA).addScaledVector(_shD, R.len);
+    R.hx = _shP.x; R.hy = _shP.y; R.hz = _shP.z;
+    // the body hangs along the rope from its hands
+    _shU.copy(_shD).negate();
+    _shQ.setFromUnitVectors(_shY, _shU);
+    zb.q.setFromAxisAngle(_shY, R.twist + 0.5 * Math.sin(now * 0.6 + R.ph)).premultiply(_shQ);
+    const s = zb.size;
+    _shP.addScaledVector(_shU, -1.2 * s);
+    zb.x = _shP.x; zb.z = -_shP.z; zb.h = _shP.y - 0.95 * s;
+    zb.phase += dt * 6;
+  }
+}
+function updateShip(dt) {
+  const c = ship;
+  if (!c) return;
+  c.t += dt; c.flash = Math.max(0, c.flash - dt);
+  if (c.state === 'in') {
+    // down the avenue nose first, slowing, then round side on as it comes to a stop
+    const sp = clamp((c.z - c.tz) * 1.6, 2, 14);
+    c.vz = -sp; c.z += c.vz * dt;
+    c.x += (c.tx - c.x) * Math.min(1, dt * 0.6); c.h += (c.th - c.h) * Math.min(1, dt * 0.7);
+    const k = clamp((46 - c.z) / (46 - c.tz), 0, 1), e = k * k * (3 - 2 * k);
+    c.yaw = c.s * e * 1.15; c.pitch = 0.04 * (1 - e); c.roll = -c.s * 0.08 * Math.sin(e * Math.PI);
+    if (c.z - c.tz < 0.25) { c.state = 'hover'; c.t = 0; c.vz = 0; }
+  } else if (c.state === 'hover') {
+    c.h = c.th + Math.sin(c.t * 0.9) * 0.18;
+    c.x = c.tx + Math.sin(c.t * 0.3) * 0.35;
+    c.yaw = c.s * 1.15 + Math.sin(c.t * 0.35) * 0.1;
+    c.roll = Math.sin(c.t * 0.7) * 0.03; c.pitch = Math.sin(c.t * 0.5) * 0.02;
+  } else if (c.state === 'crash') {
+    // nose down, falling faster and faster, burning end to end
+    c.vh -= 6.5 * dt; c.h += c.vh * dt; c.z += c.vz * dt; c.x += c.vx * dt;
+    c.pitch = Math.min(0.6, c.pitch + dt * 0.45); c.roll += c.s * dt * 0.12;
+    if ((c.popT -= dt) <= 0) {
+      c.popT = rand(0.1, 0.2);
+      _shP.copy(pick(shipMesh.spots)).applyMatrix4(shipMesh.g.matrixWorld);
+      pop(_shP.x, -_shP.z, rand(0.9, 1.3), _shP.y);
+    }
+    // it hits the street nose first
+    const nose = c.h - Math.sin(c.pitch) * SHIP_L / 2 - SHIP_R * Math.cos(c.pitch) * 0.6;
+    if (nose <= 0.2) { shipImpact(); return; }
+  }
+  placeShip(dt);
+  // the fire it has caught: a spot for every quarter of its strength gone, all of them once it is going down
+  const nf = c.state === 'crash' ? shipMesh.spots.length : Math.floor((1 - Math.max(0, c.hp) / SHIP_HP) * 4.5);
+  for (let i = 0; i < nf; i++) {
+    if (Math.random() > dt * (c.state === 'crash' ? 22 : 14)) continue;
+    _shP.copy(shipMesh.spots[i]).applyMatrix4(shipMesh.g.matrixWorld);
+    addPart({ k: 'fire', x: _shP.x, z: -_shP.z, h: _shP.y, vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vh: rand(1.5, 3), r: rand(0.35, 0.6) * (c.state === 'crash' ? 1.4 : 1), grow: 0.8, drag: 1.5, life: rand(0.4, 0.7), heat: 1.15, f: 1 + (i % 2) });
+    if (Math.random() < 0.3) addPart({ k: 'smoke', x: _shP.x, z: -_shP.z, h: _shP.y + 0.6, vx: rand(-0.4, 0.4), vz: rand(-0.4, 0.4), vh: rand(0.8, 1.6), r: rand(0.5, 0.8), grow: 1, drag: 0.7, life: rand(1.6, 2.4), a: 0.5 });
+  }
+}
+// a body shot off its rope, or let go when the ship goes down: it falls the way the ship was going
+function dropHanger(zb, ch, shot) {
+  zb.state = 'fly'; zb.bounces = 0; zb.hp = 0; zb.launchX = zb.x; zb.launchZ = zb.z; zb.atWall = false; zb.ch = ch || null;
+  const c = ship;
+  zb.vx = (c ? c.vx : 0) + rand(-1.5, 1.5); zb.vz = (c ? c.vz : 0) + (shot ? rand(1, 3) : rand(-1, 1)); zb.vh = shot ? rand(2, 5) : rand(0, 2);
+  zb.w.set(-rand(4, 9), rand(-3, 3), rand(-3, 3));
+  if (running && ch) kills++;
+  if (ch) addFever(3);
+  if (Math.random() < 0.5) deathGurgle(zb);
+}
+function hitShip(dmg, ch, x, h, z) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return;
+  c.hp -= dmg; c.flash = 0.06;
+  if (Math.random() < 0.4) clang();
+  for (let i = 0; i < 4 + Math.min(10, dmg); i++) addPart({ k: 'spark', x, z, h, vx: rand(-4, 4), vz: rand(-4, 1), vh: rand(-2, 4), g: 12, r: 0.03, life: rand(0.15, 0.45) });
+  if (dmg >= 8) { pop(x, z, 0.9, h); shake = Math.min(shake + 4, 24); }
+  if (c.hp <= 0) downShip(ch);
+}
+function downShip(ch) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return;
+  c.state = 'crash'; c.ch = ch || null; c.t = 0;
+  c.vx = -c.x * 0.15 + rand(-0.4, 0.4); c.vz = rand(-3.2, -2.2); c.vh = 0.6;
+  // the ones on the ropes drop ahead of it
+  let n = 0;
+  for (const zb of c.hangers) if (zb.state === 'hang') { dropHanger(zb, ch, false); n++; }
+  if (n && running) registerKills(n, c.x, c.z, null, false, ch);
+  for (let i = 0; i < 4; i++) { _shP.copy(pick(shipMesh.spots)).applyMatrix4(shipMesh.g.matrixWorld); pop(_shP.x, -_shP.z, rand(1, 1.4), _shP.y); }
+  boom(1.1, c.z); shake = Math.min(shake + 10, 24); flashScreen = Math.max(flashScreen, 0.05);
+  shipSnd(false); whoosh();
+  if (running && ch) {
+    score += HAPS.ship.bonus; hapDone.push('ship');
+    floaters.push({ x: c.x, z: c.z, h: c.h + 2.4, text: HAPS.ship.name, sub: `+${HAPS.ship.bonus.toLocaleString()}`, life: 1.7, big: true });
+    say('knockout', 3);
+  }
+}
+// it hits the street: a blast where the nose goes in, then one after another down its length as it folds up, its frame
+// and its skin flying and its passengers thrown out of the cabin
+function shipImpact() {
+  const c = ship, M = shipMesh, ch = c.ch;
+  _shP.set(0, 0, SHIP_L / 2 - 0.5).applyMatrix4(M.g.matrixWorld);
+  const nx = _shP.x, nz = Math.max(Z_WALL + 2.5, -_shP.z);
+  _shP.set(0, 0, -SHIP_L / 2 + 0.8).applyMatrix4(M.g.matrixWorld);
+  const tx = _shP.x, tz = Math.max(Z_WALL + 2.5, -_shP.z);
+  fxSoft = nz < 12; explode(nx, nz, 2.4, 0.8, null, ch); fxSoft = false;
+  for (let i = 1; i <= 6; i++) { const u = i / 6; explosionsQ.push({ x: nx + (tx - nx) * u + rand(-0.4, 0.4), z: nz + (tz - nz) * u + rand(-0.4, 0.4), t: 0.06 + i * 0.07, power: 1.45, h: rand(1, 2.6), ch }); }
+  for (let i = 0; i < 10; i++) { const u = rand(0, 1); addPart({ k: 'plume', x: nx + (tx - nx) * u, z: nz + (tz - nz) * u, h: 1, vx: rand(-0.6, 0.6), vz: rand(-0.3, 0.6), vh: rand(10, 20), r: rand(1.1, 1.6), grow: 0.7, drag: 2.2, life: rand(0.8, 1.1), heat: 1.2, f: 1 + (i % 2) }); }
+  for (let i = 0; i < 8; i++) { const u = rand(0, 1); addPart({ k: 'flame', x: nx + (tx - nx) * u + rand(-0.8, 0.8), z: nz + (tz - nz) * u + rand(-0.6, 0.6), h: 0, vx: 0, vz: 0, vh: 0, r: rand(0.6, 1), life: rand(3, 4.5) }); }
+  // the frame and the skin
+  for (let i = 0; i < 14; i++) { const u = rand(0, 1); addChunk({ x: nx + (tx - nx) * u, z: nz + (tz - nz) * u, h: 1.5, vx: rand(-7, 7), vz: rand(-2, 7), vh: rand(8, 16), sx: rand(0.06, 0.1), sy: rand(0.06, 0.1), sz: rand(0.9, 2.2), c: CH.asphalt, life: 3, hot: i % 3 ? 0 : 0.5 }); }
+  for (let i = 0; i < 12; i++) { const u = rand(0, 1); addChunk({ x: nx + (tx - nx) * u, z: nz + (tz - nz) * u, h: 2, vx: rand(-6, 6), vz: rand(-1, 6), vh: rand(9, 17), sx: rand(0.5, 1.1), sy: 0.02, sz: rand(0.4, 0.9), c: i % 3 ? CH.paint : SHIP_RED, life: 3 }); }
+  // the passengers come out the hard way
+  for (let i = 0; i < SHIP_LOAD; i++) {
+    const u = rand(0.2, 0.8), zb = makeZombie(Math.random() < 0.3 ? 'runner' : 'walker', clamp(nx + (tx - nx) * u + rand(-0.5, 0.5), -halfX * 1.2, halfX * 1.2), nz + (tz - nz) * u + rand(-0.4, 0.4));
+    zombies.push(zb);
+    killZombie(zb, { dx: rand(-1, 1), dz: rand(0.2, 1), d: 1, f: rand(0.5, 0.95), power: 1.15, ch });
+  }
+  if (running) registerKills(SHIP_LOAD, nx, nz, null, true, ch);
+  shake = 24; flashScreen = Math.max(flashScreen, 0.08); speedLines = Math.max(speedLines, 1);
+  if (!reduceMotion) slowmo = Math.max(slowmo, 0.6);
+  buzz([90, 40, 260], 3);
+  M.g.visible = false; ship = null;
+}
+const SHIP_RED = new THREE.Color('#a81c26');
+function drawShip() {
+  const c = ship;
+  if (!c) return;
+  const M = shipMesh, now = performance.now();
+  for (const p of M.props) p.rotation.z += c.state === 'crash' ? 0.2 : 0.75;
+  M.env.emissive.setRGB(c.flash > 0 ? 0.5 : 0, c.flash > 0 ? 0.25 : 0, 0);
+  // the lettering flickers as it burns out
+  M.glow.opacity = c.state === 'crash' ? (Math.random() < 0.3 ? 0 : 0.6) : 1;
+  // the ropes, and the lights on the fins and under the cabin
+  for (const zb of c.hangers) {
+    if (zb.state !== 'hang') continue;
+    const R = zb.rope;
+    ALPHA.push((R.ax + R.hx) / 2, (R.ay + R.hy) / 2, (R.az + R.hz) / 2, 0.085, 0, 18, 1, 0.42, 0.34, 0.22, 1, (R.hx - R.ax) / 2, (R.hy - R.ay) / 2, (R.hz - R.az) / 2);
+  }
+  shipBeams(now / 1000);
+  if (c.state === 'crash') return;
+  const blink = (now / 600 | 0) % 2, strobe = now % 1100 < 70;
+  for (const [x, y, z, r, g, b, on] of [[1.5, 0, -SHIP_L / 2 + 1.2, 3, 0.2, 0.15, blink], [-1.5, 0, -SHIP_L / 2 + 1.2, 0.2, 3, 0.5, blink], [0, 1.6, -SHIP_L / 2 + 1.1, 4, 4, 4, strobe], [0, -SHIP_R - 0.75, 0.6, 4, 4, 4, strobe]]) {
+    if (!on) continue;
+    _shP.set(x, y, z).applyMatrix4(M.g.matrixWorld);
+    ADD.push(_shP.x, _shP.y, _shP.z, 0.9, 0, 0, 0, r, g, b, 1);
+  }
+}
+// two searchlights under the cabin's nose, sweeping the street in front of it as it comes in and while it hangs there.
+// Going down they stay where they were in the ship's frame, so they swing about with it, flickering, up into the sky too
+const _shB = new THREE.Vector3(), _shL = [new THREE.Vector3(), new THREE.Vector3()];
+function shipBeams(t) {
+  const c = ship, M = shipMesh, crash = c.state === 'crash';
+  for (let i = 0; i < 2; i++) {
+    _shP.set(i ? 0.38 : -0.38, -SHIP_R - 0.72, 1.3).applyMatrix4(M.g.matrixWorld);   // the lamp, in three's frame
+    const L = _shL[i];
+    if (!crash) {
+      const tx = clamp(c.x * 0.5 + (i ? 1.4 : -1.4) + 2.2 * Math.sin(t * 0.8 + i * 2.1), -ROAD + 0.8, ROAD - 0.8), tz = c.z - 9 + 2.5 * Math.sin(t * 0.55 + i * 1.3);
+      _shD.set(tx, 0, -tz).sub(_shP).normalize();
+      L.copy(_shD).applyQuaternion(_shQi);
+    } else {
+      if (Math.random() < 0.35) continue;
+      _shD.copy(L).applyQuaternion(M.g.quaternion);
+    }
+    // to the street, or a long way into the night
+    const len = _shD.y < -0.05 ? Math.min(40, _shP.y / -_shD.y) : 30, k = crash ? rand(0.4, 1) : 1;
+    ADD.push(_shP.x, _shP.y, _shP.z, 0.55, 0, 0, 0, 3 * k, 2.8 * k, 2.3 * k, 1);
+    const N = 7, sl = len / N;
+    for (let j = 0; j < N; j++) {
+      const u = (j + 0.5) / N;
+      _shB.copy(_shP).addScaledVector(_shD, len * u);
+      ADD.push(_shB.x, _shB.y, _shB.z, 0.22 + 1.5 * u, 0, 14, 1, 0.5 * k, 0.47 * k, 0.4 * k, 0.55 * (1 - 0.45 * u), _shD.x * sl * 0.62, _shD.y * sl * 0.62, _shD.z * sl * 0.62);
+    }
+    // and the pool it throws on the street
+    if (_shD.y < -0.05 && len < 40) ADD.push(_shP.x + _shD.x * len, 0.04, _shP.z + _shD.z * len, 2.4, 0, 0, 2, 0.55 * k, 0.52 * k, 0.45 * k, 0.8);
+  }
+}
+// the envelope (an ellipsoid) or the cabin in the line of fire: t along the ray, -1 for a miss
+function rayShip(O, D) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return -1;
+  _shO.copy(O).applyMatrix4(_shI); _shD.copy(D).applyQuaternion(_shQi);
+  const hl = SHIP_L / 2;
+  const ox = _shO.x / SHIP_R, oy = _shO.y / SHIP_R, oz = _shO.z / hl, dx = _shD.x / SHIP_R, dy = _shD.y / SHIP_R, dz = _shD.z / hl;
+  const a = dx * dx + dy * dy + dz * dz, b = ox * dx + oy * dy + oz * dz, cc = ox * ox + oy * oy + oz * oz - 1, disc = b * b - a * cc;
+  let t = -1;
+  if (disc >= 0) { const t0 = (-b - Math.sqrt(disc)) / a; if (t0 > 0) t = t0; }
+  const tb = rayBox(_shO, _shD, -0.56, -SHIP_R - 0.71, -1.6, 0.56, -SHIP_R + 0.15, 2.0);
+  if (tb > 0 && (t < 0 || tb < t)) t = tb;
+  return t;
+}
+// a point (world x, h, z) in reach of the ship, r metres over its skin
+function shipNear(x, h, z, r) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return false;
+  _shO.set(x, h, -z).applyMatrix4(_shI);
+  const e = Math.hypot(_shO.x / (SHIP_R + r), _shO.y / (SHIP_R + r), _shO.z / (SHIP_L / 2 + r));
+  return e < 1 || (Math.abs(_shO.x) < 0.56 + r && _shO.y > -SHIP_R - 0.71 - r && _shO.y < -SHIP_R && Math.abs(_shO.z - 0.2) < 1.8 + r);
+}
+// a blast near enough to it: it takes damage, and those on the ropes it reaches drop
+function shipBlast(x, z, h, R, power, ch) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return;
+  let n = 0;
+  for (const zb of c.hangers) {
+    if (zb.state !== 'hang' || Math.hypot(zb.x - x, zb.z - z, zb.h + 0.9 - h) > R) continue;
+    dropHanger(zb, ch, true); n++;
+  }
+  if (n && running) registerKills(n, x, z, null, true, ch);
+  const d = Math.hypot(c.x - x, c.z - z, c.h - SHIP_R - 0.5 - h);
+  if (d < R) hitShip(12 * power * (1 - d / R) + 2, ch, c.x, c.h - SHIP_R, c.z);
+}
+// a beam along M + D t (t up to L) through the hangers and the ship
+function shipBeam(M, D, L, dmg, ch) {
+  const c = ship;
+  if (!c || (c.state !== 'in' && c.state !== 'hover')) return;
+  let n = 0;
+  for (const zb of c.hangers) {
+    if (zb.state !== 'hang') continue;
+    _shP.set(zb.x, zb.h + 0.9 * zb.size, -zb.z).sub(M);
+    const t = clamp(_shP.dot(D), 0, L);
+    if (_shP.addScaledVector(D, -t).length() < 0.6) { dropHanger(zb, ch, true); n++; }
+  }
+  if (n && running) registerKills(n, c.x, c.z, null, true, ch);
+  const t = rayShip(M, D);
+  if (t > 0 && t < L) { _shP.copy(M).addScaledVector(D, t); hitShip(dmg, ch, _shP.x, _shP.y, -_shP.z); }
+}
+const shipBusy = () => ship && ship.state === 'crash';
+// while it is up there, the camera tilts up enough to keep it in view
+function shipTiltGoal() {
+  const c = ship;
+  if (!c) return 0;
+  const e = Math.atan2(c.h + SHIP_R + 0.3 - CAM_H, Math.max(c.z, 1));
+  return clamp(pitch0 + e - Math.atan(0.86 * tanV), 0, 0.12);
+}
 
 // ===== 77-mission.js
 // ---------- お題 and medals (2026-10-25) ----------
@@ -7243,7 +8403,7 @@ function resetShare() {
 const TAGS = '#ゾンビ爆散', TAGS_X = '#ゾンビ爆散 #ストレス解消 #ゾンビ';
 function shareText(o, tags = TAGS) {
   const bits = [`撃破${o.kills}体`, `最大${o.combo}コンボ`];
-  if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push('巨大ゾンビ撃破');
+  if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push(o.boss);
   return `ゾンビ爆散${{ tank: '（戦車）', hole: '（ブラックホール）', rail: '（レールガン）', wave: '（波動砲）' }[o.weapon] || ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n${tags}`;
 }
 const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'z.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; } };
