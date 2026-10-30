@@ -83,6 +83,11 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo i.bh.on { background: radial-gradient(circle, #000 34%, #c8a8ff 41%, #7a44e0 74%); border-color: #e2d4ff; }
 .ammo i.rl { width: 7px; border-radius: 3px; }
 .ammo i.rl.on { background: linear-gradient(90deg, #1fa8e0, #f0fdff 50%, #1fa8e0); border-color: #c8f4ff; box-shadow: 0 0 6px #4fd2ff; }
+.ammo i.fl { width: 12px; height: 18px; border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%; margin-top: 1px; }
+.ammo i.fl.on { background: radial-gradient(ellipse at 50% 75%, #fff4b0 18%, #ffb02e 45%, #e84a14 80%); border-color: #ffd8a0; box-shadow: 0 0 6px #ff8a3a; }
+.ammo i.fl.burn { opacity: 1; background: radial-gradient(ellipse at 50% 75%, #fff 20%, #ffd060 50%, #ff6a1a 85%); border-color: #fff0c0; animation: blink .1s steps(2) infinite; }
+.ammo i.zp { width: 11px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(58% 0, 100% 0, 64% 40%, 100% 40%, 18% 100%, 40% 54%, 0 54%); }
+.ammo i.zp.on { background: linear-gradient(180deg, #ffffff, #b8e4ff 45%, #5a8aff); }
 .wv b { background: linear-gradient(90deg, #1b3594, #4f8dff); }
 .wv.ready b { background: linear-gradient(90deg, #2f63e8, #8fd8ff, #ffffff); box-shadow: 0 0 8px #6fb8ff; }
 .wv.fire b { background: linear-gradient(90deg, #8fd8ff, #ffffff); animation: blink .12s steps(2) infinite; }
@@ -182,12 +187,19 @@ canvas { display: block; width: 100%; height: 100%; }
 .pick:not(.small) .pk { flex: 1 1 calc(50% - 5px); min-width: 0; padding: 8px 6px; }
 .pick:not(.small) .pk .t { font-size: 18px; white-space: nowrap; }
 .pick:not(.small) .pk.wide { flex-basis: 100%; }
+.pick.many:not(.small) { gap: 8px; }
+.pick.many:not(.small) .pk { padding: 6px 6px; }
+.pick.many:not(.small) .pk .t { font-size: 17px; }
 .pk.bh { border-color: color-mix(in srgb, #b48cff 65%, transparent); background: radial-gradient(ellipse at 50% 130%, #3c1a70, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
 .pk.bh[aria-pressed="true"] { background: radial-gradient(circle at 50% 50%, #1a0b2e 16%, #b48cff 21%, #7a44e0 72%); color: #fff; border-color: #dccaff; box-shadow: 0 4px 0 #4a2296; }
 .pk.rl { border-color: color-mix(in srgb, #6fe3ff 65%, transparent); background: linear-gradient(90deg, transparent 47%, color-mix(in srgb, #6fe3ff 35%, transparent) 50%, transparent 53%), color-mix(in srgb, var(--ink) 70%, transparent); }
 .pk.rl[aria-pressed="true"] { background: linear-gradient(90deg, #0d4a73, #1fa8e0 45%, #e8fbff 50%, #1fa8e0 55%, #0d4a73); color: #fff; border-color: #c8f4ff; box-shadow: 0 4px 0 #0b4f78; }
 .pk.wv { border-color: color-mix(in srgb, #6f9bff 65%, transparent); background: radial-gradient(ellipse at 50% 140%, #1c3a9e, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
 .pk.wv[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 50%, #ffffff 8%, #8fd8ff 22%, #2f63e8 62%, #172f8a); color: #fff; border-color: #d8e6ff; box-shadow: 0 4px 0 #1b3594; text-shadow: 0 1px 2px #102060; }
+.pk.fl { border-color: color-mix(in srgb, #ff8a3a 65%, transparent); background: radial-gradient(ellipse at 50% 140%, #8a2a08, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
+.pk.fl[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 125%, #fff2b0 6%, #ffb02e 28%, #e8501a 60%, #6a1606); color: #fff; border-color: #ffd8a0; box-shadow: 0 4px 0 #8a2a08; text-shadow: 0 1px 2px #5a1004; }
+.pk.zp { border-color: color-mix(in srgb, #9ad8ff 65%, transparent); background: linear-gradient(118deg, transparent 45%, color-mix(in srgb, #cfeeff 40%, transparent) 47%, transparent 49%), radial-gradient(ellipse at 50% 140%, #1a2a6e, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
+.pk.zp[aria-pressed="true"] { background: linear-gradient(118deg, transparent 44%, #ffffff 47%, transparent 50%), radial-gradient(ellipse at 50% 50%, #e8f6ff 6%, #9ad0ff 24%, #4a6cf0 60%, #1a1f6a); color: #fff; border-color: #e0f0ff; box-shadow: 0 4px 0 #22307a; text-shadow: 0 1px 2px #101850; }
 .pk.locked { opacity: .62; border-style: dashed; border-color: color-mix(in srgb, var(--bone) 35%, transparent); background: color-mix(in srgb, var(--ink) 55%, transparent); cursor: not-allowed; }
 .pk.nope { animation: nope .35s; }
 @keyframes nope { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -278,6 +290,8 @@ canvas { display: block; width: 100%; height: 100%; }
 @media (prefers-reduced-motion: reduce) { .mis li.fresh { animation: none; } }
 @media (max-height: 700px) {
   .card { gap: 10px; }
+  /* seven weapons on a short screen: the open ones show their names only, so the start button stays in view */
+  .pick.many:not(.small) .pk:not(.locked) .d { display: none; }
   .rank { font-size: clamp(64px, 17vh, 120px); }
   .hero.on { aspect-ratio: 3.1; }
 }
@@ -320,6 +334,8 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="pk bh locked" type="button" data-w="hole" aria-pressed="false" aria-disabled="true"><span class="t">ブラックホール</span><span class="d">メダル10枚で解放</span></button>
         <button class="pk rl locked" type="button" data-w="rail" aria-pressed="false" aria-disabled="true" hidden><span class="t">レールガン</span><span class="d">メダル20枚で解放</span></button>
         <button class="pk wv locked" type="button" data-w="wave" aria-pressed="false" aria-disabled="true" hidden><span class="t">波動砲</span><span class="d">メダル30枚で解放</span></button>
+        <button class="pk fl locked" type="button" data-w="flame" aria-pressed="false" aria-disabled="true" hidden><span class="t">火炎放射器</span><span class="d">メダル40枚で解放</span></button>
+        <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t">電撃砲</span><span class="d">メダル50枚で解放</span></button>
       </div>
       <div class="stg" role="group" aria-label="ステージを選ぶ"></div>
       <button class="btn" id="startBtn" type="button" disabled>
@@ -367,6 +383,8 @@ canvas { display: block; width: 100%; height: 100%; }
           <button class="pk bh" type="button" data-w="hole" aria-pressed="false" hidden><span class="t">ブラックホール</span></button>
           <button class="pk rl" type="button" data-w="rail" aria-pressed="false" hidden><span class="t">レールガン</span></button>
           <button class="pk wv" type="button" data-w="wave" aria-pressed="false" hidden><span class="t">波動砲</span></button>
+          <button class="pk fl" type="button" data-w="flame" aria-pressed="false" hidden><span class="t">火炎放射器</span></button>
+          <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t">電撃砲</span></button>
         </div>
         <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
       </div>
@@ -1755,13 +1773,13 @@ const blastLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xff8a3
 const muzzleLight = new THREE.PointLight(0xffc070, 0, 0, 1.3);
 scene.add(muzzleLight);
 let blastLightI = 0;
-function blastLight(x, z, h, power) {
+function blastLight(x, z, h, power, zap = false) {
   // reuse the dimmest one
   let L = blastLights[0];
   for (const l of blastLights) if (l.userData.t / l.userData.life > L.userData.t / L.userData.life) L = l;
   // above the fireball, so the street around it lights up without a white-hot spot right under it
   L.position.set(x, h + 2.2, -z);
-  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power * (fxSoft ? 0.6 : 1) };
+  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power * (fxSoft ? 0.6 : 1), zap };
 }
 let blastLoad = 0;
 function updateLights(dt) {
@@ -1770,7 +1788,7 @@ function updateLights(dt) {
     const u = l.userData; u.t += dt;
     const k = Math.max(0, 1 - u.t / u.life);
     l.intensity = u.peak * k * k * (0.85 + Math.random() * 0.3);
-    l.color.setRGB(1, 0.42 + 0.4 * k, 0.12 + 0.35 * k * k);
+    if (u.zap) l.color.setRGB(0.45 + 0.35 * k, 0.65 + 0.3 * k, 1); else l.color.setRGB(1, 0.42 + 0.4 * k, 0.12 + 0.35 * k * k);
     load += l.intensity / 60;
   }
   // a quick eye adaptation: the brighter the blasts, the lower the exposure and the bloom
@@ -2456,7 +2474,7 @@ function fireCol(t) {
   _fc[0] = 0.2; _fc[1] = 0.03; _fc[2] = 0.01; return _fc;
 }
 const lin = hex => { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; };
-const SMOKE_C = lin('#2a2230'), DUST_C = lin('#8a7a8c'), BLOOD_C = lin('#7a0c12'), BLOOD_D = lin('#3a0508'), MIST_C = lin('#9a1a22');
+const SPARK_C = [7, 3.4, 0.9], SMOKE_C = lin('#2a2230'), DUST_C = lin('#8a7a8c'), BLOOD_C = lin('#7a0c12'), BLOOD_D = lin('#3a0508'), MIST_C = lin('#9a1a22');
 function addPart(p) {
   if (parts.length >= PART_CAP) { if (p.k === 'ember' || p.k === 'dust' || p.k === 'blood') return; parts.splice(0, 40); }
   p.max = p.max || p.life;
@@ -2499,6 +2517,13 @@ function updateParts(dt) {
         if ((p.ft = (p.ft || 0) - dt) <= 0) { p.ft = 0.025; addPart({ k: 'fire', x: p.x, z: p.z, h: p.h, vx: 0, vz: 0, vh: 0.5, r: rand(0.12, 0.22), grow: 0.4, life: rand(0.2, 0.35), drag: 2, heat: 0.6, f: 1 + (Math.random() * 2 | 0) }); }
         if (p.h < 0.05 && p.vh < 0) { p.h = 0.05; p.vh *= -0.25; p.vx *= 0.5; p.vz *= 0.5; p.life = Math.min(p.life, 0.4); }
         break;
+      case 'jet':   // the flamethrower's fire: a cone out of the nozzle that billows once it slows, splashes along the road and
+        // stops at the shop fronts
+        p.d = (p.d || 0) + Math.hypot(p.vx, p.vh, p.vz) * dt;
+        p.r = Math.max(p.r, 0.015 + 0.032 * p.d);
+        if (p.h < 0.3 && p.vh < 0) { p.h = 0.3; p.vh = Math.abs(p.vh) * 0.1 + 0.8; }
+        if (Math.abs(p.x) > WALK - 0.2) { p.x = Math.sign(p.x) * (WALK - 0.2); p.vx = 0; }
+        break;
       case 'flame':   // fuel left burning on the road keeps throwing up flames
         if ((p.ft = (p.ft || 0) - dt) <= 0) {
           p.ft = rand(0.04, 0.08);
@@ -2525,6 +2550,12 @@ function drawParts() {
   for (const p of parts) {
     const t = 1 - p.life / p.max, X = p.x, Y = p.h, Z = -p.z, nf = p.nf ? 10 : 0;
     switch (p.k) {
+      case 'jet': {   // see-through, so the bodies it pours over still show
+        const c = fireCol(Math.min(1, t * p.cool)), k = p.heat * (t < 0.1 ? t / 0.1 : 1) * (1 - t * t);
+        FIRE.push(X, Y, Z, p.r * 2, p.rot, p.f, 0, c[0] * k, c[1] * k, c[2] * k, 0.7);
+        fireLoad += c[0] * k * p.r * 5 / Math.max(5, p.z);
+        break;
+      }
       case 'fire': case 'plume': {
         const c = fireCol(Math.min(1, t * (p.cool || 1))), k = (p.heat || 1) * (t < 0.08 ? t / 0.08 : 1) * (1 - t * t) * (p.fade || 1);
         FIRE.push(X, Y, Z, p.r * 2, p.rot, p.f || 1, nf, c[0] * k, c[1] * k, c[2] * k, 1);
@@ -2539,7 +2570,7 @@ function drawParts() {
       case 'wshock': { const k = (1 - t) * (p.a || 1); ADD.push(X, Y, Z, p.r * 2, p.rot, 6, 3, 3 * k, 2 * k, 1.2 * k, 1); break; }
       case 'muzzle': { const k = 1 - t; ADD.push(X, Y, Z, p.r * 2, p.rot, 7, 0, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1); break; }
       case 'tracer': { const k = 1 - t; ADD.push(X, Y, Z, p.r, 0, 14, 1, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1, p.dx, p.dy, p.dz); break; }
-      case 'spark': { const k = 1 - t, s = p.streak || 0.035; ADD.push(X, Y, Z, p.r, 0, 5, 1 + nf, 7 * k, 3.4 * k, 0.9 * k, 1, p.vx * s, p.vh * s, -p.vz * s); break; }
+      case 'spark': { const k = 1 - t, s = p.streak || 0.035, c = p.c || SPARK_C; ADD.push(X, Y, Z, p.r, 0, 5, 1 + nf, c[0] * k, c[1] * k, c[2] * k, 1, p.vx * s, p.vh * s, -p.vz * s); break; }
       case 'brand': { const k = 1 - t * 0.6, s = 0.05; ADD.push(X, Y, Z, p.r * 2, 0, 5, 1, 6 * k, 2.2 * k, 0.5 * k, 1, p.vx * s, p.vh * s, -p.vz * s); break; }
       case 'ember': { const k = (1 - t) * (0.5 + 0.5 * Math.sin(p.life * 30 + p.rot * 5)); ADD.push(X, Y, Z, p.r * 2, 0, 5, nf, 6 * k, 2.4 * k, 0.6 * k, 1); break; }
       case 'flame': { const k = Math.min(1, p.life) * (0.8 + 0.2 * Math.sin(p.life * 23)); FIRE.push(X, 0.04, Z, p.r * 4.5, p.rot, 0, 2, 1.6 * k, 0.6 * k, 0.15 * k, 1); break; }
@@ -2958,6 +2989,36 @@ function poseZombie(z, R) {
         setR(R.kn[i], 0.15);
         setR(R.an[i], 0.1);
       }
+    } else if (z.zap) {
+      // fried: stiff as a board, arms flung out, juddering all over (no random numbers: the frame draws them for nothing else)
+      const q = k => Math.sin(now * (71 + k * 13) + L.seed * (k + 1)) * 0.14;
+      setR(R.spine, -0.2 + q(1), q(2), q(3));
+      setR(R.neck, -0.7 + q(4), q(5) * 2, q(6));
+      for (let i = 0; i < 2; i++) {
+        const sg = i ? 1 : -1;
+        setR(R.sh[i], -1.5 + q(7 + i), 0, -sg * (1.25 + q(9 + i)));
+        setR(R.el[i], -0.1 + q(11 + i));
+        setR(R.wr[i], 0.9 + q(13 + i));
+        setR(R.hp[i], -0.05 + q(15 + i), 0, sg * (0.28 + q(17 + i)));
+        setR(R.kn[i], 0.1 + Math.abs(q(19 + i)));
+        setR(R.an[i], 0.3);
+      }
+      bob = 0.04 + q(21) * 0.3;
+    } else if (z.burn) {
+      // on fire: running about with its arms flailing over its head, head thrown back
+      const f = now * 13 + L.seed;
+      setR(R.spine, -0.15 + Math.sin(f * 0.7) * 0.15, Math.sin(f * 0.5) * 0.4, Math.sin(f * 0.9) * 0.12);
+      setR(R.neck, -0.55 + Math.sin(f * 1.3) * 0.25, Math.sin(f * 0.8) * 0.5, 0);
+      for (let i = 0; i < 2; i++) {
+        const sg = i ? 1 : -1, g = f + i * 2.4, ph = t + i * Math.PI;
+        setR(R.sh[i], -2.6 + Math.sin(g) * 0.6, 0, -sg * (0.35 + 0.3 * Math.sin(g * 1.3)));
+        setR(R.el[i], -0.6 - Math.max(0, Math.sin(g * 1.7)) * 1.0);
+        setR(R.wr[i], 0.5);
+        setR(R.hp[i], -Math.sin(ph) * 0.9 - 0.1, 0, sg * 0.05);
+        setR(R.kn[i], Math.max(0, Math.sin(ph + 1.5)) * 1.3 + 0.15);
+        setR(R.an[i], 0.2);
+      }
+      bob = Math.abs(Math.cos(t)) * 0.06;
     } else if (z.type === 'runner' || z.type === 'gold') {
       const s = Math.sin(t);
       setR(R.spine, 0.42 - st * 0.6, s * 0.14, 0);
@@ -3010,7 +3071,7 @@ function poseZombie(z, R) {
       }
       bob = Math.abs(Math.cos(t)) * 0.035 * heavy;
     }
-    setR(R.jaw, sw > 0 ? 0.55 + 0.2 * sw : jawOpen + (atk ? 0.3 : 0));
+    setR(R.jaw, sw > 0 ? 0.55 + 0.2 * sw : z.burn || z.zap ? 0.75 : jawOpen + (atk ? 0.3 : 0));
     const yaw = z.yaw + clamp(z.vxs * 0.3, -0.4, 0.4);
     R.root.position.set(z.x, z.h + 0.95 * z.size + bob * z.size, -z.z);
     R.root.quaternion.setFromEuler(_eu.set(0, yaw, Math.sin(t) * 0.04));
@@ -3103,10 +3164,13 @@ function drawZombies() {
     if (z.state === 'fly' && z.z < 2.6) continue;   // about to sail over us: never fills the screen
     poseZombie(z, R);
     R.root.updateMatrixWorld(true);
-    // gold glints as it runs; a body about to burst goes dark red and glows hotter
-    const sw = z.state === 'swell' ? Math.min(1, z.swellT / SWELL_T) : 0;
-    const fl = (z.flash > 0 ? 1 + z.flash / 0.07 * 2.2 : 1) * (z.look.gold ? 1.35 + 0.45 * Math.sin(z.phase * 1.7) : 1) * (1 + sw * 1.2);
-    const pc = name => sw > 0 ? _pc.copy(partColor(z, name)).lerp(SWELL_C, sw * 0.7) : partColor(z, name);
+    // one being fried flickers between a body lit up blue and its bones showing through (57-shock.js)
+    const xr = z.zap && z.state === 'walk' ? (Math.floor(performance.now() / 55 + z.look.seed) % 2 ? 2 : 1) : 0;
+    if (xr === 2) { putBones(z, R); addShadow(z.x, z.z, 0.42 * z.size * z.look.w, 0.5); continue; }
+    // gold glints as it runs; a body about to burst goes dark red and glows hotter; one on fire chars as it burns
+    const sw = z.state === 'swell' ? Math.min(1, z.swellT / SWELL_T) : 0, ck = z.burn ? Math.min(0.85, z.burn.t / z.burn.T) : 0;
+    const fl = (z.flash > 0 ? 1 + z.flash / 0.07 * 2.2 : 1) * (z.look.gold ? 1.35 + 0.45 * Math.sin(z.phase * 1.7) : 1) * (1 + sw * 1.2) * (xr ? 1.25 : 1);
+    const pc = name => xr ? ZAP_BODY : sw > 0 ? _pc.copy(partColor(z, name)).lerp(SWELL_C, sw * 0.7) : ck > 0 ? _pc.copy(partColor(z, name)).lerp(CHAR_C, ck) : partColor(z, name);
     for (let si = 0; si < SLOTS.length; si++) {
       const name = SLOTS[si], sl = R.S[name];
       if (Array.isArray(sl)) { for (let i = 0; i < 2; i++) if (slotVisible(z, name, i)) { const u = partUv(z, si, i); putPart(meshFor(z, name), sl[i].matrixWorld, pc(name), fl, u[0], u[1]); } }
@@ -3531,7 +3595,7 @@ function poseGun(dt) {
 // flinging them down the road, and blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
-const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲' };
+const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25)
 const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
@@ -3613,7 +3677,7 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
   setWeapon(b.dataset.w);
 });
 // a quick tap (or right click, or space) fires the heavy weapon
-function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave }[weapon] || tryRocket)(); }
+function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock }[weapon] || tryRocket)(); }
 function tryCannon() {
   if (!running) return;
   if (cannonT > 0) { softClick(); return; }
@@ -4067,7 +4131,8 @@ function setBeam(b, A, B, o) {
   if (o.core) u.uCore.value.fromArray(o.core);
   if (o.glow) u.uGlow.value.fromArray(o.glow);
 }
-// the round the tube holds, glowing in its mouth (the railgun's and the wave gun's)
+// the round the tube holds, glowing in its mouth (the railgun's and the wave gun's), the flamethrower's pilot light and the
+// shock gun's spark
 let beamOrb = null, beamHalo = null;
 function buildBeamOrb() {
   // drawn over the gun: from behind it, the tube would hide all but a sliver of what sits in its mouth
@@ -4091,6 +4156,14 @@ function poseBeamOrb() {
     on = waveLoad >= 1 || !!wave;
     s = fire ? 1.9 + 0.25 * Math.sin(T * 55) : 1 + k * 1.3 + k * 0.25 * Math.sin(T * 70);
     h = fire ? 0.26 : 0.1 + 0.16 * k;
+  } else if (weapon === 'flame') {
+    // a small flame flickering in the nozzle, roaring up while the jet is on
+    c = FLAME_ORB; on = feverT > 0 || flamesLeft > 0 || !!flame;
+    s = flame ? 1.0 + 0.2 * Math.sin(T * 61) : 0.55 + 0.12 * Math.sin(T * 37) + 0.08 * Math.sin(T * 23);
+    h = flame ? 0.1 : 0.07 + 0.015 * Math.sin(T * 29);
+  } else if (weapon === 'shock') {
+    c = ZAP_ORB; on = (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4;
+    s = 0.8 + 0.3 * Math.abs(Math.sin(T * 47) * Math.sin(T * 31)); h = 0.11 + 0.05 * Math.abs(Math.sin(T * 53));
   }
   beamOrb.visible = beamHalo.visible = on;
   if (!on) return;
@@ -4431,6 +4504,462 @@ function drawWave(raw) {
   Wv.beam.u.uTime.value += raw;
 }
 
+// ===== 56-flame.js
+// ---------- the flamethrower, 火炎放射器 (2026-10-30: the fourth weapon the medals open, while kazu picked what to make next) ----------
+// Tap: a roaring jet of fire for FLAME_T, aimed where the reticle is and following it a beat behind. Its fuel flies out in
+// blobs that slow, spread and sink (FLAME_V, FLAME_DRAG, FLAME_G), so it reaches 25 m or so and splashes along the road
+// where it comes down. Whatever it touches catches fire: a zombie burns for BURN_T, running about with its arms over its head
+// as it chars, sets alight the ones it bumps into (SPREAD_RATE), then bursts into burnt pieces; drums and cylinders go up at
+// once, a fat one swells and pops, a car burns a moment and blows up, the giant takes FLAME_BOSS a second. The fuel on the
+// road burns on for PATCH_T and lights whoever walks into it. One jet is one chain, with everything it sets alight. Three
+// jets, one back every FLAME_REFILL; through FEVER a tap while it burns keeps it going. It opens at 40 medals (UNLOCKS,
+// 77-mission.js).
+const MAX_FLAMES = 3, FLAME_REFILL = 1.3, FLAME_T = 0.9, FLAME_FEVER_T = 0.6;
+const FLAME_V = 62, FLAME_DRAG = 2.4, FLAME_G = 4, FLAME_LIFE = 0.8, FLAME_R0 = 0.3, FLAME_R1 = 1.2, FLAME_EMIT = 1 / 40;
+const BURN_T = 1.1, SPREAD_R = 0.8, SPREAD_RATE = 2.2, PATCH_T = 2.4, PATCH_R = 0.85, PATCH_MAX = 36, FLAME_BOSS = 130, CAR_BURN = 0.6;
+// one burnt out pays FIRE_PAY of a kill: the fire takes whole streets as one chain, nearly every kill paying double, and
+// at a full kill the flamethrower scored 5 to 8% over the rocket in bot rounds (2026-10-30)
+const FIRE_PAY = 0.9;
+const FLAME_ORB = [6, 2.3, 0.5], CHAR_C = new THREE.Color('#1d1612');
+const BURN_TXT = ['火だるま!', '丸焼け!', 'こんがり!'];
+let flamesLeft = MAX_FLAMES, flameTimer = 0, flame = null, blobs = [], patches = [];
+const _fp = new THREE.Vector3(), _fd = new THREE.Vector3();
+function resetFlame() {
+  flamesLeft = MAX_FLAMES; flameTimer = 0; blobs = []; patches = [];
+  if (flame) { flameSnd(false); freeBeam(flame.beam); }
+  flame = null;
+}
+function tryFlame() {
+  if (!running) return;
+  const fev = feverT > 0;
+  if (flame) { if (fev) flame.T = Math.max(flame.T, flame.t + FLAME_FEVER_T); else softClick(); return; }
+  if (!fev && flamesLeft <= 0) { softClick(); return; }
+  if (!fev) flamesLeft--;
+  flame = { t: 0, T: fev ? FLAME_T + FLAME_FEVER_T : FLAME_T, ch: newChain(), emit: 0, dir: null, lightT: 0, M: new THREE.Vector3(), E: new THREE.Vector3(), beam: takeBeam(), boss: 0, ship: 0, park: 0 };
+  flameSnd(true); buzz([60, 30, 60, 30, 60], 2);
+  tubeRecoil = 1; shake = Math.min(shake + 5, 24);
+  if (running) {
+    tubeTip.getWorldPosition(_wp);
+    const s = toScreen(_wp.x, -_wp.z, _wp.y);
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: pick(['ゴォォォ!!', 'ボォォォ!!', 'ブォォォ!!']), rot: rand(-0.2, 0.2), life: 0.7, max: 0.7, size: 40 });
+  }
+}
+// something the jet reaches: a zombie on its feet catches fire, a drum or a cylinder goes up there and then
+function igniteZombie(zb, ch) {
+  if (zb.state !== 'walk' || zb.type === 'boss' || zb.burn || zb.zap || zb.rise > 0 || zb.gone || zb.held) return false;
+  if (zb.type === 'barrel' || zb.type === 'gas') {
+    killZombie(zb, { dx: rand(-0.3, 0.3), dz: 1, d: 1, f: 0.6, power: 1, ch });
+    registerKills(1, zb.x, zb.z, null, false, ch);
+    return true;
+  }
+  zb.burn = { t: 0, T: BURN_T * rand(0.8, 1.25) * (zb.type === 'tank' ? 1.5 : zb.type === 'fat' ? 0.6 : 1), ch, ft: 0, st: rand(0, 0.3) };
+  if (ch && running && (ch.lit = (ch.lit || 0) + 1) === 12) floaters.push({ screen: true, x: clamp(aim.x, 90, W - 90), y: clamp(aim.y - 70, hudH + 60, H * 0.6), text: '大炎上!!', sub: '', life: 1.1, big: true });
+  return true;
+}
+// a body on fire, every frame it is on its feet (after it has walked): it zigzags, burns and lights its neighbours
+function burnTick(z, dt) {
+  const B = z.burn, s = z.size;
+  B.t += dt;
+  if (running && !z.atWall) z.x = clamp(z.x + Math.sin(B.t * 8 + z.look.seed) * 2.4 * dt, -halfX * 1.2, halfX * 1.2);
+  if ((B.ft -= dt) <= 0) {
+    B.ft = coarse ? 0.09 : 0.065;
+    addPart({ k: 'fire', x: z.x + rand(-0.22, 0.22) * s, z: z.z + rand(-0.15, 0.15), h: z.h + rand(0.3, 1.6) * s, vx: rand(-0.4, 0.4), vz: rand(-0.3, 0.3), vh: rand(1.6, 3.2), r: rand(0.2, 0.34) * s, grow: 0.7, drag: 1.5, life: rand(0.3, 0.5), heat: 0.95, f: 1 + (Math.random() * 2 | 0) });
+    if (Math.random() < 0.18) addPart({ k: 'smoke', x: z.x, z: z.z, h: z.h + 1.8 * s, vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), vh: rand(1, 2), r: 0.3, grow: 0.8, drag: 0.6, life: rand(1, 1.6), a: 0.4 });
+  }
+  // the ones it bumps into catch it, a few times a second
+  if ((B.st -= dt) <= 0) {
+    B.st = 1 / SPREAD_RATE * rand(0.6, 1.4);
+    for (const o of zombies) if (o !== z && o.state === 'walk' && !o.burn && Math.abs(o.x - z.x) < SPREAD_R && Math.abs(o.z - z.z) < SPREAD_R && igniteZombie(o, B.ch)) break;
+  }
+  if (B.t >= B.T) burnOut(z);
+}
+// burnt through: it bursts, black, in a gout of fire and smoke
+function burnOut(z) {
+  const ch = z.burn.ch, s = z.size;
+  z.burn = null; charLook(z);
+  killZombie(z, { dx: rand(-0.6, 0.6), dz: 1, d: 1.2, f: rand(0.3, 0.9), power: 0.8, ch });
+  registerKills(1, z.x, z.z, Math.random() < 0.35 ? pick(BURN_TXT) : null, false, ch, FIRE_PAY);
+  for (let i = 0; i < 5; i++) { const a = rand(0, 6.28), v = rand(1, 3.5); addPart({ k: 'fire', x: z.x, z: z.z, h: z.h + rand(0.5, 1.3) * s, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vh: rand(2, 5), r: rand(0.3, 0.5) * s, grow: 1, drag: 2.5, life: rand(0.35, 0.6), heat: 1.2, f: 1 + (i % 2) }); }
+  addPart({ k: 'smoke', x: z.x, z: z.z, h: z.h + 1.2 * s, vx: 0, vz: 0, vh: 1.5, r: 0.45, grow: 1, drag: 0.8, life: 1.6, a: 0.5 });
+}
+// burnt, or fried: the body goes black, and so do the pieces it comes apart into (makeGib takes these colours)
+function charLook(z) {
+  const L = z.look;
+  if (L.charred) return;
+  L.charred = true;
+  L.skin.lerp(CHAR_C, 0.8); L.top.lerp(CHAR_C, 0.85); L.legs.lerp(CHAR_C, 0.85); L.shoe.lerp(CHAR_C, 0.6);
+}
+// the jet leaves fuel burning on the road: it lights whoever walks into it
+function addPatch(x, z, ch) {
+  if (z < Z_WALL + 0.3 || z > Z_FAR + 24) return;
+  x = clamp(x, -WALK + 0.3, WALK - 0.3);
+  for (const p of patches) if (Math.abs(p.x - x) < 0.7 && Math.abs(p.z - z) < 0.7) { p.t = PATCH_T; p.ch = ch; p.part.life = Math.max(p.part.life, PATCH_T); return; }
+  if (patches.length >= PATCH_MAX) patches.shift();
+  const part = { k: 'flame', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: rand(0.38, 0.48), life: PATCH_T };
+  addPart(part);
+  patches.push({ x, z, t: PATCH_T, ch, part });
+  addDecal(x, z, rand(0.5, 0.8), 'scorch', 16);
+}
+function updateFlame(dt) {
+  if (running && weapon === 'flame' && !flame) {
+    if (flamesLeft < MAX_FLAMES) { flameTimer += dt; if (flameTimer >= FLAME_REFILL) { flameTimer = 0; flamesLeft++; } } else flameTimer = 0;
+  }
+  const F = flame;
+  if (F) {
+    F.t += dt;
+    if (!running || F.t >= F.T) { freeBeam(F.beam); flame = null; flameSnd(false); }
+    else {
+      tubeTip.getWorldPosition(F.M);
+      // where the reticle is: the road or a wall behind it, or far out over the street; the jet swings round to it
+      rayAt(aim.x, aim.y);
+      const S = rayStatic(_O, _D);
+      _fp.copy(_O).addScaledVector(_D, Math.min(S.t, 40));
+      _fd.copy(_fp).sub(F.M).normalize();
+      if (!F.dir) F.dir = _fd.clone(); else F.dir.lerp(_fd, 1 - Math.exp(-dt * 16)).normalize();
+      for (F.emit -= dt; F.emit <= 0; F.emit += FLAME_EMIT) {
+        const sp = FLAME_V * rand(0.9, 1.04);
+        blobs.push({ x: F.M.x, h: F.M.y, z: -F.M.z, vx: F.dir.x * sp + rand(-1.2, 1.2), vh: F.dir.y * sp + rand(-0.8, 0.8), vz: -F.dir.z * sp + rand(-1.2, 1.2), t: 0, r: FLAME_R0, ch: F.ch, down: false });
+      }
+      jetFx(F, dt);
+    }
+  }
+  // the fuel in flight: what it touches burns; where it comes down it keeps burning
+  let bossHit = null;
+  for (const b of blobs) {
+    b.t += dt;
+    const dr = Math.exp(-FLAME_DRAG * dt);
+    b.vx *= dr; b.vz *= dr; b.vh = b.vh * dr - FLAME_G * dt;
+    b.x += b.vx * dt; b.z += b.vz * dt; b.h += b.vh * dt;
+    b.r = FLAME_R0 + (FLAME_R1 - FLAME_R0) * Math.min(1, b.t / 0.45);
+    if (Math.abs(b.x) > WALK - 0.2) { b.x = Math.sign(b.x) * (WALK - 0.2); b.vx = 0; }
+    if (b.h < 0.35) {
+      b.h = 0.35; b.vh = 0;
+      if (!b.down) { b.down = true; addPatch(b.x, b.z, b.ch); }
+    }
+    if (b.t >= FLAME_LIFE) { b.done = true; if (!b.down && b.h < 1.6) addPatch(b.x, b.z, b.ch); }
+    if (b.z < Z_WALL - 0.5) continue;
+    const top = b.h + b.r, bot = b.h - b.r, rr = (b.r + 0.3) * (b.r + 0.3);
+    for (const zb of zombies) {
+      if (zb.state !== 'walk' || zb.burn) continue;
+      const dx = zb.x - b.x, dz = zb.z - b.z;
+      if (zb.type === 'boss') { if (Math.abs(dx) < b.r + 0.5 * zb.size && Math.abs(dz) < b.r + 0.5 * zb.size && bot < ZOMBIE_H * zb.size) bossHit = zb; continue; }
+      if (dx * dx + dz * dz > rr || bot > ZOMBIE_H * zb.size || top < 0) continue;
+      igniteZombie(zb, b.ch);
+    }
+    for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && !c.fireT && Math.abs(c.x - b.x) < c.hw + b.r && Math.abs(c.z - b.z) < c.hl + b.r && bot < c.ht) { c.fireT = CAR_BURN; c.fireCh = b.ch; }
+    if (heliNear(b.x, b.h, b.z, b.r + 1.5)) downHeli(b.ch);
+    if (F && b.ch === F.ch) {
+      if (shipNear(b.x, b.h, b.z, b.r)) F.ship += dt;
+      const pk = parkNear(b.x, b.h, b.z, b.r);
+      if (pk) { F.park += dt; F.pk = pk; F.pkAt = [b.x, b.h, b.z]; }
+    }
+  }
+  blobs = blobs.filter(b => !b.done);
+  if (bossHit && F) {
+    damageBoss(FLAME_BOSS * dt, F.ch, bossHit);
+    if (Math.random() < dt * 25) addPart({ k: 'fire', x: bossHit.x + rand(-1, 1), z: bossHit.z - 0.5, h: rand(1, 4), vx: rand(-1, 1), vz: 0, vh: rand(2, 4), r: rand(0.4, 0.7), grow: 1, drag: 1.5, life: rand(0.4, 0.7), heat: 1.2, f: 1 });
+  }
+  // the airship and the park's rides take it in small bites, a few a second
+  if (F && F.ship >= 0.15 && ship) { F.ship = 0; hitShip(6, F.ch, ship.x, ship.h, ship.z); }
+  if (F && F.park >= 0.15) { F.park = 0; hitPark(F.pk, 6, F.ch, ...F.pkAt); }
+  // cars it caught burn a moment, then go up
+  for (const c of cars) {
+    if (!c.fireT) continue;
+    if (c.state !== 'park' && c.state !== 'roll') { c.fireT = 0; continue; }
+    c.fireT -= dt;
+    if (Math.random() < dt * 30) addPart({ k: 'fire', x: c.x + rand(-c.hw, c.hw), z: c.z + rand(-c.hl, c.hl), h: rand(0.5, c.ht), vx: 0, vz: 0, vh: rand(1.5, 3), r: rand(0.3, 0.5), grow: 0.8, drag: 1.5, life: rand(0.35, 0.55), heat: 1.1, f: 1 + (Math.random() * 2 | 0) });
+    if (c.fireT <= 0) { c.fireT = 0; carBoom(c, 0.01, c.fireCh); }
+  }
+  // fuel burning on the road
+  for (const p of patches) {
+    p.t -= dt;
+    if (!running) continue;
+    for (const zb of zombies) if (zb.state === 'walk' && !zb.burn && zb.type !== 'boss' && Math.abs(zb.x - p.x) < PATCH_R && Math.abs(zb.z - p.z) < PATCH_R) igniteZombie(zb, p.ch);
+  }
+  if (patches.length && patches[0].t <= 0) patches = patches.filter(p => p.t > 0);
+}
+// the jet itself: fire pouring out of the nozzle, sinking and spreading as it slows, splashing where it hits the road
+function jetFx(F, dt) {
+  const M = F.M, D = F.dir;
+  for (let i = 0, N = Math.round((coarse ? 5 : 7) * dt * 60); i < N; i++) {
+    // (from a metre or two out: closer, one puff would fill the bottom of the screen; the stream out of the nozzle is drawn)
+    const sp = FLAME_V * rand(0.85, 1.04), o = rand(1.4, 2.2);
+    addPart({ k: 'jet', x: M.x + D.x * o, z: -(M.z + D.z * o), h: M.y + D.y * o, vx: D.x * sp + rand(-1.6, 1.6), vz: -D.z * sp + rand(-1.6, 1.6), vh: D.y * sp + rand(-1.2, 1.2), g: FLAME_G, drag: FLAME_DRAG, d: o, r: 0.015 + 0.032 * o, grow: coarse ? 0.9 : 0.7, life: rand(0.45, 0.65), heat: rand(0.9, 1.2), cool: 1.35, f: 1 + (Math.random() * 2 | 0) });
+  }
+  // black smoke rolling off the far end of it
+  if (Math.random() < dt * 14) {
+    const b = blobs[Math.max(0, blobs.length - 18)];
+    if (b) addPart({ k: 'smoke', x: b.x, z: b.z, h: b.h + 0.8, vx: rand(-0.5, 0.5), vz: rand(-0.3, 0.6), vh: rand(1.2, 2.4), r: 0.5, grow: 1.1, drag: 0.6, life: rand(1.4, 2.2), a: 0.45, warm: 0.6 });
+  }
+  // the nozzle and the street round the front of the jet light up
+  addPart({ k: 'glow', x: M.x + D.x * 0.25, z: -(M.z + D.z * 0.25), h: M.y + D.y * 0.25, vx: 0, vz: 0, vh: 0, r: 0.05, life: 0.05, c: [4, 1.8, 0.4], a: 1 });
+  muzzleLight.position.copy(M); muzzleLight.intensity = Math.max(muzzleLight.intensity, 12);
+  if ((F.lightT -= dt) <= 0) {
+    F.lightT = 0.12;
+    const b = blobs[Math.max(0, blobs.length - 14)];
+    if (b) blastLight(b.x, b.z, b.h, 0.5);
+  }
+  shake = Math.max(shake, 2.5);
+}
+// the fire on the bodies shows down the street: an orange glow round each one burning
+const FLAME_CORE = [3.2, 1.6, 0.4], FLAME_GLOW = [1.6, 0.5, 0.08];
+function drawFlame(raw) {
+  const F = flame;
+  if (F && F.dir) {
+    F.E.copy(F.M).addScaledVector(F.dir, 3.2);
+    setBeam(F.beam, F.M, F.E, { uK: 0.018, uW: 0.2, uHead: Math.min(1, F.t / 0.05), uNeck: 0.5, uI: 1, uRing: 3, uFlow: 70, uHelix: 0, uTip: 0, uFlat: 0, core: FLAME_CORE, glow: FLAME_GLOW });
+    F.beam.u.uTime.value += raw;
+  }
+  for (const z of zombies) {
+    if (!z.burn || z.state !== 'walk') continue;
+    const k = 0.8 + 0.2 * Math.sin(performance.now() / 45 + z.look.seed * 9);
+    ADD.push(z.x, z.h + 1.0 * z.size, -z.z, 1.7 * z.size, 0, 0, 0, 0.9 * k, 0.3 * k, 0.06 * k, 1);
+  }
+}
+
+// ===== 57-shock.js
+// ---------- the shock gun, 電撃砲 (2026-10-30: the fifth weapon the medals open, while kazu picked what to make next) ----------
+// Tap: a bolt of lightning from the tube to the reticle (off a body, to the nearest one round where it comes down), and on
+// through the horde: it jumps from each zombie it strikes to the nearest ZAP_FORK within ZAP_JUMP, ZAP_STEP apart, up to
+// ZAP_MAX of them. Each one struck fries where it stands for ZAP_T, stiff and shaking with its bones flickering through
+// (putBones), then bursts, charred, so they go off in the order the lightning reached them. Drums and cylinders it strikes
+// go up, cars near a body it strikes blow up, so do the helicopter, the airship and the park's rides it can reach, and the
+// giant takes SHOCK_BOSS and passes it on. One shot, one chain. Three shots, one back every SHOCK_REFILL; through FEVER, one
+// every SHOCK_FEVER_CD and further through the horde. It opens at 50 medals (UNLOCKS, 77-mission.js).
+const MAX_SHOCKS = 3, SHOCK_REFILL = 1.0, SHOCK_FEVER_CD = 0.3;
+const ZAP_MAX = 24, ZAP_MAX_FEVER = 34, ZAP_JUMP = 2.6, ZAP_FORK = 2, ZAP_STEP = 0.035, ZAP_T = 0.5, ZAP_FIND = 3.5, SHOCK_BOSS = 60;
+// (the thread bright enough to bloom; the glow round it wide and dim, and like the bodies and the bones only just over the
+// bloom's threshold: a bunch fried close to the fence washed the whole screen out white)
+const ZAP_CORE = [2.6, 3.2, 5], ZAP_GLOW = [0.16, 0.3, 1.0], ZAP_ORB = [2.4, 3.6, 7], ZAP_SPARK = [2.6, 3.6, 7], ZAP_CAR = 1.6;
+const ZAP_BODY = new THREE.Color(0.3, 0.62, 1.35), BONE_C = new THREE.Color(0.8, 0.9, 1.12);
+const ZAP_TXT = ['ビリビリ!!', 'バリバリ!!', 'ズバババ!!'];
+let shocksLeft = MAX_SHOCKS, shockTimer = 0, shockCD = 0, arcs = [], zapQ = [];
+function resetShock() { shocksLeft = MAX_SHOCKS; shockTimer = 0; shockCD = 0; arcs = []; zapQ = []; }
+function tryShock() {
+  if (!running) return;
+  const fev = feverT > 0;
+  if (fev ? shockCD > 0 : shocksLeft <= 0) { softClick(); return; }
+  if (fev) shockCD = SHOCK_FEVER_CD; else shocksLeft--;
+  fireShock(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev);
+}
+// where the bolt strikes a body: the chest, or the giant's middle
+const zapAt = zb => new THREE.Vector3(zb.x, zb.h + (zb.type === 'boss' ? 1.2 : 1.1) * zb.size, -zb.z);
+// the nearest few on their feet round a spot that this shot has not struck yet
+function zapNear(x, z, r, S, k) {
+  const out = [];
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.gone || o.held || o.rise > 0 || o.zap || S.hit.has(o)) continue;
+    const d = Math.hypot(o.x - x, o.z - z) - (o.type === 'boss' ? 0.5 * o.size : 0);
+    if (d < r) out.push({ o, d });
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out.slice(0, k).map(e => e.o);
+}
+function fireShock(A, fev) {
+  tubeTip.getWorldPosition(_wp);
+  const M = _wp.clone(), ch = newChain();
+  const S = { ch, n: 0, max: fev ? ZAP_MAX_FEVER : ZAP_MAX, hit: new Set(), cars: new Set(), heli: false, ship: false, park: false };
+  let first = A.kind === 'zombie' ? A.hit.z : null, P = A.p.clone();
+  if (!first) [first] = zapNear(P.x, -P.z, ZAP_FIND, S, 1);
+  const end = first ? zapAt(first) : P;
+  arcs.push({ A: M, B: end, t: 0, life: 0.22, w: 1.5, fork: 3, seed: rand(1, 9999) });
+  // what it strikes without a body to go through
+  if (!first) {
+    if (A.kind === 'car') { S.cars.add(A.car); A.car.zapT = ZAP_T * 0.6; A.car.zapCh = ch; }
+    else if (A.kind === 'heli') downHeli(ch);
+    else if (A.kind === 'ship') hitShip(30, ch, P.x, P.y, -P.z);
+    else if (A.kind === 'park') hitPark(A.solid.park, 30, ch, P.x, P.y, -P.z);
+    else if (A.kind === 'ground' && -P.z > Z_WALL) explode(P.x, -P.z, 0.5, 0.2, null, ch);
+  } else queueZap(first, end, 0, S);
+  // the flash where it strikes and at the gun
+  for (let i = 0; i < 14; i++) { const a = rand(0, 6.28), sp = rand(3, 9); addPart({ k: 'spark', x: end.x, z: -end.z, h: end.y, vx: Math.cos(a) * sp, vz: rand(-3, 3), vh: Math.sin(a) * sp, g: 10, r: 0.03, life: rand(0.15, 0.4), c: ZAP_SPARK }); }
+  addPart({ k: 'glow', x: end.x, z: -end.z, h: end.y, vx: 0, vz: 0, vh: 0, r: 0.7, life: 0.16, c: [0.7, 1.1, 2.4], a: 1 });
+  addPart({ k: 'muzzle', x: M.x, z: -M.z, h: M.y, vx: 0, vz: 0, vh: 0, r: 0.16, life: 0.07, c: [1.6, 2.4, 4.8] });
+  blastLight(end.x, -end.z, end.y, 0.45, true);   // (at 0.9 it lit a bunch by the fence up white)
+  muzzleLight.position.copy(M); muzzleLight.intensity = 16;
+  shockSnd(); buzz([25, 20, 25, 20, 40], 2); tubeRecoil = 1;
+  shake = Math.min(shake + 6, 24); flashScreen = Math.max(flashScreen, 0.03);
+  if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.03);
+  if (running) {
+    const s = toScreen(M.x, -M.z, M.y);
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(50, 90), hudH + 40, H - 50), text: pick(ZAP_TXT), rot: rand(-0.25, 0.25), life: 0.55, max: 0.55, size: 40 });
+  }
+}
+function queueZap(zb, from, delay, S) { S.hit.add(zb); S.n++; zapQ.push({ zb, from, t: delay, S }); }
+// the bolt reaches one: it fries (a drum or a cylinder goes up), and the bolt jumps on
+function strikeZap(q) {
+  const zb = q.zb, S = q.S, to = zapAt(zb);
+  if (zb.state !== 'walk' || zb.gone) return;
+  arcs.push({ A: q.from, B: to, t: 0, life: 0.15, w: 1, fork: 1, seed: rand(1, 9999) });
+  const boss = zb.type === 'boss';
+  if (boss) {
+    damageBoss(SHOCK_BOSS, S.ch, zb);
+    for (let i = 0; i < 10; i++) addPart({ k: 'spark', x: zb.x + rand(-1, 1), z: zb.z - 0.6, h: rand(1, 4), vx: rand(-6, 6), vz: rand(-4, 2), vh: rand(-2, 6), g: 10, r: 0.035, life: rand(0.2, 0.45), c: ZAP_SPARK });
+  } else if (zb.type === 'barrel' || zb.type === 'gas') {
+    killZombie(zb, { dx: rand(-0.3, 0.3), dz: 1, d: 1, f: 0.6, power: 1, ch: S.ch });
+    registerKills(1, zb.x, zb.z, null, false, S.ch);
+  } else zb.zap = { t: 0, T: ZAP_T * rand(0.85, 1.15), ch: S.ch, ct: 0 };
+  if (S.n >= 8 && !S.called && running) { S.called = true; S.f = { screen: true, x: clamp(aim.x, 100, W - 100), y: clamp(aim.y - 70, hudH + 60, H * 0.6), text: '', sub: '', life: 1.1, big: true }; floaters.push(S.f); }
+  if (S.f) { S.f.text = `連鎖放電 ×${S.n}!!`; S.f.life = 1.1; }
+  if (S.n < S.max) for (const o of zapNear(zb.x, zb.z, ZAP_JUMP + (boss ? 0.5 * zb.size : 0), S, ZAP_FORK)) { if (S.n >= S.max) break; queueZap(o, to, ZAP_STEP * rand(0.8, 1.3), S); }
+  // what is near enough to it: cars, and what hangs or flies over the street
+  for (const c of cars) {
+    if ((c.state !== 'park' && c.state !== 'roll') || S.cars.has(c) || c.zapT || Math.abs(c.x - zb.x) > ZAP_CAR + c.hw || Math.abs(c.z - zb.z) > ZAP_CAR + c.hl) continue;
+    S.cars.add(c); c.zapT = ZAP_T; c.zapCh = S.ch;
+    arcs.push({ A: to, B: new THREE.Vector3(c.x, c.ht, -c.z), t: 0, life: 0.15, w: 1, fork: 0, seed: rand(1, 9999) });
+  }
+  if (!S.heli && heliNear(zb.x, to.y, zb.z, 9)) { S.heli = true; arcs.push({ A: to, B: new THREE.Vector3(heli.x, heli.h, -heli.z), t: 0, life: 0.18, w: 1.2, fork: 1, seed: rand(1, 9999) }); downHeli(S.ch); }
+  if (!S.ship && shipNear(zb.x, to.y, zb.z, 6)) { S.ship = true; arcs.push({ A: to, B: new THREE.Vector3(ship.x, ship.h, -ship.z), t: 0, life: 0.18, w: 1.2, fork: 1, seed: rand(1, 9999) }); hitShip(30, S.ch, ship.x, ship.h, ship.z); }
+  const pk = !S.park && parkNear(zb.x, to.y, zb.z, 6);
+  if (pk) { S.park = true; hitPark(pk, 30, S.ch, zb.x, to.y + 3, zb.z); }
+}
+// one fried on its feet, every frame (instead of walking): it shakes in place with sparks crawling over it, then bursts
+function zapTick(z, dt) {
+  const Z = z.zap;
+  Z.t += dt;
+  if ((Z.ct -= dt) <= 0) {
+    Z.ct = coarse ? 0.12 : 0.08;
+    const s = z.size, A = new THREE.Vector3(z.x + rand(-0.25, 0.25) * s, z.h + rand(0.3, 1.7) * s, -z.z + rand(-0.15, 0.15));
+    arcs.push({ A, B: A.clone().add(new THREE.Vector3(rand(-0.4, 0.4), rand(-0.5, 0.5), rand(-0.3, 0.3)).multiplyScalar(s)), t: 0, life: 0.06, w: 0.5, fork: 0, seed: rand(1, 9999) });
+    if (Math.random() < 0.5) addPart({ k: 'spark', x: A.x, z: -A.z, h: A.y, vx: rand(-3, 3), vz: rand(-2, 2), vh: rand(0, 4), g: 10, r: 0.025, life: rand(0.1, 0.3), c: ZAP_SPARK });
+  }
+  if (Z.t >= Z.T) zapOut(z);
+}
+function zapOut(z) {
+  const ch = z.zap.ch, s = z.size;
+  z.zap = null; charLook(z);
+  killZombie(z, { dx: rand(-0.5, 0.5), dz: 1, d: 1.1, f: rand(0.55, 1), power: 0.9, ch });
+  registerKills(1, z.x, z.z, null, false, ch);
+  frySnd(z.z);
+  for (let i = 0; i < 6; i++) { const a = rand(0, 6.28), sp = rand(2, 6); addPart({ k: 'spark', x: z.x, z: z.z, h: z.h + 1.1 * s, vx: Math.cos(a) * sp, vz: rand(-2, 2), vh: Math.sin(a) * sp + 2, g: 10, r: 0.03, life: rand(0.15, 0.35), c: ZAP_SPARK }); }
+  addPart({ k: 'smoke', x: z.x, z: z.z, h: z.h + 1.2 * s, vx: 0, vz: 0, vh: 1.2, r: 0.4, grow: 1, drag: 0.8, life: 1.4, a: 0.5 });
+  addPart({ k: 'glow', x: z.x, z: z.z, h: z.h + 1.1 * s, vx: 0, vz: 0, vh: 0, r: 0.5, life: 0.12, c: [0.7, 1.1, 2.4], a: 1 });
+}
+function updateShock(dt) {
+  if (running && weapon === 'shock') {
+    shockCD = Math.max(0, shockCD - dt);
+    if (shocksLeft < MAX_SHOCKS) { shockTimer += dt; if (shockTimer >= SHOCK_REFILL) { shockTimer = 0; shocksLeft++; } } else shockTimer = 0;
+  }
+  for (const q of zapQ) if ((q.t -= dt) <= 0) { q.done = true; strikeZap(q); }
+  if (zapQ.length) zapQ = zapQ.filter(q => !q.done);
+  for (const a of arcs) a.t += dt;
+  if (arcs.length) arcs = arcs.filter(a => a.t < a.life);
+  // cars with the current in them crackle, then go up
+  for (const c of cars) {
+    if (!c.zapT) continue;
+    if (c.state !== 'park' && c.state !== 'roll') { c.zapT = 0; continue; }
+    c.zapT -= dt;
+    if (Math.random() < dt * 20) {
+      const A = new THREE.Vector3(c.x + rand(-c.hw, c.hw), rand(0.3, c.ht), -(c.z + rand(-c.hl, c.hl)));
+      arcs.push({ A, B: A.clone().add(new THREE.Vector3(rand(-0.6, 0.6), rand(-0.4, 0.4), rand(-0.6, 0.6))), t: 0, life: 0.06, w: 0.6, fork: 0, seed: rand(1, 9999) });
+    }
+    if (c.zapT <= 0) { c.zapT = 0; carBoom(c, 0.01, c.zapCh); }
+  }
+}
+
+// ---------- drawing the lightning: jagged threads of light, re-drawn many times a second so they crackle ----------
+let _bs = 1;
+const brnd = () => { _bs = (_bs * 16807) % 2147483647; return _bs / 2147483647 * 2 - 1; };   // its own numbers: the game's stay as they are
+const _cp = new THREE.Vector3(), _ab = new THREE.Vector3(), _bu = new THREE.Vector3(), _bv = new THREE.Vector3();
+// one straight piece: the wide dim glow and the thin hot thread, each the same width on screen however far off
+function boltSeg(ax, ay, az, bx, by, bz, w, k) {
+  const mx = (ax + bx) / 2, my = (ay + by) / 2, mz = (az + bz) / 2, d = Math.max(0.3, Math.hypot(mx - _cp.x, my - _cp.y, mz - _cp.z));
+  const hx = (bx - ax) / 2, hy = (by - ay) / 2, hz = (bz - az) / 2;
+  ADD.push(mx, my, mz, 0.026 * d * w, 0, 18, 1, ZAP_GLOW[0] * k, ZAP_GLOW[1] * k, ZAP_GLOW[2] * k, 1, hx, hy, hz);
+  ADD.push(mx, my, mz, 0.008 * d * w, 0, 18, 1, ZAP_CORE[0] * k, ZAP_CORE[1] * k, ZAP_CORE[2] * k, 1, hx, hy, hz);
+}
+// a jagged path from A to B (both in the world), bent most in the middle
+function bolt(ax, ay, az, bx, by, bz, amp, w, k, fork) {
+  _ab.set(bx - ax, by - ay, bz - az);
+  const len = _ab.length();
+  if (len < 1e-3) return;
+  _bu.set(0, 1, 0).cross(_ab);
+  if (_bu.lengthSq() < 1e-8) _bu.set(1, 0, 0);
+  _bu.normalize(); _bv.crossVectors(_ab, _bu).normalize();
+  const ux = _bu.x, uy = _bu.y, uz = _bu.z, vx = _bv.x, vy = _bv.y, vz = _bv.z, dx = _ab.x, dy = _ab.y, dz = _ab.z;
+  const n = Math.max(3, Math.min(22, Math.round(len / 0.45)));
+  let px = ax, py = ay, pz = az;
+  const pts = [];
+  for (let i = 1; i <= n; i++) {
+    const f = i / n, e = i < n ? Math.sin(Math.PI * f) * amp : 0, o1 = brnd() * e, o2 = brnd() * e;
+    const qx = ax + dx * f + ux * o1 + vx * o2, qy = ay + dy * f + uy * o1 + vy * o2, qz = az + dz * f + uz * o1 + vz * o2;
+    boltSeg(px, py, pz, qx, qy, qz, w, k);
+    px = qx; py = qy; pz = qz;
+    if (fork && i < n - 1) pts.push(qx, qy, qz);
+  }
+  // branches off it, thinner and dimmer, going off to the side
+  for (let j = 0; j < fork && pts.length; j++) {
+    const i = (Math.abs(brnd()) * pts.length / 3 | 0) * 3, L = len * (0.18 + 0.15 * Math.abs(brnd()));
+    const ex = pts[i] + (dx / len + brnd() * 0.9) * L, ey = pts[i + 1] + (dy / len + brnd() * 0.7) * L, ez = pts[i + 2] + (dz / len + brnd() * 0.9) * L;
+    bolt(pts[i], pts[i + 1], pts[i + 2], ex, ey, ez, amp * 0.55, w * 0.55, k * 0.7, 0);
+  }
+}
+function drawShock() {
+  if (!arcs.length && weapon !== 'shock') return;
+  camera.getWorldPosition(_cp);
+  const now = performance.now();
+  for (const a of arcs) {
+    const step = Math.floor(now / 33), u = a.t / a.life;
+    _bs = ((a.seed * 7919 + step * 104729) % 2147483646) + 1;
+    const k = (1 - u * u) * (step % 3 === 2 ? 0.45 : 1) * (a.t < 0.03 ? 1.4 : 1), len = a.A.distanceTo(a.B);
+    bolt(a.A.x, a.A.y, a.A.z, a.B.x, a.B.y, a.B.z, Math.min(0.8, 0.06 * len + 0.04), a.w, k, a.fork);
+  }
+  // the gun crackles while it has a shot in it
+  if (weapon === 'shock' && running && (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4 && Math.floor(now / 70) % 3 === 0) {
+    tubeTip.getWorldPosition(_wp);
+    _bs = Math.floor(now / 70) % 2147483646 + 7;
+    bolt(_wp.x, _wp.y, _wp.z, _wp.x + brnd() * 0.05, _wp.y + brnd() * 0.05, _wp.z + brnd() * 0.05, 0.015, 0.5, 0.8, 0);
+  }
+  // a soft blue glow round each one frying (small and faint: a bunch of them close to the fence add up to white)
+  for (const z of zombies) {
+    if (!z.zap || z.state !== 'walk') continue;
+    const k = 0.7 + 0.3 * Math.sin(now / 30 + z.look.seed * 5);
+    ADD.push(z.x, z.h + 1.0 * z.size, -z.z, 0.9 * z.size, 0, 0, 0, 0.05 * k, 0.11 * k, 0.33 * k, 1);
+  }
+}
+
+// ---------- the bones that show through a fried body as it flickers ----------
+// A skull with dark sockets, a ribcage on a spine, a pelvis and the long bones of the arms and legs, drawn white-hot off the
+// same joints as the body parts (putBones, from drawZombies)
+function initBoneMeshes() {
+  const ready = (g, fn) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return vcol(g, fn || (t => t.setRGB(1, 1, 1))); };
+  const at = (g, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz)));
+  // the skull: the face is +z, the eyes where the head's eye sits
+  const sock = [[-0.04, 0.025, 0.088], [0.04, 0.025, 0.088]];
+  const skull = ready(at(new THREE.SphereGeometry(0.1, 16, 12), 0, 0, 0, 0, 0, 0, 0.86, 1, 0.98), (t, x, y, z) => {
+    const eye = sock.some(([a, b, c]) => Math.hypot(x - a, y - b, z - c) < 0.032), nose = Math.hypot(x, y + 0.012, z - 0.095) < 0.017;
+    if (eye || nose) t.setRGB(0.03, 0.03, 0.06); else t.setRGB(1, 1, 1);
+  });
+  const jawB = ready(at(new THREE.BoxGeometry(0.075, 0.028, 0.07), 0, -0.088, 0.035), (t, x, y) => t.setRGB(y > -0.08 ? 0.75 : 1, y > -0.08 ? 0.75 : 1, y > -0.08 ? 0.8 : 1));
+  // the ribcage: hoops open at the front round a spine, a breastbone and the collarbones
+  const ribs = [ready(at(new THREE.CylinderGeometry(0.018, 0.018, 0.48, 6), 0, 0, -0.075))];
+  for (let k = 0; k < 5; k++) ribs.push(ready(at(new THREE.TorusGeometry(0.15 - Math.abs(k - 2) * 0.012, 0.011, 5, 18, Math.PI * 1.7), 0, -0.08 + k * 0.055, 0, Math.PI / 2, 0, 0).rotateY(Math.PI * 1.35).scale(1, 1, 0.7)));
+  ribs.push(ready(at(new THREE.BoxGeometry(0.026, 0.19, 0.016), 0, 0.03, 0.1)));
+  ribs.push(ready(at(new THREE.CylinderGeometry(0.01, 0.01, 0.32, 5), 0, 0.2, 0.03, 0, 0, Math.PI / 2)));
+  const hip = [ready(at(new THREE.TorusGeometry(0.1, 0.03, 5, 14), 0, 0.01, 0, Math.PI / 2, 0, 0, 1, 1, 0.7)), ready(at(new THREE.BoxGeometry(0.05, 0.12, 0.04), 0, 0.04, -0.07))];
+  const long = (r, L) => [ready(new THREE.CylinderGeometry(r, r, L, 6)), ready(at(new THREE.SphereGeometry(r * 1.6, 6, 5), 0, L / 2, 0)), ready(at(new THREE.SphereGeometry(r * 1.6, 6, 5), 0, -L / 2, 0))];
+  const G = { skull: [mergeGeometries([skull, jawB]), 120], ribs: [mergeGeometries(ribs), 120], hip: [mergeGeometries(hip), 120], bArm: [mergeGeometries(long(0.016, 0.27)), 400], bLeg: [mergeGeometries(long(0.021, 0.39)), 400] };
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  for (const k in G) {
+    const [g, max] = G[k], m = new THREE.InstancedMesh(g, mat, max);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
+    m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    m.frustumCulled = false; m.count = 0;
+    scene.add(m);
+    ZP[k] = { m, n: 0, max, mat: m.instanceMatrix.array, col: m.instanceColor.array };
+  }
+}
+function putBones(z, R) {
+  if (!z.headless) putPart('skull', R.S.head.matrixWorld, BONE_C);
+  putPart('ribs', R.S.torso.matrixWorld, BONE_C);
+  putPart('hip', R.S.pelvis.matrixWorld, BONE_C);
+  for (let i = 0; i < 2; i++) {
+    if (z.arms[i]) { putPart('bArm', R.S.uarm[i].matrixWorld, BONE_C); putPart('bArm', R.S.farm[i].matrixWorld, BONE_C); }
+    if (z.legs[i]) { putPart('bLeg', R.S.thigh[i].matrixWorld, BONE_C); putPart('bLeg', R.S.shin[i].matrixWorld, BONE_C); }
+  }
+}
+
 // ===== 60-audio.js
 
 // ---------- audio: same synth and voices as the 2D game ----------
@@ -4583,6 +5112,59 @@ function waveFireSnd() {
   sub.connect(gain(t, 1.3, 0.005, T + 0.3)).connect(master); sub.start(t); sub.stop(t + T + 0.4);
 }
 // the tank's main gun: a hard crack, a deep distorted body and a sub-bass punch that slaps back off the buildings
+// the flamethrower: a driven roar of low noise with the hiss of the fuel over it, for as long as the jet is on
+let flameNodes = null;
+function flameSnd(on) {
+  if (!on) {
+    if (!flameNodes) return;
+    const t = actx.currentTime, R = flameNodes;
+    flameNodes = null;
+    try { R.g.gain.setTargetAtTime(0.0001, t, 0.09); R.src.stop(t + 0.6); } catch (e) {}
+    return;
+  }
+  if (!live() || flameNodes) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + 0.05);
+  const lp = filt('lowpass', 1600, 0.9); lp.frequency.setValueAtTime(1600, t); lp.frequency.exponentialRampToValueAtTime(650, t + 0.25);
+  const sh = actx.createWaveShaper(); sh.curve = distCurve;
+  src.connect(lp).connect(sh).connect(filt('lowpass', 2400)).connect(g);
+  const hiss = actx.createGain(); hiss.gain.value = 0.16;
+  src.connect(filt('bandpass', 3800, 1.2)).connect(hiss).connect(g);
+  g.connect(master); if (echoIn) g.connect(echoIn);
+  src.start(t, Math.random() * 0.4);
+  flameNodes = { src, g };
+  // the whump of it catching
+  const o = osc('sine', 90, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+  o.connect(gain(t, 0.8, 0.005, 0.22)).connect(master); o.start(t); o.stop(t + 0.25);
+}
+// the shock gun: a crack, a mad buzz in stutters and thunder rolling under it
+function shockSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  noiseSrc(t, 0.09).connect(filt('highpass', 2200)).connect(gain(t, 1.0, 0.001, 0.08)).connect(master);
+  const o = osc('sawtooth', 120, t); o.frequency.linearRampToValueAtTime(70, t + 0.45);
+  const sh = actx.createWaveShaper(); sh.curve = distCurve;
+  const trem = actx.createGain(), lfo = osc('square', 31, t), depth = actx.createGain(); depth.gain.value = 0.5; trem.gain.value = 0.5;
+  lfo.connect(depth).connect(trem.gain);
+  o.connect(sh).connect(filt('bandpass', 1800, 0.7)).connect(trem).connect(gain(t, 0.3, 0.005, 0.45)).connect(master);
+  o.start(t); o.stop(t + 0.5); lfo.start(t); lfo.stop(t + 0.5);
+  const lp = filt('lowpass', 900, 1); lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(120, t + 0.6);
+  const body = gain(t, 0.7, 0.004, 0.6);
+  noiseSrc(t, 0.7).connect(lp).connect(body).connect(master);
+  if (echoIn) body.connect(echoIn);
+}
+// one fried bursting: a crackle and a wet pop, no more than one in a few frames
+let fryT = 0;
+function frySnd(z) {
+  if (!live()) return;
+  const t = actx.currentTime;
+  if (t < fryT) return;
+  fryT = t + 0.06;
+  const near = clamp(12 / z, 0.35, 1);
+  for (let i = 0; i < 3; i++) { const tt = t + i * rand(0.01, 0.03); noiseSrc(tt, 0.03).connect(filt('highpass', rand(3000, 6000))).connect(gain(tt, 0.25 * near, 0.001, 0.03)).connect(master); }
+  noiseSrc(t, 0.12).connect(filt('lowpass', 700)).connect(gain(t, 0.4 * near, 0.002, 0.1)).connect(master);
+}
 function cannonSnd() {
   if (!live()) return;
   const t = actx.currentTime;
@@ -5087,7 +5669,7 @@ function reset() {
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetReplay(); resetPark();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetReplay(); resetPark();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -5166,7 +5748,7 @@ function addFever(v) {
   if (fever >= 100) strikeReady();
 }
 // what FEVER does to the tap
-const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射' };
+const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', weapon === 'tank' ? '機銃2倍 ・ 主砲連射' : `マシンガン2倍 ・ ${FEVER_TAP[weapon]}`, C.flare, 1.4);
@@ -5244,6 +5826,7 @@ function popHead(zb, shot) {
 }
 function killZombie(zb, o) {
   if (zb.state !== 'walk' || zb.type === 'boss') return;
+  zb.burn = null; zb.zap = null;
   if (zb.type === 'fat') { swellZombie(zb, o); return; }
   const s = zb.size;
   zb.state = 'fly'; zb.bounces = 0; zb.hp = 0; zb.launchX = zb.x; zb.launchZ = zb.z; zb.h = 0.4 * s; zb.atWall = false;
@@ -5759,7 +6342,7 @@ function finish() {
   if (carsBlown) badges.push(`車ごとドカン ×${carsBlown}`);
   if (juggles >= 10) badges.push(`空中コンボ ×${juggles}`);
   if (weapon === 'tank') badges.unshift('戦車モード');
-  if (weapon === 'hole' || weapon === 'rail' || weapon === 'wave') badges.unshift(WEAPON_NAME[weapon]);
+  if (weapon !== 'rocket' && weapon !== 'tank') badges.unshift(WEAPON_NAME[weapon]);
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
   settleMissions();
   setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled ? bossLabel() : '', badges, weapon });
@@ -5859,6 +6442,8 @@ function update(dt, raw) {
   updateHoles(dt);
   updateRails(dt);
   updateWave(dt);
+  updateFlame(dt);
+  updateShock(dt);
   updateStrike(dt);
   updateCars(dt);
   updateHeli(dt);
@@ -5879,6 +6464,7 @@ function update(dt, raw) {
       z.rise -= dt; z.h = z.rise > 0 ? -1.9 * Math.min(1, z.rise / 0.7) : 0; z.phase += dt * 5;
       continue;
     }
+    if (z.state === 'walk' && z.zap) { zapTick(z, dt); continue; }   // fried where it stands (57-shock.js)
     if (z.state === 'walk') {
       const slow = z.stagger > 0 ? 0.25 : 1;
       z.stagger = Math.max(0, z.stagger - dt);
@@ -5900,6 +6486,7 @@ function update(dt, raw) {
         }
       }
       if (z.type === 'gas') gasLeak(z, dt);
+      if (z.burn) { burnTick(z, dt); if (z.state !== 'walk') continue; }   // on fire (56-flame.js)
       // they drip as they come: drool off the chin, blood off the guts, a spurt from a torn shoulder
       if (z.z < 18) {
         const s = z.size;
@@ -6005,8 +6592,8 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
-  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : rocketsLeft;
+  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
+  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : rocketsLeft;
   const key = [tv.toFixed(1), score, ammoKey, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
@@ -6017,6 +6604,8 @@ function hud() {
     : hole ? Array.from({ length: MAX_HOLES }, (_, i) => `<i class="bh${feverT > 0 || i < holesLeft ? ' on' : ''}"></i>`).join('')
     : rail ? Array.from({ length: MAX_RAILS }, (_, i) => `<i class="rl${feverT > 0 || i < railsLeft ? ' on' : ''}"></i>`).join('')
     : wv ? `<span class="gauge wv${wave ? ' fire' : waveLoad >= 1 ? ' ready' : ''}"><b style="width:${(wave ? 100 : waveLoad * 100).toFixed(0)}%"></b></span>`
+    : fl ? Array.from({ length: MAX_FLAMES }, (_, i) => `<i class="fl${feverT > 0 || i < flamesLeft ? ' on' : ''}${flame && i === flamesLeft ? ' burn' : ''}"></i>`).join('')
+    : zp ? Array.from({ length: MAX_SHOCKS }, (_, i) => `<i class="zp${feverT > 0 || i < shocksLeft ? ' on' : ''}"></i>`).join('')
     : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
   // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
   const sp = $('spMeter');
@@ -6067,7 +6656,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -6150,7 +6739,7 @@ async function boot() {
 }
 async function bootInner() {
   try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS + PARK_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
-  buildWorld(firstStage()); initZombieMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); setWeapon(weapon);
+  buildWorld(firstStage()); initZombieMeshes(); initBoneMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); prebuildLater();
   if (window.ZB_DEBUG) {
@@ -6175,6 +6764,7 @@ async function bootInner() {
     window.__noStrike = v => { noStrike = v; };
     window.__noBoss = () => { bossSpawned = true; };
     window.__noHap = () => { hapAt = 99; };
+    window.__retype = (from, to) => { let n = 0; for (const z of zombies) if (z.type === from && z.state === 'walk') { z.type = to; n++; } return n; };   // a look at one weapon without the drums going up
     window.__aimHit = (x, y) => { const A = aimHit(x, y, 40); return { kind: A.kind, p: A.p && A.p.toArray().map(v => +v.toFixed(2)), z: A.hit && A.hit.z.state }; };
     window.__pipeLight = i => lightPipe(i, newChain());
     window.__hole = (x, z) => openHole(x, z, newChain());
@@ -9247,14 +9837,16 @@ const MKEY = 'zb3d-missions';
 // once their colour has run out
 let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT = 0, fatPops = 0, bombesShot = 0;
 // the weapons the medals open, in order (2026-10-25: kazu picked the black hole for the first, then asked for the railgun and
-// the wave gun)
+// the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30)
 const UNLOCKS = [
   { w: 'hole', medals: 10, sub: 'マシンガン＋吸い込み弾' },
   { w: 'rail', medals: 20, sub: 'マシンガン＋貫通ビーム' },
   { w: 'wave', medals: 30, sub: 'マシンガン＋極太ビーム' },
+  { w: 'flame', medals: 40, sub: 'マシンガン＋燃え広がる炎' },
+  { w: 'shock', medals: 50, sub: 'マシンガン＋連鎖する稲妻' },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
-function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン'; }
+function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!'; }
 function drawMission(tier, not) {
   const pool = MISSIONS.filter(m => m.tier === tier && !not.includes(m.id));
   let fresh = pool.filter(m => !mis.seen.includes(m.id));
@@ -9288,6 +9880,7 @@ function weaponButtons() {
   }
   const shown = [...document.querySelectorAll('.pick:not(.small) .pk')].filter(b => !b.hidden);
   shown.forEach((b, i) => b.classList.toggle('wide', i === shown.length - 1 && shown.length % 2 === 1));
+  for (const p of document.querySelectorAll('.pick:not(.small)')) p.classList.toggle('many', shown.length > 5);
 }
 function saveMissions() { try { localStorage.setItem(MKEY, JSON.stringify(mis)); } catch (e) {} }
 function resetMissions() { misNow = []; misToast = []; fatPops = 0; bombesShot = 0; clearTimeout(misFlipT); }
