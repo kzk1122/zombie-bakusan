@@ -90,6 +90,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo i.zp.on { background: linear-gradient(180deg, #ffffff, #b8e4ff 45%, #5a8aff); }
 .ammo i.ms { width: 10px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(50% 0, 72% 22%, 72% 70%, 100% 100%, 0 100%, 28% 70%, 28% 22%); }
 .ammo i.ms.on { background: linear-gradient(180deg, #ff4a3d 0 26%, #f3e9dc 26% 76%, #ffb04a 76%); }
+.ammo i.bt { width: 12px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(50% 0, 100% 45%, 50% 100%, 0 45%); }
+.ammo i.bt.on { background: radial-gradient(circle at 50% 42%, #ffffff 0 16%, #ff8ae6 30%, #c81aa0 80%); }
 .wv b { background: linear-gradient(90deg, #1b3594, #4f8dff); }
 .wv.ready b { background: linear-gradient(90deg, #2f63e8, #8fd8ff, #ffffff); box-shadow: 0 0 8px #6fb8ff; }
 .wv.fire b { background: linear-gradient(90deg, #8fd8ff, #ffffff); animation: blink .12s steps(2) infinite; }
@@ -205,6 +207,9 @@ canvas { display: block; width: 100%; height: 100%; }
 /* the missile pod: smoke trails curling up over red */
 .pk.ms { border-color: color-mix(in srgb, #ff5a4a 65%, transparent); background: radial-gradient(ellipse at 20% 120%, transparent 40%, color-mix(in srgb, #fff 22%, transparent) 43%, transparent 46%), radial-gradient(ellipse at 80% 120%, transparent 40%, color-mix(in srgb, #fff 22%, transparent) 43%, transparent 46%), radial-gradient(ellipse at 50% 140%, #7a1410, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
 .pk.ms[aria-pressed="true"] { background: radial-gradient(ellipse at 20% 120%, transparent 40%, #ffffffb0 43%, transparent 47%), radial-gradient(ellipse at 80% 120%, transparent 40%, #ffffffb0 43%, transparent 47%), radial-gradient(ellipse at 50% 120%, #ffd2a0 4%, #ff6a3a 30%, #c21c14 62%, #5a0a08); color: #fff; border-color: #ffd0c0; box-shadow: 0 4px 0 #7a1410; text-shadow: 0 1px 2px #4a0806; }
+/* the bits: four pods standing round a pink glow */
+.pk.bt { border-color: color-mix(in srgb, #ff6ad8 65%, transparent); background: radial-gradient(circle at 10% 28%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 90% 24%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 7% 76%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 93% 80%, #ff9ae8 0 2px, transparent 3px), radial-gradient(ellipse at 50% 140%, #6e1260, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
+.pk.bt[aria-pressed="true"] { background: radial-gradient(circle at 10% 28%, #fff 0 2px, transparent 3px), radial-gradient(circle at 90% 24%, #fff 0 2px, transparent 3px), radial-gradient(circle at 7% 76%, #fff 0 2px, transparent 3px), radial-gradient(circle at 93% 80%, #fff 0 2px, transparent 3px), radial-gradient(ellipse at 50% 120%, #ffd6f6 4%, #ff5ad2 30%, #b0148e 62%, #4a0640); color: #fff; border-color: #ffd6f6; box-shadow: 0 4px 0 #7a1066; text-shadow: 0 1px 2px #40063a; }
 .pk.locked { opacity: .62; border-style: dashed; border-color: color-mix(in srgb, var(--bone) 35%, transparent); background: color-mix(in srgb, var(--ink) 55%, transparent); cursor: not-allowed; }
 .pk.nope { animation: nope .35s; }
 @keyframes nope { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -342,6 +347,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="pk fl locked" type="button" data-w="flame" aria-pressed="false" aria-disabled="true" hidden><span class="t">火炎放射器</span><span class="d">メダル40枚で解放</span></button>
         <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t">電撃砲</span><span class="d">メダル50枚で解放</span></button>
         <button class="pk ms locked" type="button" data-w="missile" aria-pressed="false" aria-disabled="true" hidden><span class="t">ミサイル</span><span class="d">メダル60枚で解放</span></button>
+        <button class="pk bt locked" type="button" data-w="bits" aria-pressed="false" aria-disabled="true" hidden><span class="t">ビット</span><span class="d">メダル70枚で解放</span></button>
       </div>
       <div class="stg" role="group" aria-label="ステージを選ぶ"></div>
       <button class="btn" id="startBtn" type="button" disabled>
@@ -392,6 +398,7 @@ canvas { display: block; width: 100%; height: 100%; }
           <button class="pk fl" type="button" data-w="flame" aria-pressed="false" hidden><span class="t">火炎放射器</span></button>
           <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t">電撃砲</span></button>
           <button class="pk ms" type="button" data-w="missile" aria-pressed="false" hidden><span class="t">ミサイル</span></button>
+          <button class="pk bt" type="button" data-w="bits" aria-pressed="false" hidden><span class="t">ビット</span></button>
         </div>
         <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
       </div>
@@ -4180,7 +4187,7 @@ function poseGun(dt) {
 // flinging them down the road, and blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
-const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル' };
+const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25)
 const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
@@ -4262,7 +4269,7 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
   setWeapon(b.dataset.w);
 });
 // a quick tap (or right click, or space) fires the heavy weapon
-function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile }[weapon] || tryRocket)(); }
+function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits }[weapon] || tryRocket)(); }
 function tryCannon() {
   if (!running) return;
   if (cannonT > 0) { softClick(); return; }
@@ -4717,7 +4724,7 @@ function setBeam(b, A, B, o) {
   if (o.glow) u.uGlow.value.fromArray(o.glow);
 }
 // the round the tube holds, glowing in its mouth (the railgun's and the wave gun's), the flamethrower's pilot light, the
-// shock gun's spark and the missile pod's red light
+// shock gun's spark, the missile pod's red light and the bits' pink eye
 let beamOrb = null, beamHalo = null;
 function buildBeamOrb() {
   // drawn over the gun: from behind it, the tube would hide all but a sliver of what sits in its mouth
@@ -4753,6 +4760,10 @@ function poseBeamOrb() {
     // the pod's red light, blinking while it has a salvo in it
     c = MS_ORB; on = (feverT > 0 || salvosLeft > 0) && Math.floor(T * 4) % 2 === 0;
     s = 0.45; h = 0.06;
+  } else if (weapon === 'bits') {
+    // the next squad's eye in the mouth of the tube, pulsing slowly while one is in
+    c = BIT_ORB; on = (feverT > 0 ? squadCD <= 0 : squadsLeft > 0) && tubeRecoil < 0.4;
+    s = 0.4 + 0.06 * Math.sin(T * 9); h = 0.05 + 0.01 * Math.sin(T * 9);
   }
   beamOrb.visible = beamHalo.visible = on;
   if (!on) return;
@@ -5794,6 +5805,339 @@ function lockSnd() {
   for (const d of [0, 0.07]) { const o = osc('square', 1900, t + d); o.connect(gain(t + d, 0.045, 0.002, 0.04)).connect(master); o.start(t + d); o.stop(t + d + 0.05); }
 }
 
+// ===== 59-bits.js
+// ---------- the bits (2026-10-31: kazu asked for remote weapons like the funnels in Gundam, bits wiping out the horde) ----------
+// Tap: BIT_N small pods (BIT_N_FEVER in FEVER) leave the tube one after another and fly out to stand round the spot tapped,
+// above the horde, in front of it and behind, and to either side as far as the screen shows (a phone sees only a narrow
+// slice of the street). Each one darts from place to place there, turns its nose on a body and shoots it through with a thin
+// beam (whoever stands on the line behind it goes too, up to BIT_PIERCE), about BIT_ROF apart, for BIT_T; then they all stop,
+// aim at the thickest of the bunch and fire at once (一斉射), and come home into the tube. The first shots go at whatever was
+// under the reticle (the helicopter, the airship, a ride, the festival's stand, a car, a wall), and every other bit's at a
+// giant near the spot. One squad is one chain. Two squads, one back every BIT_REFILL; through FEVER one every BIT_FEVER_CD,
+// four out at most. It opens at 70 medals (UNLOCKS, 77-mission.js).
+const MAX_SQUADS = 2, BIT_REFILL = 2.2, BIT_FEVER_CD = 0.7, BIT_N = 6, BIT_N_FEVER = 8, BIT_GAP = 0.06, BIT_MAX = 40;
+const BIT_FLY = 0.5, BIT_T = 2.4, BIT_ROF = 0.26, BIT_DART = 0.2, BIT_AIM = 0.32, BIT_HOME = 0.45, BIT_LIFE = 0.11, BIT_BIG_LIFE = 0.3;
+const BIT_R = 0.3, BIT_PIERCE = 3, BIT_REACH = 7, BIT_PAST = 8, BIT_BOSS = 7, BIT_DMG = 5, BIT_WALL = 0.12, BIT_VOLLEY = 1.3;
+// a squad's chain pays BIT_PAY a kill: at a full one the bits scored 3 to 4% over the rocket in bot rounds (2026-10-31, good
+// 827万 / mash 810万 against 798万 / 787万)
+const BIT_PAY = 0.95;
+const BIT_CORE = [6, 3.4, 5.4], BIT_GLOW = [3.2, 0.45, 2.4], BIT_ORB = [6, 1.3, 4.4], BIT_HIT = [5, 1.2, 4], BIT_SPARK = [6, 2.2, 5];
+let squadsLeft = MAX_SQUADS, squadTimer = 0, squadCD = 0, squads = [], bitBeams = [], bitSndT = 0;
+let bitBody = null, bitEye = null;
+function resetBits() {
+  squadsLeft = MAX_SQUADS; squadTimer = 0; squadCD = 0; squads = [];
+  for (const B of bitBeams) freeBeam(B.beam);
+  bitBeams = [];
+}
+function tryBits() {
+  if (!running) return;
+  const fev = feverT > 0;
+  if (fev ? squadCD > 0 || squads.length >= 4 : squadsLeft <= 0) { softClick(); return; }
+  if (fev) squadCD = BIT_FEVER_CD; else squadsLeft--;
+  launchSquad(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev ? BIT_N_FEVER : BIT_N);
+}
+// a place for a bit round its squad's spot: just over the horde's heads, mostly in front of the spot, and out to its own side
+// no further than the screen shows that far down the street (about 0.16 of the way each side). Never so high that it goes
+// under the score at the top of a phone's screen, about 6 degrees over the camera (most of the first ones sat up there)
+function bitSpot(sq, side) {
+  const z = clamp(sq.z + rand(-4, 1.5), Z_WALL + 2.5, 40), hw = 0.13 * z;
+  return { x: clamp(sq.x * 0.6 + side * rand(0.25, 1) * hw, -hw, hw), z, h: rand(1.95, Math.min(3.3, CAM_H + 0.08 * z)) };
+}
+function bitLeg(b, leg, to, T) { b.leg = leg; b.fx = b.x; b.fz = b.z; b.fh = b.h; b.tx = to.x; b.tz = to.z; b.th = to.h; b.mt = 0; b.mT = T; }
+function launchSquad(A, N) {
+  tubeTip.getWorldPosition(_wp);
+  const x0 = _wp.x, z0 = -_wp.z, h0 = _wp.y, P = A.p;
+  const sq = { ch: Object.assign(newChain(), { pay: BIT_PAY }), x: clamp(P.x, -ROAD, ROAD), z: clamp(-P.z, Z_WALL + 4, 40), t: 0, phase: 'on', bits: [], thing: null, boss: null, Q: null, pops: 0 };
+  if ({ heli: 1, ship: 1, park: 1, car: 1, facade: 1 }[A.kind]) sq.thing = { kind: A.kind, car: A.car, block: A.block, x: P.x, z: -P.z, h: P.y };
+  sq.boss = bosses.find(z => z.state === 'walk' && ((A.kind === 'zombie' && A.hit.z === z) || Math.hypot(z.x - sq.x, z.z - sq.z) < 2 + 0.5 * z.size)) || null;
+  for (let i = 0; i < N; i++) {
+    const b = { i, side: i % 2 ? 1 : -1, t: -i * BIT_GAP, x: x0, z: z0, h: h0, px: x0, pz: z0, ph: h0, v: 0, shots: 0, cd: rand(0.02, 0.15), stay: rand(0.3, 0.55), look: null, lookT: 0, nx: 0, ny: 0.3, nz: -1, glow: 0, homeT: 0, done: false };
+    bitLeg(b, 'out', bitSpot(sq, b.side), BIT_FLY + rand(-0.05, 0.12));
+    b.lift = rand(0, 0.3); b.swing = b.side * rand(0.2, 0.8);
+    sq.bits.push(b);
+  }
+  squads.push(sq);
+  if (!bitBody) initBitMeshes();
+  bitLaunchSnd(N); buzz([20, 30, 20, 30, 20], 1);
+  tubeRecoil = 1; shake = Math.min(shake + 3, 24);
+  if (running) {
+    const s = toScreen(x0, z0, h0);
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: 'ビット展開!!', rot: rand(-0.15, 0.15), life: 0.8, max: 0.8, size: 38 });
+  }
+}
+// where a bit is on its leg: out of the tube on a curve swung out to its side that brakes hard at its place, home on one that
+// speeds up into the tube, and from place to place a quick dart that starts and stops sharp. The curves stay low: the screen
+// shows only about 9 degrees over the camera, and less near it
+function bitMove(b, dt) {
+  b.mt = Math.min(b.mT, b.mt + dt);
+  const u = b.mt / b.mT;
+  if (b.leg === 'dart') {
+    const e = u * u * (3 - 2 * u);
+    b.x = b.fx + (b.tx - b.fx) * e; b.z = b.fz + (b.tz - b.fz) * e; b.h = b.fh + (b.th - b.fh) * e + Math.sin(Math.PI * u) * 0.2;
+  } else {
+    const e = b.leg === 'out' ? 1 - Math.pow(1 - u, 3) : u * u;
+    const cx = (b.fx + b.tx) / 2 + b.swing, cz = (b.fz + b.tz) / 2, chh = (b.fh + b.th) / 2 + b.lift;
+    const a = (1 - e) * (1 - e), m = 2 * (1 - e) * e, c = e * e;
+    b.x = a * b.fx + m * cx + c * b.tx; b.z = a * b.fz + m * cz + c * b.tz; b.h = a * b.fh + m * chh + c * b.th;
+  }
+  return u >= 1;
+}
+// what the squad was sent at, where it is now, while it still stands
+function bitThing(T) {
+  if (T.kind === 'heli') return heli && heli.state !== 'crash' ? { x: heli.x, z: heli.z, h: heli.h } : null;
+  if (T.kind === 'ship') return ship && (ship.state === 'in' || ship.state === 'hover') ? { x: ship.x, z: ship.z, h: ship.h } : null;
+  if (T.kind === 'car') return T.car && (T.car.state === 'park' || T.car.state === 'roll') ? { x: T.car.x, z: T.car.z, h: T.car.ht * 0.6 } : null;
+  if (T.kind === 'facade') return T.block && !T.block.ruined ? T : null;
+  if (T.kind === 'park') return parkNear(T.x, T.h, T.z, 1.5) ? T : null;
+  return null;
+}
+// a bit's next mark: what the squad was sent at for its first three shots, the giant for every other bit, then a body on its
+// feet near the spot (drums and cylinders first, and not always the nearest, so they spread over the bunch), else the road
+function bitMark(sq, b) {
+  const th = sq.thing && b.shots < 3 ? bitThing(sq.thing) : null;
+  if (th) return { x: th.x + rand(-0.25, 0.25), z: th.z, h: th.h + rand(-0.25, 0.25) };
+  const g = sq.boss;
+  if (g && g.state === 'walk' && b.i % 2 === 0) return { x: g.x + rand(-0.3, 0.3), z: g.z, h: g.h + rand(1.0, 1.5) * g.size };
+  let best = null, br = 1e9;
+  for (const o of zombies) {
+    if (!msOK(o) || o.type === 'boss') continue;
+    const d = Math.hypot(o.x - sq.x, o.z - sq.z);
+    if (d > BIT_REACH) continue;
+    const r = d - (o.type === 'barrel' || o.type === 'gas' ? 2.5 : 0) + rand(0, 3);
+    if (r < br) { br = r; best = o; }
+  }
+  if (best) return { x: best.x, z: best.z, h: best.h + 1.05 * best.size };
+  return { x: sq.x + rand(-2, 2), z: sq.z + rand(-2, 2), h: 0.1 };
+}
+const _btO = new THREE.Vector3(), _btD = new THREE.Vector3();
+// one beam from a bit at its mark, on through it to the road or a wall: the bodies on the line shot through, the flying ones
+// knocked higher, a car or the helicopter on it blown up, the airship and the rides hit, a wall chipped
+function bitShot(sq, b, m, big = false) {
+  _btO.set(b.x, b.h, -b.z); _btD.set(m.x - b.x, m.h - b.h, -(m.z - b.z));
+  const Lm = _btD.length() || 1; _btD.divideScalar(Lm);
+  // on through the mark to the road or a wall, but no more than BIT_PAST past it, and never back over the wire at the camera
+  const S = rayStatic(_btO, _btD), ch = sq.ch;
+  let L = Math.min(S.t, Lm + BIT_PAST);
+  if (_btD.z > 1e-4) L = Math.min(L, Math.max(Lm, (b.z - Z_WALL - 0.3) / _btD.z));
+  const x0 = b.x, h0 = b.h, z0 = b.z, dx = _btD.x * L, dh = _btD.y * L, dz = -_btD.z * L, L2 = Math.max(1e-6, dx * dx + dz * dz);
+  const hits = [];
+  for (const zb of zombies) {
+    if (zb.gone || zb.held || zb.rise > 0 || (zb.state !== 'walk' && zb.state !== 'fly')) continue;
+    const t = clamp(((zb.x - x0) * dx + (zb.z - z0) * dz) / L2, 0, 1), ph = h0 + dh * t, boss = zb.type === 'boss';
+    const lo = zb.state === 'walk' ? 0 : zb.h - 0.3, hi = zb.state === 'walk' ? ZOMBIE_H * zb.size * (boss ? 1.3 : 1) : zb.h + 1.2;
+    const side = Math.hypot(zb.x - x0 - dx * t, zb.z - z0 - dz * t), gap = Math.max(0, ph - hi, lo - ph);
+    if (Math.hypot(side, gap) < (boss ? 0.5 * zb.size : BIT_R * (big ? 2.2 : 1) * Math.max(1, zb.size * 0.8))) hits.push({ zb, t, ph });
+  }
+  hits.sort((a, c) => a.t - c.t);
+  let n = 0, cx = 0, cz = 0, end = 1;
+  for (const { zb, t, ph } of hits) {
+    if (zb.type === 'boss') {
+      if (zb.state !== 'walk') continue;
+      damageBoss(big ? BIT_BOSS * 3 : BIT_BOSS, ch, zb);
+      for (let i = 0; i < 8; i++) addPart({ k: 'spark', x: zb.x, z: zb.z - 0.5, h: ph, vx: rand(-4, 4), vz: rand(-5, 2), vh: rand(-1, 5), g: 12, r: 0.035, life: rand(0.2, 0.45), c: BIT_SPARK });
+      bloodBurst(zb.x, zb.z - 0.4, ph, 8, 5, 4);
+      if (!big) { end = t; break; }   // a giant stops a beam
+      continue;
+    }
+    if (zb.state === 'walk') {
+      if (n >= (big ? 8 : BIT_PIERCE)) continue;
+      killZombie(zb, { dx: _btD.x, dz: -_btD.z, d: Math.hypot(_btD.x, _btD.z) || 1, f: big ? 0.9 : 0.7, power: big ? 1.1 : 0.9, ch });
+      n++; cx += zb.x; cz += zb.z;
+      addPart({ k: 'glow', x: zb.x, z: zb.z, h: ph, vx: 0, vz: 0, vh: 0, r: 0.3, life: 0.12, c: BIT_HIT, a: 1 });
+      for (let i = 0; i < 5; i++) addPart({ k: 'spark', x: zb.x, z: zb.z, h: ph, vx: rand(-4, 4), vz: rand(-4, 4), vh: rand(-1, 5), g: 12, r: 0.03, life: rand(0.2, 0.45), c: BIT_SPARK });
+    } else {
+      // a body in the air goes higher
+      if (running && zb.ch) { score += 50; juggles++; }
+      zb.dead = 0; zb.ch = ch; zb.vh = Math.max(zb.vh, 9); zb.vx += _btD.x * 4; zb.vz += -_btD.z * 4; zb.w.x -= rand(3, 7);
+      bloodBurst(zb.x, zb.z, zb.h + 0.5, 5, 3, 3);
+    }
+  }
+  if (n) registerKills(n, cx / n, cz / n, null, true, ch);
+  // a car, the helicopter, the airship or a ride on the line takes a hit; a few beams and it goes (one through every car it
+  // crossed blew up half the street's cars in a squad's first second, and their blasts took the whole horde with them)
+  const Lb = L * end, dmg = big ? BIT_DMG * 3 : BIT_DMG;
+  for (const c of cars) {
+    if (c.state !== 'park' && c.state !== 'roll') continue;
+    const t = rayBox(_btO, _btD, c.x - c.hw - 0.1, 0, -c.z - c.hl - 0.1, c.x + c.hw + 0.1, c.ht + 0.1, -c.z + c.hl + 0.1);
+    if (t > 0 && t < Lb) hitCar(c, dmg, x0 + _btD.x * t, z0 - _btD.z * t, h0 + _btD.y * t, ch);
+  }
+  const th = rayHeli(_btO, _btD);
+  if (th > 0 && th < Lb) hitHeli(dmg, ch, x0 + _btD.x * th, h0 + _btD.y * th, z0 - _btD.z * th);
+  shipBeam(_btO, _btD, Lb, dmg, ch);
+  parkBeam(_btO, _btD, Lb, dmg, ch);
+  // where it goes in
+  const ex = x0 + _btD.x * Lb, eh = h0 + _btD.y * Lb, ez = z0 - _btD.z * Lb;
+  if (end === 1 && S.t <= L) {
+    if (S.kind === 'facade' && S.block) damageBlock(S.block, big ? BIT_WALL * 4 : BIT_WALL, ez, eh, big, ch);
+    if (S.kind === 'ground' && ez > Z_WALL + 0.5) {
+      addDecal(ex, ez, rand(0.22, 0.34), 'scorch', 18);
+      if (big || ++sq.pops % 3 === 0) pop(ex, ez, big ? 0.7 : 0.4, 0.15);
+    }
+    addPart({ k: 'glow', x: ex, z: ez, h: eh + 0.05, vx: 0, vz: 0, vh: 0, r: big ? 0.6 : 0.3, life: 0.1, c: BIT_HIT, a: 1 });
+    for (let i = 0; i < 4; i++) addPart({ k: 'spark', x: ex, z: ez, h: eh + 0.05, vx: rand(-3, 3), vz: rand(-3, 3), vh: rand(1, 5), g: 12, r: 0.03, life: rand(0.2, 0.4), c: BIT_SPARK });
+  }
+  // the beam, a flash at the bit's nose, the zap
+  _btD.multiplyScalar(Lb).add(_btO);
+  bitBeams.push({ A: _btO.clone(), B: _btD.clone(), t: 0, life: big ? BIT_BIG_LIFE : BIT_LIFE, big, beam: takeBeam() });
+  addPart({ k: 'glow', x: b.x + b.nx * 0.2, z: b.z - b.nz * 0.2, h: b.h + b.ny * 0.2, vx: 0, vz: 0, vh: 0, r: big ? 0.3 : 0.16, life: 0.06, c: BIT_HIT, a: 1 });
+  bitShotSnd(b.z, big);
+  b.look = m; b.lookT = 0.25;
+}
+// the volley: they stop where they are and turn on the thickest bunch near the spot (or the giant, or the spot itself)
+function bitsAim(sq) {
+  sq.phase = 'aim'; sq.t = 0;
+  const pool = zombies.filter(o => msOK(o) && o.type !== 'boss' && Math.hypot(o.x - sq.x, o.z - sq.z) < BIT_REACH * 1.3);
+  let best = null, bn = 0;
+  for (const a of pool) { let k = 0; for (const o of pool) if (Math.hypot(o.x - a.x, o.z - a.z) < 2.2) k++; if (k > bn) { bn = k; best = a; } }
+  const g = sq.boss && sq.boss.state === 'walk' ? sq.boss : null;
+  sq.Q = best ? { x: best.x, z: best.z, h: 1.0 } : g ? { x: g.x, z: g.z, h: g.h + 1.2 * g.size } : { x: sq.x, z: sq.z, h: 0.3 };
+  for (const b of sq.bits) { b.look = sq.Q; b.lookT = 9; }
+  bitAimSnd();
+}
+function bitsVolley(sq) {
+  sq.phase = 'home'; sq.t = 0;
+  const Q = sq.Q;
+  for (const b of sq.bits) { if (b.t >= 0 && !b.done) bitShot(sq, b, { x: Q.x + rand(-0.3, 0.3), z: Q.z + rand(-0.3, 0.3), h: Q.h }, true); b.glow = 0; b.homeT = 0.15 + b.i * 0.05; b.lookT = 0; }
+  fxSoft = Q.z < 12; explode(Q.x, Q.z, BIT_VOLLEY, Q.h, null, sq.ch); fxSoft = false;
+  addPart({ k: 'ring', x: Q.x, z: Q.z, h: Q.h, vx: 0, vz: 0, vh: 0, r: 0.4, grow: 6, life: 0.35, c: BIT_GLOW, a: 1 });
+  if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.03);
+  // the word goes up as a sound, by the spot (as a label it went under the chain's)
+  if (running) {
+    const s = toScreen(Q.x, Math.max(Q.z, Z_WALL + 1.5), Q.h + 1.2);
+    floaters.push({ sfx: true, x: clamp(s.X, 90, W - 90), y: clamp(s.Y, hudH + 60, H * 0.6), text: '一斉射!!', rot: rand(-0.12, 0.12), life: 0.9, max: 0.9, size: 46 });
+  }
+}
+// at the whistle, or once they have fired together: home one after another
+function bitsHome(sq) {
+  if (sq.phase !== 'home') { sq.phase = 'home'; sq.t = 0; for (const b of sq.bits) { b.homeT = 0.05 + b.i * 0.04; b.glow = 0; b.lookT = 0; } }
+}
+let bitClock = 0;
+function updateBits(dt) {
+  bitClock += dt;
+  if (running && weapon === 'bits') {
+    squadCD = Math.max(0, squadCD - dt);
+    if (squadsLeft < MAX_SQUADS) { squadTimer += dt; if (squadTimer >= BIT_REFILL) { squadTimer = 0; squadsLeft++; } } else squadTimer = 0;
+  }
+  for (const sq of squads) {
+    sq.t += dt;
+    if (!running) bitsHome(sq);
+    else if (sq.phase === 'on' && sq.t >= BIT_FLY + BIT_T) bitsAim(sq);
+    else if (sq.phase === 'aim' && sq.t >= BIT_AIM) bitsVolley(sq);
+    for (const b of sq.bits) {
+      if (b.done) continue;
+      b.px = b.x; b.pz = b.z; b.ph = b.h;
+      if (b.t < 0) {
+        if ((b.t += dt) < 0) continue;
+        // out of the tube: a flash, and the gun kicks with each one
+        addPart({ k: 'glow', x: b.x, z: b.z, h: b.h, vx: 0, vz: 0, vh: 0, r: 0.2, life: 0.06, c: BIT_HIT, a: 0.8 });
+        tubeRecoil = Math.max(tubeRecoil, 0.45);
+      }
+      b.lookT -= dt;
+      if (sq.phase === 'home') {
+        if (b.leg !== 'home') {
+          if (b.mt < b.mT) bitMove(b, dt);
+          if ((b.homeT -= dt) <= 0) { tubeTip.getWorldPosition(_wp); bitLeg(b, 'home', { x: _wp.x, z: -_wp.z, h: _wp.y }, BIT_HOME + rand(0, 0.1)); b.lift = rand(0, 0.3); b.swing = b.side * rand(0.2, 0.6); }
+        } else if (bitMove(b, dt)) {
+          b.done = true;
+          addPart({ k: 'glow', x: b.x, z: b.z, h: b.h, vx: 0, vz: 0, vh: 0, r: 0.15, life: 0.06, c: BIT_HIT, a: 0.6 });
+        }
+      } else {
+        const there = bitMove(b, dt);
+        if (sq.phase === 'aim') b.glow = Math.min(1, sq.t / BIT_AIM);
+        else if (there) {
+          b.cd -= dt; b.stay -= dt;
+          if (b.cd <= 0) { bitShot(sq, b, bitMark(sq, b)); b.shots++; b.cd = BIT_ROF * rand(0.75, 1.25); }
+          if (b.stay <= 0) { bitLeg(b, 'dart', bitSpot(sq, b.side), BIT_DART * rand(0.8, 1.3)); b.stay = rand(0.35, 0.65); }
+        }
+      }
+      // the nose: on its mark while it has one, else the way it is going
+      const vx = b.x - b.px, vh = b.h - b.ph, vz = -(b.z - b.pz), vl = Math.hypot(vx, vh, vz);
+      b.v = vl / Math.max(dt, 1e-4);
+      let ax = b.nx, ay = b.ny, az = b.nz;
+      if (b.look && b.lookT > 0) { ax = b.look.x - b.x; ay = b.look.h - b.h; az = -(b.look.z - b.z); }
+      else if (vl > 1e-4) { ax = vx; ay = vh; az = vz; }
+      const al = Math.hypot(ax, ay, az) || 1, k = Math.min(1, dt * 14);
+      b.nx += (ax / al - b.nx) * k; b.ny += (ay / al - b.ny) * k; b.nz += (az / al - b.nz) * k;
+      const nl = Math.hypot(b.nx, b.ny, b.nz) || 1; b.nx /= nl; b.ny /= nl; b.nz /= nl;
+    }
+  }
+  if (squads.some(sq => sq.bits.every(b => b.done))) squads = squads.filter(sq => !sq.bits.every(b => b.done));
+  for (const B of bitBeams) if ((B.t += dt) >= B.life) { freeBeam(B.beam); B.done = true; }
+  if (bitBeams.some(B => B.done)) bitBeams = bitBeams.filter(B => !B.done);
+}
+
+// ---------- drawing: the bits (two instanced meshes, the body and the glowing eye in its nose), their glows, the beams ----------
+const _btQ = new THREE.Quaternion(), _btM = new THREE.Matrix4(), _btP = new THREE.Vector3(), _btS = new THREE.Vector3(), _btZ = new THREE.Vector3(0, 0, 1), _btN = new THREE.Vector3();
+function initBitMeshes() {
+  // a slim pod, nose along +z, with a collar at the tail and three fins round it
+  const parts = [
+    new THREE.CylinderGeometry(0.028, 0.072, 0.34, 10).rotateX(Math.PI / 2),
+    new THREE.CylinderGeometry(0.075, 0.058, 0.07, 10).rotateX(Math.PI / 2).translate(0, 0, -0.2),
+    ...[0, 1, 2].map(i => new THREE.BoxGeometry(0.012, 0.1, 0.13).translate(0, 0.085, -0.16).rotateZ(i * 2.0944)),
+  ];
+  const geo = mergeGeometries(parts.map(g => g.toNonIndexed()));
+  bitBody = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xdedae6, metalness: 0.55, roughness: 0.3, envMap, emissive: 0x1e1626 }), BIT_MAX);
+  bitEye = new THREE.InstancedMesh(new THREE.SphereGeometry(0.03, 10, 8).translate(0, 0, 0.18), new THREE.MeshBasicMaterial({ color: new THREE.Color(BIT_ORB[0] * 0.7, BIT_ORB[1] * 0.7, BIT_ORB[2] * 0.7) }), BIT_MAX);
+  for (const o of [bitBody, bitEye]) { o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); o.frustumCulled = false; o.count = 0; scene.add(o); }
+}
+function drawBits(raw) {
+  if (!bitBody) return;
+  let n = 0;
+  for (const sq of squads) for (const b of sq.bits) {
+    if (b.t < 0 || b.done) continue;
+    const d = Math.hypot(b.x, b.z, b.h - CAM_H), k = clamp(d / 8, 0.25, 1), s = clamp(d / 8, 0.85, 2.1);
+    // a pink flame at the tail, longer while it darts; the eye glowing, brighter as it aims the volley
+    const tx = b.x - b.nx * 0.24 * s, th = b.h - b.ny * 0.24 * s, tz = -b.z - b.nz * 0.24 * s, fast = clamp(b.v / 20, 0, 1);
+    ADD.push(tx, th, tz, (0.12 + 0.1 * fast) * s * k, 0, 0, 0, BIT_HIT[0] * k, BIT_HIT[1] * k, BIT_HIT[2] * k, 1);
+    if (fast > 0.2) ADD.push(tx, th, tz, 0.07 * s * k, 0, 14, 1, 2.4 * fast * k, 0.6 * fast * k, 2 * fast * k, 1, -b.nx * 0.5 * fast * s, -b.ny * 0.5 * fast * s, -b.nz * 0.5 * fast * s);
+    const ex = b.x + b.nx * 0.2 * s, eh = b.h + b.ny * 0.2 * s, ez = -b.z + b.nz * 0.2 * s, gl = 0.06 + 0.22 * b.glow * (0.85 + 0.15 * Math.sin(bitClock * 60));
+    ADD.push(ex, eh, ez, gl * s * k, 0, 0, 0, BIT_ORB[0] * k, BIT_ORB[1] * k, BIT_ORB[2] * k, 1);
+    // the pod itself once it is out a little way (just out of the tube it would cross the screen as big as a fist)
+    if (d < 2.2 || n >= BIT_MAX) continue;
+    _btQ.setFromUnitVectors(_btZ, _btN.set(b.nx, b.ny, b.nz));
+    _btM.compose(_btP.set(b.x, b.h, -b.z), _btQ, _btS.setScalar(s));
+    bitBody.setMatrixAt(n, _btM); bitEye.setMatrixAt(n, _btM); n++;
+  }
+  bitBody.count = bitEye.count = n;
+  bitBody.instanceMatrix.needsUpdate = bitEye.instanceMatrix.needsUpdate = true;
+  bitBody.visible = bitEye.visible = n > 0;
+  // the beams: a flash at full strength, then thinning out (the volley's wider and slower to go)
+  for (const B of bitBeams) {
+    const u = B.t / B.life, I = B.t < 0.03 ? 1.4 : Math.pow(1 - u, 1.5);
+    setBeam(B.beam, B.A, B.B, { uK: (B.big ? 0.012 : 0.0065) * (1.2 - 0.5 * u), uW: B.big ? 0.24 : 0.12, uNeck: 0.15, uI: I, uRing: 3, uFlow: 50, uHelix: 0, uTip: B.big ? 1.2 : 0.6, core: BIT_CORE, glow: BIT_GLOW });
+    B.beam.u.uTime.value += raw;
+  }
+}
+
+// ---------- the bits' sounds ----------
+// out they go: a rising whistle each, BIT_GAP apart
+function bitLaunchSnd(n) {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (let i = 0; i < n; i++) {
+    const tt = t + i * BIT_GAP, o = osc('sine', 700, tt);
+    o.frequency.exponentialRampToValueAtTime(2600, tt + 0.16);
+    o.connect(gain(tt, 0.05, 0.005, 0.18)).connect(master); o.start(tt); o.stop(tt + 0.22);
+  }
+}
+// one beam: a short falling zap, quieter further off, no more than one in 30 ms; the volley's long and low
+function bitShotSnd(z, big) {
+  if (!live()) return;
+  const t = actx.currentTime;
+  if (!big && t - bitSndT < 0.03) return;
+  bitSndT = t;
+  const k = clamp(14 / Math.max(6, z), 0.35, 1) * (big ? 1.6 : 1), D = big ? 0.3 : 0.08;
+  const o = osc('sawtooth', big ? 1700 : 2800, t); o.frequency.exponentialRampToValueAtTime(big ? 200 : 420, t + D);
+  o.connect(filt('lowpass', 5200, 0.7)).connect(gain(t, 0.05 * k, 0.002, D)).connect(master); o.start(t); o.stop(t + D + 0.04);
+}
+// as they aim the volley: a whine winding up
+function bitAimSnd() {
+  if (!live()) return;
+  const t = actx.currentTime, o = osc('sine', 500, t);
+  o.frequency.exponentialRampToValueAtTime(2400, t + BIT_AIM);
+  o.connect(gain(t, 0.07, BIT_AIM * 0.8, 0.08)).connect(master); o.start(t); o.stop(t + BIT_AIM + 0.1);
+}
+
 // ===== 60-audio.js
 
 // ---------- audio: same synth and voices as the 2D game ----------
@@ -6503,7 +6847,7 @@ function reset() {
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetReplay(); resetPark(); resetFest();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetReplay(); resetPark(); resetFest();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -6583,7 +6927,7 @@ function addFever(v) {
   if (fever >= 100) strikeReady();
 }
 // what FEVER does to the tap
-const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題' };
+const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題', bits: 'ビット撃ち放題' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', weapon === 'tank' ? '機銃2倍 ・ 主砲連射' : `マシンガン2倍 ・ ${FEVER_TAP[weapon]}`, C.flare, 1.4);
@@ -7283,6 +7627,7 @@ function update(dt, raw) {
   updateFlame(dt);
   updateShock(dt);
   updateMissiles(dt);
+  updateBits(dt);
   updateStrike(dt);
   updateCars(dt);
   updateHeli(dt);
@@ -7432,8 +7777,8 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
-  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : ms ? 'M' + salvosLeft : rocketsLeft;
+  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', bt = weapon === 'bits', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
+  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : ms ? 'M' + salvosLeft : bt ? 'B' + squadsLeft : rocketsLeft;
   const key = [tv.toFixed(1), score, ammoKey, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
@@ -7447,6 +7792,7 @@ function hud() {
     : fl ? Array.from({ length: MAX_FLAMES }, (_, i) => `<i class="fl${feverT > 0 || i < flamesLeft ? ' on' : ''}${flame && i === flamesLeft ? ' burn' : ''}"></i>`).join('')
     : zp ? Array.from({ length: MAX_SHOCKS }, (_, i) => `<i class="zp${feverT > 0 || i < shocksLeft ? ' on' : ''}"></i>`).join('')
     : ms ? Array.from({ length: MAX_SALVOS }, (_, i) => `<i class="ms${feverT > 0 || i < salvosLeft ? ' on' : ''}"></i>`).join('')
+    : bt ? Array.from({ length: MAX_SQUADS }, (_, i) => `<i class="bt${feverT > 0 || i < squadsLeft ? ' on' : ''}"></i>`).join('')
     : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
   // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
   const sp = $('spMeter');
@@ -7497,7 +7843,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -10973,7 +11319,7 @@ const MKEY = 'zb3d-missions';
 let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT = 0, fatPops = 0, bombesShot = 0;
 // the weapons the medals open, in order (2026-10-25: kazu picked the black hole for the first, then asked for the railgun and
 // the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
-// missile pod, kazu asking for the most exhilarating weapon there could be)
+// missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam)
 const UNLOCKS = [
   { w: 'hole', medals: 10, sub: 'マシンガン＋吸い込み弾' },
   { w: 'rail', medals: 20, sub: 'マシンガン＋貫通ビーム' },
@@ -10981,9 +11327,10 @@ const UNLOCKS = [
   { w: 'flame', medals: 40, sub: 'マシンガン＋燃え広がる炎' },
   { w: 'shock', medals: 50, sub: 'マシンガン＋連鎖する稲妻' },
   { w: 'missile', medals: 60, sub: 'マシンガン＋追尾ミサイル' },
+  { w: 'bits', medals: 70, sub: 'マシンガン＋浮遊ビーム砲台' },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
-function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバ'; }
+function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射'; }
 function drawMission(tier, not) {
   const pool = MISSIONS.filter(m => m.tier === tier && !not.includes(m.id));
   let fresh = pool.filter(m => !mis.seen.includes(m.id));
