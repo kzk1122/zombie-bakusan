@@ -88,6 +88,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo i.fl.burn { opacity: 1; background: radial-gradient(ellipse at 50% 75%, #fff 20%, #ffd060 50%, #ff6a1a 85%); border-color: #fff0c0; animation: blink .1s steps(2) infinite; }
 .ammo i.zp { width: 11px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(58% 0, 100% 0, 64% 40%, 100% 40%, 18% 100%, 40% 54%, 0 54%); }
 .ammo i.zp.on { background: linear-gradient(180deg, #ffffff, #b8e4ff 45%, #5a8aff); }
+.ammo i.ms { width: 10px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(50% 0, 72% 22%, 72% 70%, 100% 100%, 0 100%, 28% 70%, 28% 22%); }
+.ammo i.ms.on { background: linear-gradient(180deg, #ff4a3d 0 26%, #f3e9dc 26% 76%, #ffb04a 76%); }
 .wv b { background: linear-gradient(90deg, #1b3594, #4f8dff); }
 .wv.ready b { background: linear-gradient(90deg, #2f63e8, #8fd8ff, #ffffff); box-shadow: 0 0 8px #6fb8ff; }
 .wv.fire b { background: linear-gradient(90deg, #8fd8ff, #ffffff); animation: blink .12s steps(2) infinite; }
@@ -200,6 +202,9 @@ canvas { display: block; width: 100%; height: 100%; }
 .pk.fl[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 125%, #fff2b0 6%, #ffb02e 28%, #e8501a 60%, #6a1606); color: #fff; border-color: #ffd8a0; box-shadow: 0 4px 0 #8a2a08; text-shadow: 0 1px 2px #5a1004; }
 .pk.zp { border-color: color-mix(in srgb, #9ad8ff 65%, transparent); background: linear-gradient(118deg, transparent 45%, color-mix(in srgb, #cfeeff 40%, transparent) 47%, transparent 49%), radial-gradient(ellipse at 50% 140%, #1a2a6e, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
 .pk.zp[aria-pressed="true"] { background: linear-gradient(118deg, transparent 44%, #ffffff 47%, transparent 50%), radial-gradient(ellipse at 50% 50%, #e8f6ff 6%, #9ad0ff 24%, #4a6cf0 60%, #1a1f6a); color: #fff; border-color: #e0f0ff; box-shadow: 0 4px 0 #22307a; text-shadow: 0 1px 2px #101850; }
+/* the missile pod: smoke trails curling up over red */
+.pk.ms { border-color: color-mix(in srgb, #ff5a4a 65%, transparent); background: radial-gradient(ellipse at 20% 120%, transparent 40%, color-mix(in srgb, #fff 22%, transparent) 43%, transparent 46%), radial-gradient(ellipse at 80% 120%, transparent 40%, color-mix(in srgb, #fff 22%, transparent) 43%, transparent 46%), radial-gradient(ellipse at 50% 140%, #7a1410, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
+.pk.ms[aria-pressed="true"] { background: radial-gradient(ellipse at 20% 120%, transparent 40%, #ffffffb0 43%, transparent 47%), radial-gradient(ellipse at 80% 120%, transparent 40%, #ffffffb0 43%, transparent 47%), radial-gradient(ellipse at 50% 120%, #ffd2a0 4%, #ff6a3a 30%, #c21c14 62%, #5a0a08); color: #fff; border-color: #ffd0c0; box-shadow: 0 4px 0 #7a1410; text-shadow: 0 1px 2px #4a0806; }
 .pk.locked { opacity: .62; border-style: dashed; border-color: color-mix(in srgb, var(--bone) 35%, transparent); background: color-mix(in srgb, var(--ink) 55%, transparent); cursor: not-allowed; }
 .pk.nope { animation: nope .35s; }
 @keyframes nope { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -336,6 +341,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="pk wv locked" type="button" data-w="wave" aria-pressed="false" aria-disabled="true" hidden><span class="t">波動砲</span><span class="d">メダル30枚で解放</span></button>
         <button class="pk fl locked" type="button" data-w="flame" aria-pressed="false" aria-disabled="true" hidden><span class="t">火炎放射器</span><span class="d">メダル40枚で解放</span></button>
         <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t">電撃砲</span><span class="d">メダル50枚で解放</span></button>
+        <button class="pk ms locked" type="button" data-w="missile" aria-pressed="false" aria-disabled="true" hidden><span class="t">ミサイル</span><span class="d">メダル60枚で解放</span></button>
       </div>
       <div class="stg" role="group" aria-label="ステージを選ぶ"></div>
       <button class="btn" id="startBtn" type="button" disabled>
@@ -385,6 +391,7 @@ canvas { display: block; width: 100%; height: 100%; }
           <button class="pk wv" type="button" data-w="wave" aria-pressed="false" hidden><span class="t">波動砲</span></button>
           <button class="pk fl" type="button" data-w="flame" aria-pressed="false" hidden><span class="t">火炎放射器</span></button>
           <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t">電撃砲</span></button>
+          <button class="pk ms" type="button" data-w="missile" aria-pressed="false" hidden><span class="t">ミサイル</span></button>
         </div>
         <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
       </div>
@@ -1407,7 +1414,7 @@ const MAT = {};
 // burnt-out one left burning further down [kind, x, z, yaw].
 const STAGES = {
   avenue: {
-    name: '夜の大通り', build: buildAvenue, env: ENV_AVENUE, fog: 0x4a2436, zen: 0x0b0818, glow: col(0xff6a4a, 0.12),
+    name: '大通り', build: buildAvenue, env: ENV_AVENUE, fog: 0x4a2436, zen: 0x0b0818, glow: col(0xff6a4a, 0.12),
     hemi: [0x8a74c0, 0x2a1418, 1.25], search: 0xffe6c8, haze: '#5a3050', moon: { z: 62, top: 7.55 },
     cars: ['police', 'taxi', 'sedan', 'van', 'kei'], wreck: ['sedan', -2.4, 44, 0.5],
   },
@@ -1779,7 +1786,7 @@ function blastLight(x, z, h, power, zap = false) {
   for (const l of blastLights) if (l.userData.t / l.userData.life > L.userData.t / L.userData.life) L = l;
   // above the fireball, so the street around it lights up without a white-hot spot right under it
   L.position.set(x, h + 2.2, -z);
-  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power * (fxSoft ? 0.6 : 1), zap };
+  L.userData = { t: 0, life: 0.55 + 0.25 * power, peak: 60 * power * (fxSoft ? 0.6 : 1) * (fxPop ? 0.4 : 1), zap };
 }
 let blastLoad = 0;
 function updateLights(dt) {
@@ -1809,7 +1816,7 @@ const PARK_GLYPHS = PARK_SIGNS.join('') + '爆散ランド観覧車倒壊コー�
 const PARK_BULB = [0xff3a3a, 0xffc23a, 0x5aff6a, 0x4ab8ff, 0xff5ad8, 0xfff2d0];
 const ENV_PARK = { bg: 0x0a0a1c, floor: 0x120a10, top: 0x14123a, far: 0x3a2a6a, near: 0x201030, wall: 0x1a1030, strip: 0xfff0c0, neon: [0xff3a3a, 0xffc23a, 0x5aff6a, 0x4ab8ff, 0xff5ad8, 0xffffff] };
 STAGES.park = {
-  name: '夜の遊園地', build: buildPark, env: ENV_PARK, fog: 0x2e2050, zen: 0x080a20, glow: col(0xff5ab4, 0.1),
+  name: '遊園地', build: buildPark, env: ENV_PARK, fog: 0x2e2050, zen: 0x080a20, glow: col(0xff5ab4, 0.1),
   hemi: [0x8a8ae8, 0x2a1830, 1.3], search: 0xfff0dc, haze: '#4a3a70', moon: { z: 84, top: 8 },
   cars: ['crepe', 'hotdog', 'police', 'kei'], wreck: ['kei', 2.2, 41, -0.6], jetHi: 15.6,
 };
@@ -2345,7 +2352,7 @@ function buildWheel(root, gond) {
   const gon = Array.from({ length: Wh.n }, (_, i) => ({ i, state: 'hang', x: 0, h: 0, z: 0, vx: 0, vh: 0, vz: 0, q: new THREE.Quaternion(), w: new THREE.Vector3(), t: 0, tint: col(TINT[i % TINT.length]) }));
   return { pivot, base, rot, steel, cab, roof, bulbs, gm, gon };
 }
-// a food truck's board for its roof (the park's 'crepe' and 'hotdog' cars, 70-game.js)
+// a food truck's board for its roof (the park's 'crepe' and 'hotdog' cars, the festival's 'takoyaki' and 'kakigori', 70-game.js)
 const truckBoards = {};
 function truckBoard(kind) {
   if (truckBoards[kind]) return truckBoards[kind];
@@ -2357,6 +2364,562 @@ function truckBoard(kind) {
   g.lineWidth = 7; g.strokeStyle = '#2a1018'; g.strokeText(txt, 128, 48);
   g.fillStyle = '#fffbe8'; g.fillText(txt, 128, 48);
   return (truckBoards[kind] = ctex(c));
+}
+
+// ===== 22-fest.js
+// ---------- 夏祭り, the summer festival (2026-10-30, kazu: one more stage) ----------
+// The approach to a shrine on its festival night: a stone path through gravel between rows of stalls under striped awnings and
+// bare bulbs, old town houses behind them with their paper windows lit, red lanterns strung along both sides, banners on poles,
+// and at the far end a vermilion torii with a great lantern hanging in it and the shrine lit up beyond, fireworks going up over
+// it all night. Across the path at 50 m stands the launch stand for the festival's grand finale, its mortars aimed our way
+// (76-fest.js). The street keeps the avenue's widths, so everything else works as there.
+// On a phone the walkways show only from about 30 m on, and the sky only a little way up: so nothing hangs across the near
+// street (it would sit behind the HUD, and the jets of the air strike fly there), the lanterns run along the kerbs instead.
+const FEST_STALLS = ['たこ焼き', '焼きそば', 'かき氷', '金魚すくい', 'りんご飴', 'わたあめ', '射的', 'お面', 'ヨーヨー', 'いか焼き', 'チョコバナナ', 'ラムネ', 'フランク', 'くじ引き', 'ゾンビすくい', '焼きもろこし'];
+const FEST_HANG = ['酒', '米', '茶', '呉服', '宿', '蕎麦', '甘味', '質'];
+const FEST_NOBORI = ['夏祭り', '爆散祭', '奉納', 'かき氷', 'たこ焼き', 'ラムネ', '御神燈', '祭'];
+// every letter the festival draws on its canvases and in its callouts, for the font to load before they are drawn (70-game.js boot)
+const FEST_GLYPHS = FEST_STALLS.join('') + FEST_HANG.join('') + FEST_NOBORI.join('') + '爆散神社大スターマイン火気厳禁たまや〜!撃つと夏祭り尺玉';
+const ENV_FEST = { bg: 0x0e0810, floor: 0x160c08, top: 0x1a0e1c, far: 0x6a2a1a, near: 0x221010, wall: 0x1e1210, strip: 0xffe0b0, neon: [0xff4a2a, 0xffa040, 0xffd890, 0xff6a4a, 0xfff0d0, 0xff3a5a] };
+// the torii at the end of the street (its distance, the feet's x, the top of its upper beam), the launch stand across the path
+// (its distance, half its width, the deck's height and the top of the mortars), the shrine's hall beyond the torii. On a phone the
+// horde hides the street up to about 1.6 m at 50 m: the stand's deck is up on legs so that its banner and mortars show over them,
+// and the torii's great lantern hangs high enough to show over the mortars
+const TORII = { z: 66, x: 3.9, top: 7.6 }, RACK = { z: 50, hw: 3.95, deck: 2.0, top: 3.0, n: 9 }, SHRINE = { z: 99.5 };
+STAGES.fest = {
+  name: '夏祭り', build: buildFest, env: ENV_FEST, fog: 0x3e2230, zen: 0x0a0716, glow: col(0xff7a3a, 0.14),
+  hemi: [0x9a80b8, 0x2e1810, 1.25], search: 0xffe8c8, haze: '#5a3840', moon: { z: TORII.z, top: TORII.top },
+  cars: ['takoyaki', 'kakigori', 'police', 'kei'], wreck: null, jetHi: 9.6,
+};
+// the path: gravel raked along the street, a band of granite slabs down the middle edged in darker stone, the night's litter,
+// and wet patches that shine (the map covers the street's width and 16 m of its length, like the avenue's asphalt)
+function makeFestGroundTex() {
+  const w = 512, h = 1024, [c, g] = canvas(w, h), [rc, rg] = canvas(256, 512);
+  const pxm = w / (ROAD * 2), pzm = h / 16;
+  g.fillStyle = '#4a4442'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { const v = rand(46, 132) | 0; g.fillStyle = `rgb(${v},${v - 5},${v - 9})`; g.fillRect(rand(0, w), rand(0, h), rand(1.5, 3.5), rand(1.5, 3)); }
+  g.strokeStyle = 'rgba(16,12,12,.2)'; g.lineWidth = 2;
+  for (let x = 6; x < w; x += 11) { g.beginPath(); g.moveTo(x + rand(-1, 1), 0); g.lineTo(x + rand(-1, 1), h); g.stroke(); }
+  const pw = 3.0 * pxm, x0 = w / 2 - pw / 2, sw = 0.75 * pxm, sh = 0.5 * pzm;
+  g.fillStyle = '#221c1a'; g.fillRect(x0 - 10, 0, pw + 20, h);
+  for (let r = 0; r * sh < h; r++) for (let k = -1; k * sw < pw + sw; k++) {
+    const x = x0 + k * sw + (r % 2 ? sw / 2 : 0), y = r * sh, xa = Math.max(x0, x), xb = Math.min(x0 + pw, x + sw);
+    if (xb - xa < 6) continue;
+    const v = rand(-14, 14) | 0;
+    g.fillStyle = `rgb(${126 + v},${118 + v},${112 + v})`; g.fillRect(xa + 2, y + 2, xb - xa - 4, sh - 4);
+    for (let i = 0; i < 5; i++) blotch(g, rand(xa, xb), rand(y, y + sh), rand(4, 9), `rgba(${rand(60, 100) | 0},${rand(56, 90) | 0},${rand(50, 84) | 0},.2)`, 4);
+  }
+  for (const ex of [x0 - 10, x0 + pw]) { g.fillStyle = '#5e5856'; g.fillRect(ex, 0, 10, h); for (let y = 0; y < h; y += 0.6 * pzm) { g.fillStyle = '#26201e'; g.fillRect(ex, y, 10, 2); } }
+  // what the crowd dropped as it ran: paper cups and trays, skewers; and blood trodden in
+  for (let i = 0; i < 90; i++) {
+    g.fillStyle = pick(['rgba(240,236,220,.75)', 'rgba(255,120,120,.6)', 'rgba(120,200,255,.55)', 'rgba(255,220,120,.6)']);
+    g.save(); g.translate(rand(0, w), rand(0, h)); g.rotate(rand(0, 6.28)); g.fillRect(-rand(2, 5), -rand(2, 4), rand(4, 10), rand(3, 7)); g.restore();
+  }
+  g.strokeStyle = 'rgba(200,170,120,.6)'; g.lineWidth = 1.5;
+  for (let i = 0; i < 60; i++) { const x = rand(0, w), y = rand(0, h), a = rand(0, 6.28); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke(); }
+  for (let i = 0; i < 10; i++) blotch(g, rand(30, w - 30), rand(0, h), rand(12, 30), 'rgba(70,8,12,.35)', 7);
+  grain(g, w, h, 18, 0);
+  // the slabs are smoother than the gravel, and wet in patches (dark = glossy)
+  rg.fillStyle = '#d0d0d0'; rg.fillRect(0, 0, 256, 512);
+  rg.fillStyle = '#909090'; rg.fillRect(128 - pw / 4, 0, pw / 2, 512);
+  for (let i = 0; i < 12; i++) {
+    const x = 128 + rand(-pw / 4, pw / 4), y = rand(0, 512), r = rand(14, 36);
+    const gr = rg.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, '#202020'); gr.addColorStop(0.7, '#505050'); gr.addColorStop(1, 'rgba(144,144,144,0)');
+    rg.fillStyle = gr; rg.beginPath(); rg.ellipse(x, y, r * 0.8, r * 1.4, 0, 0, 7); rg.fill();
+  }
+  const map = ctex(c, true), rough = ctex(rc, true);
+  rough.colorSpace = THREE.NoColorSpace;
+  return { map, rough };
+}
+// the walkways: packed earth with grit in it, 2 m to a tile of the map
+function makeFestWalkTex() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#4a3c34'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2600; i++) { const v = rand(40, 110) | 0; g.fillStyle = `rgba(${v + 10},${v},${v - 8},.8)`; g.fillRect(rand(0, 256), rand(0, 256), rand(1, 3), rand(1, 3)); }
+  for (let i = 0; i < 8; i++) blotch(g, rand(0, 256), rand(0, 256), rand(20, 50), 'rgba(30,22,18,.3)', 8);
+  grain(g, 256, 256, 20, 20);
+  return ctex(c, true);
+}
+// the town houses' fronts, 8 bays of 3 m across the map; the bottom half the ground floor (lattice lit from inside, or a doorway
+// with a noren), the top half the upper floor (plaster with slit windows, or paper windows behind a rail). Pale so the tint gives
+// the colour; the second map is what glows
+function makeMachiyaTex() {
+  const S = 1024, Hh = 256, B = 128, [c, g] = canvas(S, Hh), [ec, eg] = canvas(S, Hh);
+  eg.fillStyle = '#000'; eg.fillRect(0, 0, S, Hh);
+  const WOOD = ['#3a2418', '#4a2e1e', '#2e1c14'], WARM = ['#ffcf8a', '#ffb870', '#ffe2b0', '#ffc27a'];
+  for (let b = 0; b < 8; b++) {
+    const x = b * B, lit = Math.random() < 0.6, wood = pick(WOOD);
+    g.fillStyle = b % 3 ? '#d4cab6' : '#4a382c'; g.fillRect(x, 0, B, 128);
+    if (b % 2) {   // mushiko-mado: slits in the plaster
+      for (let k = 0; k < 7; k++) { const sx = x + 22 + k * 12; g.fillStyle = '#1a1210'; g.fillRect(sx, 34, 6, 56); if (lit) { eg.fillStyle = pick(WARM); eg.fillRect(sx, 34, 6, 56); } }
+    } else {   // paper windows behind a wooden rail
+      g.fillStyle = '#e8dcc0'; g.fillRect(x + 16, 26, B - 32, 70);
+      if (lit) { eg.fillStyle = pick(WARM); eg.fillRect(x + 16, 26, B - 32, 70); }
+      g.fillStyle = '#4a2e1e'; eg.fillStyle = '#000';
+      for (let k = 0; k <= 6; k++) { const sx = x + 16 + k * (B - 32) / 6; g.fillRect(sx - 1.5, 26, 3, 70); eg.fillRect(sx - 1.5, 26, 3, 70); }
+      for (let k = 0; k <= 4; k++) { const sy = 26 + k * 70 / 4; g.fillRect(x + 16, sy - 1.5, B - 32, 3); eg.fillRect(x + 16, sy - 1.5, B - 32, 3); }
+      g.fillStyle = '#2e1c14'; g.fillRect(x + 10, 92, B - 20, 8);
+    }
+    g.fillStyle = wood; g.fillRect(x, 0, 6, Hh); g.fillRect(x + B - 6, 0, 6, Hh); g.fillRect(x, 0, B, 8); g.fillRect(x, 120, B, 16);
+    const y0 = 136;
+    if (b % 4 === 1) {   // a doorway: a noren in front of the lit entrance
+      g.fillStyle = '#120c0a'; g.fillRect(x + 24, y0 + 4, 80, Hh - y0 - 4);
+      eg.fillStyle = pick(WARM); eg.fillRect(x + 24, y0 + 40, 80, Hh - y0 - 40);
+      g.fillStyle = pick(['#1e2a5a', '#5a1a1a', '#2a3a2a', '#3a2a4a']); eg.fillStyle = '#000';
+      for (let k = 0; k < 4; k++) { g.fillRect(x + 25 + k * 20, y0 + 4, 18, 44); eg.fillRect(x + 25 + k * 20, y0 + 4, 18, 44); }
+      g.fillStyle = '#e8e0d0'; g.beginPath(); g.arc(x + 64, y0 + 26, 9, 0, 7); g.fill();
+    } else {   // a lattice front
+      g.fillStyle = '#1a120e'; g.fillRect(x + 10, y0 + 2, B - 20, Hh - y0 - 2);
+      if (lit || b % 4 === 3) { eg.fillStyle = pick(WARM); eg.fillRect(x + 10, y0 + 2, B - 20, Hh - y0 - 2); }
+      g.fillStyle = wood; eg.fillStyle = '#000';
+      for (let sx = x + 10; sx < x + B - 10; sx += 6) { g.fillRect(sx, y0 + 2, 3, Hh - y0 - 2); eg.fillRect(sx, y0 + 2, 3, Hh - y0 - 2); }
+    }
+    g.fillStyle = '#2a201c'; g.fillRect(x, Hh - 8, B, 8);
+  }
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(30,20,16,${rand(0.05, 0.15)})`; g.fillRect(rand(0, S), rand(0, 120), rand(3, 10), rand(20, 80)); }
+  grain(g, S, Hh, 14, 20);
+  return { map: ctex(c, true), em: ctex(ec, true) };
+}
+// a stall's awning, four colours in stripes, one per quarter of the map across; the bottom rows the valance's band
+function makeYataiTex() {
+  const [c, g] = canvas(256, 128), COL = ['#d01e26', '#1e4ab0', '#e07a10', '#1a8a4a'];
+  for (let k = 0; k < 4; k++) {
+    for (let s = 0; s < 8; s++) { g.fillStyle = s % 2 ? '#f4efe6' : COL[k]; g.fillRect(k * 64 + s * 8, 0, 8, 100); }
+    g.fillStyle = COL[k]; g.fillRect(k * 64, 100, 64, 28); g.fillStyle = '#f4efe6'; g.fillRect(k * 64, 106, 64, 3);
+  }
+  grain(g, 256, 128, 10, 0);
+  const t = ctex(c); t.wrapS = THREE.ClampToEdgeWrapping;
+  return t;
+}
+// the stalls' name boards, 4 x 4 of them (2:1), bold on bright
+function makeStallSignTex() {
+  const [c, g] = canvas(1024, 512), info = [];
+  const SCHEME = [['#d01e26', '#fff6e8'], ['#fff6e8', '#c0141c'], ['#ffd23a', '#b0141c'], ['#1e4ab0', '#ffffff'], ['#1a1a1a', '#ffd23a'], ['#e85aa8', '#ffffff']];
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < 16; i++) {
+    const x = (i % 4) * 256, y = ((i / 4) | 0) * 128, txt = FEST_STALLS[i], [bg, fg] = SCHEME[i % SCHEME.length];
+    g.fillStyle = '#2a1a12'; g.fillRect(x + 2, y + 2, 252, 124);
+    g.fillStyle = bg; g.fillRect(x + 8, y + 8, 240, 112);
+    g.font = `${Math.min(80, 220 / [...txt].length * 1.05) | 0}px ${FONT}`;
+    g.lineWidth = 6; g.strokeStyle = bg === '#fff6e8' ? '#fff6e8' : 'rgba(20,10,10,.55)'; g.strokeText(txt, x + 128, y + 66);
+    g.fillStyle = fg; g.fillText(txt, x + 128, y + 66);
+    info.push({ u0: x / 1024, u1: (x + 256) / 1024, v0: 1 - (y + 128) / 512, v1: 1 - y / 512 });
+  }
+  return { tex: ctex(c), info };
+}
+// the back of a stall seen past its counter, lit: 0 a griddle and the menu, 1 syrups and ice, 2 masks on the wall, 3 prizes
+function makeStallGoodsTex() {
+  const S = 256, [c, g] = canvas(S * 4, 128);
+  for (let k = 0; k < 4; k++) { const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#ffe2b0'); gr.addColorStop(1, '#a8703a'); g.fillStyle = gr; g.fillRect(k * S, 0, S, 128); }
+  g.fillStyle = '#fff8ea'; g.fillRect(16, 10, 224, 40);
+  for (let i = 0; i < 5; i++) { g.fillStyle = '#3a1a10'; g.fillRect(28 + i * 42, 20, 30, 6); g.fillRect(28 + i * 42, 32, 22, 6); }
+  g.fillStyle = '#2a1c18'; g.fillRect(10, 86, 236, 40);
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++) { g.fillStyle = '#d8902a'; g.beginPath(); g.arc(26 + i * 25, 98 + r * 14, 6, 0, 7); g.fill(); }
+  const SYR = ['#ff2a3a', '#2a8aff', '#3aff6a', '#ffd23a', '#c86bff', '#ff8a3a'];
+  for (let i = 0; i < 6; i++) { g.fillStyle = SYR[i]; g.fillRect(S + 20 + i * 38, 40, 22, 58); g.fillStyle = '#f0f0f0'; g.fillRect(S + 26 + i * 38, 30, 10, 12); }
+  g.fillStyle = '#dff4ff'; g.fillRect(S + 30, 100, 196, 26);
+  const FACE = ['#ffd8b0', '#9ad8ff', '#ff9ac8', '#ffffff', '#ffe08a', '#b8f0a0'];
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 5; i++) {
+    const x = S * 2 + 30 + i * 48, y = 34 + r * 54;
+    g.fillStyle = pick(FACE); g.beginPath(); g.ellipse(x, y, 17, 21, 0, 0, 7); g.fill();
+    g.fillStyle = '#1a1010'; g.fillRect(x - 9, y - 6, 5, 4); g.fillRect(x + 4, y - 6, 5, 4);
+    g.fillStyle = '#d02030'; g.beginPath(); g.arc(x, y + 9, 5, 0, Math.PI); g.fill();
+  }
+  for (let r = 0; r < 3; r++) {
+    g.fillStyle = '#6a3a1a'; g.fillRect(S * 3 + 10, 44 + r * 38, S - 20, 5);
+    for (let i = 0; i < 7; i++) { g.fillStyle = pick(['#ff4a6a', '#4ab8ff', '#ffd25e', '#7dff7a', '#ffffff', '#c86bff']); g.fillRect(S * 3 + 20 + i * 32, 18 + r * 38, 22, 26); }
+  }
+  grain(g, S * 4, 128, 10, 0);
+  return ctex(c);
+}
+// paper lanterns: the top half of the map the red kind with 祭 in black, the bottom half the white kind with it in red.
+// Round each lantern u 0.5 faces down the street toward us (LANTERN_GEO), u 0 and 1 away
+function makeLanternTex() {
+  const [c, g] = canvas(256, 256);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const [y0, bg, ink] of [[0, '#e2361e', '#140806'], [128, '#f4ead4', '#c0141c']]) {
+    const gr = g.createLinearGradient(0, y0, 0, y0 + 128);
+    gr.addColorStop(0, mixHex(bg, '#000000', 0.4)); gr.addColorStop(0.5, bg); gr.addColorStop(1, mixHex(bg, '#000000', 0.4));
+    g.fillStyle = gr; g.fillRect(0, y0, 256, 128);
+    g.strokeStyle = 'rgba(40,10,6,.3)'; g.lineWidth = 2;
+    for (let y = y0 + 10; y < y0 + 124; y += 9) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+    g.font = `68px ${FONT}`; g.fillStyle = ink;
+    for (const x of [0, 128, 256]) g.fillText('祭', x, y0 + 66);
+  }
+  return ctex(c);
+}
+// the great lantern in the torii: 爆散 down its front, 神社 down its back
+function makeBigLanternTex() {
+  const [c, g] = canvas(256, 256);
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#6a1208'); gr.addColorStop(0.5, '#e8381c'); gr.addColorStop(1, '#6a1208');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = 'rgba(40,8,4,.35)'; g.lineWidth = 2;
+  for (let y = 8; y < 256; y += 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#100604'; g.font = `84px ${FONT}`;
+  for (const [x, t] of [[128, '爆散'], [0, '神社'], [256, '神社']]) [...t].forEach((k, j) => g.fillText(k, x, 82 + j * 94));
+  return ctex(c);
+}
+// the banners on poles, 8 across the map, the words down them
+function makeNoboriTex() {
+  const [c, g] = canvas(512, 256);
+  const SCHEME = [['#c0141c', '#fff6e8'], ['#fff6e8', '#c0141c'], ['#1e2a6a', '#ffffff'], ['#5a1e6a', '#ffe08a'], ['#d8a020', '#3a0a0a'], ['#e8e0d0', '#1e2a6a'], ['#c0141c', '#ffd23a'], ['#1a1a1a', '#ff8a3a']];
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  FEST_NOBORI.forEach((t, i) => {
+    const x = i * 64, [bg, fg] = SCHEME[i], ch = [...t], sz = Math.min(52, 226 / ch.length);
+    g.fillStyle = bg; g.fillRect(x, 0, 64, 256);
+    g.fillStyle = fg; g.fillRect(x, 0, 64, 7); g.fillRect(x, 249, 64, 7);
+    g.font = `${sz | 0}px ${FONT}`;
+    ch.forEach((k, j) => g.fillText(k, x + 32, 128 + (j - (ch.length - 1) / 2) * sz * 1.04));
+  });
+  grain(g, 512, 256, 8, 0);
+  return ctex(c);
+}
+// the town houses' hanging signs, 8 boards down the map's width, one word each
+function makeHangSignTex() {
+  const [c, g] = canvas(512, 256);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  FEST_HANG.forEach((t, i) => {
+    const x = i * 64, dark = i % 2 === 0, ch = [...t], sz = Math.min(50, 200 / ch.length);
+    g.fillStyle = '#1a100a'; g.fillRect(x + 2, 0, 60, 256);
+    g.fillStyle = dark ? '#3a2416' : '#e8dcc4'; g.fillRect(x + 6, 6, 52, 244);
+    g.font = `${sz | 0}px ${FONT}`; g.fillStyle = dark ? '#f0e0b0' : '#1a0e08';
+    ch.forEach((k, j) => g.fillText(k, x + 32, 128 + (j - (ch.length - 1) / 2) * sz * 1.08));
+  });
+  return ctex(c);
+}
+// the launch stand's banner across its front, and the warning on its leg
+function makeRackBannerTex() {
+  const [c, g] = canvas(1024, 144);
+  g.fillStyle = '#ffd23a'; g.fillRect(0, 0, 1024, 144);
+  g.fillStyle = '#b8101a'; g.fillRect(8, 8, 1008, 128);
+  for (let i = 0; i < 2; i++) {
+    g.save(); g.translate(i ? 954 : 70, 72); g.fillStyle = '#ffd23a'; g.beginPath();
+    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, r = k % 2 ? 18 : 44; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    g.fill(); g.restore();
+  }
+  g.font = `96px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 12; g.strokeStyle = '#3a0408'; g.strokeText('大スターマイン', 512, 76);
+  g.fillStyle = '#fff6e0'; g.fillText('大スターマイン', 512, 76);
+  return ctex(c);
+}
+function makeWarnTex() {
+  const [c, g] = canvas(256, 128);
+  g.fillStyle = '#f4f0e8'; g.fillRect(0, 0, 256, 128);
+  g.strokeStyle = '#c0141c'; g.lineWidth = 10; g.strokeRect(8, 8, 240, 112);
+  g.font = `60px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#c0141c'; g.fillText('火気厳禁', 128, 68);
+  return ctex(c);
+}
+// the torii's plaque: 爆散神社 in gold down a dark board
+function makePlaqueTex() {
+  const [c, g] = canvas(128, 192);
+  g.fillStyle = '#c8a040'; g.fillRect(0, 0, 128, 192);
+  g.fillStyle = '#141a2e'; g.fillRect(10, 10, 108, 172);
+  g.font = `40px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#f0c860';
+  [...'爆散神社'].forEach((k, j) => g.fillText(k, 64, 30 + j * 44));
+  return ctex(c);
+}
+// the hall's front: vermilion posts, the middle three bays open on gold light, white walls either side (the second map glows)
+function makeShrineFrontTex() {
+  const [c, g] = canvas(512, 128), [ec, eg] = canvas(512, 128);
+  g.fillStyle = '#ece4d4'; g.fillRect(0, 0, 512, 128); eg.fillStyle = '#000'; eg.fillRect(0, 0, 512, 128);
+  for (let b = 1; b < 4; b++) {
+    const x = b * 102.4;
+    const gr = eg.createLinearGradient(0, 20, 0, 128); gr.addColorStop(0, '#ffd890'); gr.addColorStop(1, '#ff9a3a');
+    eg.fillStyle = gr; eg.fillRect(x + 8, 20, 86, 108); g.fillStyle = '#3a1808'; g.fillRect(x + 8, 20, 86, 108);
+    eg.fillStyle = '#000'; for (let k = 1; k < 4; k++) eg.fillRect(x + 8 + k * 21.5, 20, 2, 108);
+  }
+  eg.fillStyle = '#fff0c0'; eg.beginPath(); eg.arc(256, 64, 14, 0, 7); eg.fill();   // the mirror at the back of the hall
+  g.fillStyle = '#c8381a'; for (let b = 0; b <= 5; b++) g.fillRect(b * 102.4 - 6, 0, 12, 128);
+  g.fillRect(0, 0, 512, 14); g.fillRect(0, 118, 512, 10);
+  return { map: ctex(c), em: ctex(ec) };
+}
+// a paper lantern's shape, 1 m across and 1 m tall round its middle; the lathe starts at the back so u 0.5 faces us
+const LANTERN_GEO = new THREE.LatheGeometry([[0.3, -0.5], [0.4, -0.43], [0.47, -0.3], [0.5, -0.12], [0.5, 0.12], [0.47, 0.3], [0.4, 0.43], [0.3, 0.5]].map(([r, y]) => new THREE.Vector2(r, y)), 10, Math.PI);
+// one lantern at (x, y, z) in three.js space, w across and h tall: the paper (kind 0 red, 1 white), black rims, and its glow
+function lantern(B, L, x, y, z, w, h, kind, glow = 1) {
+  const g = LANTERN_GEO.clone(); g.scale(w, h, w); g.translate(x, y, z);
+  const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, kind ? uv.getY(i) * 0.5 : 0.5 + uv.getY(i) * 0.5);
+  B.lant.geom(g, WHITE);
+  for (const s of [-1, 1]) { const r = new THREE.CylinderGeometry(w * 0.32, w * 0.32, h * 0.08, 8); r.translate(x, y + s * h * 0.5, z); B.dark.geom(r, col(0x1a1210)); }
+  if (glow) L.add(x, y, z, w * 2.2, kind ? col(0xffd8a0) : col(0xff6a3a), -1, glow);
+}
+// a quad on a wall along the street at x, facing the road, from height y0 to y1 and from Zn (near) to Zf (far), three.js z
+function wallQ(buf, side, x, y0, y1, Zn, Zf, t, c) {
+  if (side > 0) buf.quad(P3(x, y0, Zf), P3(x, y0, Zn), P3(x, y1, Zn), P3(x, y1, Zf), t, c);
+  else buf.quad(P3(x, y0, Zn), P3(x, y0, Zf), P3(x, y1, Zf), P3(x, y1, Zn), t, c);
+}
+const FEST_KEYS = ['road', 'walk', 'fac', 'roof', 'wood', 'awn', 'sign', 'goods', 'lant', 'nobori', 'hang', 'dark', 'conc', 'lamp', 'wire', 'fsign', 'glow', 'cone'];
+const festBufs = () => { const B = {}; for (const k of FEST_KEYS) B[k] = new GeoBuf(); return B; };
+function festFlush(B, M, parent) {
+  for (const k of FEST_KEYS) if (B[k].v) B[k].mesh(M[k], k === 'glow' ? 3 : k === 'cone' ? 4 : 0, parent);
+}
+// the stalls whose griddles glow and steam, and those with ice or water on the counter
+const STALL_HOT = [0, 1, 9, 12, 15], STALL_COLD = [2, 11], STALL_TUB = [3, 8, 14];
+// a stall on the walkway in front of the houses, from za to zb down the street: posts, a counter with a striped skirt, an awning
+// sloping back with its valance, its name on a board over the near end (facing us), the back lit, bare bulbs, a lantern
+function festStall(T, TL, side, za, zb, si, signs, steam) {
+  const s = side, Za = -za, Zb = -zb, xF = s * 4.78, xB = s * 6.42, xCf = s * 4.6, xCb = s * 6.5, ac = si % 4, au0 = ac / 4 + 0.004, au1 = (ac + 1) / 4 - 0.004;
+  const WOOD = col(0x5a3e2c), DARKW = col(0x2a1c14);
+  for (const x of [xF, xB]) for (const z of [Za - 0.06, Zb + 0.06]) T.wood.box(x - 0.035, 0.15, z - 0.035, x + 0.035, x === xF ? 2.42 : 2.78, z + 0.035, DARKW, 'pz px nx');
+  T.wood.box(Math.min(xF, xF + s * 0.3), 0.92, Zb + 0.1, Math.max(xF, xF + s * 0.3), 0.98, Za - 0.1, WOOD, 'py pz');
+  wallQ(T.awn, s, xF, 0.15, 0.92, Za - 0.1, Zb + 0.1, [au0, 0.22, au1, 0.8], WHITE);
+  T.awn.quad(P3(xCf, 2.42, Za), P3(xCf, 2.42, Zb), P3(xCb, 2.78, Zb), P3(xCb, 2.78, Za), [au0, 0.22, au1, 1], WHITE);
+  wallQ(T.awn, s, xCf, 2.12, 2.42, Za, Zb, [au0, 0, au1, 0.22], WHITE);
+  {
+    const xl = Math.min(xCf, xCb), xr = Math.max(xCf, xCb), yl = xl === xCf ? 2.42 : 2.78, yr = xr === xCf ? 2.42 : 2.78;
+    T.awn.quad(P3(xl, 2.12, Za + 0.01), P3(xr, 2.12, Za + 0.01), P3(xr, yr, Za + 0.01), P3(xl, yl, Za + 0.01), [au0, 0, au1, 0.3], WHITE);
+  }
+  const inf = signs.info[si], bl = Math.min(s * 4.8, s * 6.3), br = Math.max(s * 4.8, s * 6.3);
+  T.sign.box(bl, 2.86, Za - 0.05, br, 3.61, Za - 0.01, WHITE, 'pz', () => [inf.u0, inf.v0, inf.u1, inf.v1]);
+  T.dark.box(bl - 0.03, 2.83, Za - 0.07, br + 0.03, 3.64, Za - 0.05, col(0x1a120c), 'nz px nx py');
+  for (const x of [s * 5.0, s * 6.1]) T.dark.box(x - 0.02, 2.5, Za - 0.06, x + 0.02, 2.86, Za - 0.03, col(0x1a120c), 'pz');
+  const gk = STALL_HOT.includes(si) ? 0 : STALL_COLD.includes(si) ? 1 : si === 7 ? 2 : 3;
+  wallQ(T.goods, s, xB - s * 0.03, 0.98, 2.45, Za - 0.12, Zb + 0.12, [gk / 4, 0, (gk + 1) / 4, 1], WHITE);
+  const L = Za - Zb, zm = (Za + Zb) / 2;
+  for (let k = 0, n = L > 2.6 ? 3 : 2; k < n; k++) TL.add(s * 4.95, 2.28, Zb + L * (k + 0.5) / n, 0.55, col(0xffe0b0), -1, 2.3);
+  T.glow.flat(s * 5.4, 0.17, zm, 2.8, L + 0.8, 0, col(0xffc890, 0.45));
+  if (STALL_HOT.includes(si)) { T.glow.flat(s * 4.95, 0.99, zm, 0.5, L * 0.7, 0, col(0xff7a2a, 0.9)); steam.push({ x: s * 4.95, z: -zm, h: 1.1 }); }
+  else if (STALL_COLD.includes(si)) T.glow.flat(s * 4.95, 0.99, zm, 0.5, L * 0.6, 0, col(0x9ad8ff, 0.7));
+  else if (STALL_TUB.includes(si)) T.lamp.box(Math.min(s * 4.82, s * 5.2), 0.99, zm - L * 0.35, Math.max(s * 4.82, s * 5.2), 1.0, zm + L * 0.35, col(0x3a8aff, 1.6), 'py');
+  lantern(T, TL, s * 4.66, 2.02, Za - 0.14, 0.26, 0.34, si % 2, 1.1);
+}
+let fest = null;
+function buildFest(root) {
+  const ground = makeFestGroundTex(), walkT = makeFestWalkTex(), mach = makeMachiyaTex(), yataiT = makeYataiTex(), signs = makeStallSignTex();
+  const goodsT = makeStallGoodsTex(), lanT = makeLanternTex(), nobT = makeNoboriTex(), hangT = makeHangSignTex();
+  const M = {
+    road: new THREE.MeshStandardMaterial({ map: ground.map, roughnessMap: ground.rough, roughness: 1, metalness: 0, envMap, envMapIntensity: 0.5 }),
+    walk: new THREE.MeshStandardMaterial({ map: walkT, roughness: 0.9, envMap, envMapIntensity: 0.15 }),
+    fac: new THREE.MeshLambertMaterial({ map: mach.map, emissiveMap: mach.em, emissive: 0xffffff, emissiveIntensity: 1.5, vertexColors: true }),
+    roof: new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: 0.3, roughness: 0.55, envMap, envMapIntensity: 0.6 }),
+    wood: new THREE.MeshLambertMaterial({ vertexColors: true }),
+    awn: new THREE.MeshLambertMaterial({ map: yataiT, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: yataiT, emissiveIntensity: 0.4 }),
+    sign: new THREE.MeshBasicMaterial({ map: signs.tex, color: col(0xffffff, 1.3) }),
+    goods: new THREE.MeshBasicMaterial({ map: goodsT, vertexColors: true }),
+    lant: lessFog(new THREE.MeshBasicMaterial({ map: lanT, color: col(0xffffff, 1.35) }), 0.5),
+    nobori: new THREE.MeshLambertMaterial({ map: nobT, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: nobT, emissiveIntensity: 0.5 }),
+    hang: new THREE.MeshBasicMaterial({ map: hangT, color: col(0xffffff, 0.9) }),
+    dark: MAT.dark, conc: MAT.conc, lamp: MAT.lamp, wire: MAT.wire, fsign: MAT.fsign, glow: MAT.glow, cone: MAT.cone,
+  };
+  const B = festBufs(), L = new Bulbs(), ZEND = 175, steam = [];
+  // the path, the earth either side, a stone kerb
+  B.road.quad(P3(-ROAD, 0, 4), P3(ROAD, 0, 4), P3(ROAD, 0, -ZEND), P3(-ROAD, 0, -ZEND), [0, -4 / 16, 1, ZEND / 16], WHITE);
+  for (const s of [-1, 1]) {
+    const x0 = s > 0 ? ROAD : -WALK - 1, x1 = s > 0 ? WALK + 1 : -ROAD;
+    B.walk.quad(P3(x0, 0.15, 4), P3(x1, 0.15, 4), P3(x1, 0.15, -ZEND), P3(x0, 0.15, -ZEND), [x0 / 2, -2, x1 / 2, ZEND / 2], WHITE);
+    const cx0 = s > 0 ? ROAD : -ROAD - 0.18, cx1 = s > 0 ? ROAD + 0.18 : -ROAD;
+    B.conc.box(cx0, 0, -ZEND, cx1, 0.16, 4, col(0x8a8288), s > 0 ? 'nx py' : 'px py');
+  }
+  // town houses down both sides as far as the torii, a stall or two on the walkway in front of each. The near ones, in rocket
+  // reach, get meshes of their own (their stalls with them) so each can come down alone
+  let si = (Math.random() * 16) | 0;
+  for (const side of [-1, 1]) {
+    let d = 1.5;
+    while (d < TORII.z - 7) {
+      const len = Math.min(rand(6.5, 11), TORII.z - 3 - d), hgt = d < 30 ? rand(5.6, 6.6) : rand(5.8, 7.6), depth = 14, xf = WALK;
+      const X0 = side > 0 ? xf : -xf - depth, X1 = side > 0 ? xf + depth : -xf, Z0 = -(d + len), Z1 = -d;
+      const tint = new THREE.Color().setHSL(rand(0.04, 0.1), rand(0.12, 0.3), rand(0.62, 0.78)), u0 = (Math.random() * 8) | 0;
+      const own = d < BLAST_REACH && d + len > 12 ? { B: festBufs(), L: new Bulbs() } : null, T = own ? own.B : B, TL = own ? own.L : L;
+      const uvAt = (v0, v1) => (f, w) => [u0 / 8, v0, (u0 + w / 3) / 8, v1];
+      T.fac.box(X0, 0, Z0, X1, 3.1, Z1, tint, side > 0 ? 'nx pz' : 'px pz', uvAt(0, 0.5));
+      T.fac.box(X0, 3.1, Z0, X1, hgt, Z1, tint, side > 0 ? 'nx pz' : 'px pz', uvAt(0.5, 1));
+      city.blocks.push({ side, x: side * xf, xf, depth, z0: d, z1: d + len, h: hgt, tint, own });
+      // the pent roof over the ground floor and the eaves, dark tile seen from below
+      const xs = side * xf, xo = side * (xf - 0.85), xe = side * (xf - 0.6), rf = side > 0 ? 'nx ny pz py' : 'px ny pz py';
+      T.roof.box(Math.min(xs, xo), 3.0, Z0, Math.max(xs, xo), 3.14, Z1, col(0x3a3a44), rf);
+      T.roof.box(Math.min(xs, xe), hgt - 0.12, Z0, Math.max(xs, xe), hgt + 0.14, Z1, col(0x34343e), rf);
+      // a hanging sign off the upper floor, facing down the street, a lamp over it
+      if (d > 20 && Math.random() < 0.55) {
+        const k = (Math.random() * 8) | 0, zc = -(d + len * rand(0.3, 0.7)), xa = side * (xf - 0.15), xb = side * (xf - 0.6), y0 = 3.5;
+        T.hang.box(Math.min(xa, xb), y0, zc - 0.03, Math.max(xa, xb), y0 + 1.6, zc + 0.03, WHITE, 'pz', () => [k / 8, 0, (k + 1) / 8, 1]);
+        T.dark.box(Math.min(xb, side * xf), y0 + 1.6, zc - 0.03, Math.max(xb, side * xf), y0 + 1.66, zc + 0.03, col(0x1a120c), 'pz ny py');
+        T.lamp.box(side > 0 ? xb - 0.12 : xb, y0 + 1.7, zc - 0.06, side > 0 ? xb : xb + 0.12, y0 + 1.84, zc + 0.06, col(0xffd8a0, 4), 'pz ny');
+      }
+      // the stalls, each about 3 m long with a gap between
+      const n = Math.max(1, Math.floor((len - 0.4) / 3.1)), sl = (len - 0.5 - (n - 1) * 0.35) / n;
+      for (let k = 0; k < n; k++) {
+        const za = d + 0.25 + k * (sl + 0.35);
+        festStall(T, TL, side, za, za + sl, si, signs, steam);
+        si = (si + 5) % 16;
+      }
+      d += len + (Math.random() < 0.18 ? rand(1.0, 1.8) : 0);
+    }
+  }
+  // lanterns strung along both kerbs from pole to pole, red mostly, a white one now and then
+  for (const s of [-1, 1]) {
+    const x = s * 4.5;
+    for (let z = 6, i = 0; z <= 62; z += 4, i++) {
+      B.wood.box(x - 0.04, 0.15, -z - 0.04, x + 0.04, 3.95, -z + 0.04, col(0x3a2a20), 'pz px nx');
+      if (z + 4 > 62) continue;
+      sagWire(B.wire, P3(x, 3.84, -z), P3(x, 3.84, -(z + 4)), 0.28);
+      for (let k = 0; k < 4; k++) { const t = (k + 0.5) / 4; lantern(B, L, x, 3.84 - 0.28 * 4 * t * (1 - t) - 0.3, -(z + 4 * t), 0.3, 0.4, (i * 4 + k) % 5 === 3 ? 1 : 0, 1.2); }
+    }
+  }
+  // banners on poles at the edge of the walkways, out over the gutter, facing down the street
+  [[-1, 28], [1, 32], [-1, 36], [1, 40], [-1, 44], [1, 48], [-1, 52], [1, 56], [-1, 60]].forEach(([s, z], i) => {
+    const xp = s * 4.58, xa = s * 4.04, xl = Math.min(xp, xa), xr = Math.max(xp, xa), n = (i * 3) % 8;
+    B.wood.box(xp - 0.025, 0.15, -z - 0.025, xp + 0.025, 3.25, -z + 0.025, col(0x2a201a), 'pz px nx');
+    B.wood.box(xl, 3.0, -z - 0.02, xr, 3.04, -z + 0.02, col(0x2a201a), 'pz ny');
+    B.nobori.quad(P3(xl, 0.62, -z), P3(xr, 0.62, -z), P3(xr, 3.0, -z), P3(xl, 3.0, -z), [n / 8, 0, (n + 1) / 8, 1], WHITE);
+  });
+  buildTorii(root);
+  buildShrine(root, B, L);
+  buildBarricade(B);
+  // under the houses, a floor that hides whatever part of a collapsing block has sunk below the street
+  for (const s of [-1, 1]) {
+    const xa = s > 0 ? WALK : -WALK - 30, xb = xa + 30, zf = -BLAST_REACH - 20;
+    B.dark.quad(P3(xa, 0.13, 4), P3(xb, 0.13, 4), P3(xb, 0.13, zf), P3(xa, 0.13, zf), [0, 0, 1, 1], col(0x0c0a0e));
+  }
+  festFlush(B, M, root); L.points(root);
+  for (const b of city.blocks) {
+    if (!b.own) continue;
+    b.group = new THREE.Group(); root.add(b.group);
+    festFlush(b.own.B, M, b.group); b.own.L.points(b.group);
+    delete b.own;
+    b.hp = b.max = 3;
+  }
+  fest = { root, rack: buildRack(root), steam: steam.filter(p => p.z > 24) };
+  resetFest();
+}
+// the torii: two vermilion pillars on black feet, the tie beam through them, the upper beams with their ends swept up and black on
+// top, the plaque between, and the great lantern hanging in the middle. Lit to be seen from the gate (lessFog, 21-park.js)
+function buildTorii(root) {
+  const ver = lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.4, 0.5), T = new GeoBuf(), N = new GeoBuf(), Lb = new Bulbs();
+  const Z = -TORII.z, X = TORII.x, RED = col(0xd8401c), BLK = col(0x1a1416);
+  for (const s of [-1, 1]) {
+    const p = new THREE.CylinderGeometry(0.3, 0.34, 6.9, 14); p.translate(s * X, 3.45, Z); T.geom(p, RED);
+    const f = new THREE.CylinderGeometry(0.4, 0.42, 0.7, 14); f.translate(s * X, 0.35, Z); T.geom(f, BLK);
+    beam(T, P3(s * 4.3, 7.17, Z), P3(s * 5.45, 7.52, Z), 0.36, 0.62, BLK);
+    beam(T, P3(s * 4.3, 6.87, Z), P3(s * 5.2, 7.08, Z), 0.26, 0.5, RED);
+  }
+  T.box(-4.6, 5.35, Z - 0.18, 4.6, 5.75, Z + 0.18, RED, 'pz nz py ny px nx');
+  T.box(-4.4, 6.75, Z - 0.24, 4.4, 7.0, Z + 0.24, RED, 'pz nz py ny');
+  T.box(-4.4, 7.0, Z - 0.31, 4.4, 7.34, Z + 0.31, BLK, 'pz nz py ny');
+  T.box(-0.12, 5.75, Z - 0.1, 0.12, 6.75, Z + 0.1, RED, 'pz px nx');
+  N.box(-0.42, 5.85, Z + 0.12, 0.42, 6.66, Z + 0.15, WHITE, 'pz');
+  T.box(-0.46, 5.81, Z + 0.06, 0.46, 6.7, Z + 0.12, col(0x3a2a10), 'pz px nx py ny');
+  T.mesh(ver, 0, root);
+  N.mesh(lessFog(new THREE.MeshBasicMaterial({ map: makePlaqueTex(), color: col(0xffffff, 1.2) }), 0.4), 0, root);
+  // the great lantern on its cord, its glow; a pool of light under it
+  const G = new GeoBuf(), D = new GeoBuf(), lg = LANTERN_GEO.clone(); lg.scale(1.1, 1.3, 1.1); lg.translate(0, 4.55, Z); G.geom(lg, WHITE);
+  for (const y of [5.22, 3.88]) { const c = new THREE.CylinderGeometry(0.37, 0.37, 0.1, 16); c.translate(0, y, Z); D.geom(c, col(0x141010)); }
+  D.box(-0.02, 5.27, Z - 0.02, 0.02, 5.35, Z + 0.02, col(0x141010), 'pz px nx');
+  G.mesh(lessFog(new THREE.MeshBasicMaterial({ map: makeBigLanternTex(), color: col(0xffffff, 1.3) }), 0.4), 0, root);
+  D.mesh(lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.4), 0, root);
+  Lb.add(0, 4.55, Z + 0.2, 2.6, col(0xff5a2a), -1, 1.1);
+  for (const s of [-1, 1]) Lb.add(s * X, 1.2, Z + 0.5, 1.6, col(0xffb070), -1, 0.8);
+  Lb.points(root);
+}
+// past the torii: stone lanterns lining the way to the hall, lanterns strung across it, the shrine's grove dark either side, and
+// the hall itself lit up under its great roof, lanterns along its eaves
+function buildShrine(root, B, L) {
+  const wood = lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.22, 0.35), tree = lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.3);
+  const S = new GeoBuf(), Tr = new GeoBuf(), F = new GeoBuf(), Lb = new Bulbs(), z0 = SHRINE.z, RED = col(0xc8381a), ROOF = col(0x2a2a30), STONE = col(0x8a8480);
+  for (const z of [72, 80, 88]) for (const s of [-1, 1]) {
+    const x = s * 3.3, Z = -z;
+    B.conc.box(x - 0.34, 0.15, Z - 0.34, x + 0.34, 0.45, Z + 0.34, STONE, 'pz px nx py');
+    const p = new THREE.CylinderGeometry(0.13, 0.16, 0.9, 8); p.translate(x, 0.9, Z); B.conc.geom(p, STONE);
+    B.conc.box(x - 0.32, 1.35, Z - 0.32, x + 0.32, 1.45, Z + 0.32, STONE, 'pz px nx py ny');
+    B.lamp.box(x - 0.2, 1.45, Z - 0.2, x + 0.2, 1.85, Z + 0.2, col(0xffc070, 3.5), 'pz px nx');
+    const r = new THREE.ConeGeometry(0.55, 0.42, 6); r.translate(x, 2.06, Z); B.conc.geom(r, STONE);
+    L.add(x, 1.65, Z, 1.5, col(0xffb060), -1, 1.2);
+  }
+  for (const z of [74, 82, 90]) {
+    const a = P3(-6.2, 5.2, -z), b = P3(6.2, 5.2, -z);
+    sagWire(B.wire, a, b, 0.6);
+    for (let k = 0; k < 13; k++) { const t = (k + 0.5) / 13; lantern(B, L, -6.2 + 12.4 * t, 5.2 - 0.6 * 4 * t * (1 - t) - 0.3, -z, 0.32, 0.42, k % 4 === 2 ? 1 : 0, 1.2); }
+  }
+  // the grove: dark masses of trees either side, standing against the glow of the sky
+  for (let i = 0; i < 26; i++) {
+    const s = i % 2 ? 1 : -1, z = rand(TORII.z + 1, 128), x = s * rand(7.5, 22), r = rand(3, 5.5);
+    const t = new THREE.IcosahedronGeometry(r, 1); t.scale(1, rand(1.1, 1.6), 1); t.translate(x, r * 1.2 + rand(1, 4), -z); Tr.geom(t, col(pick([0x16201a, 0x1a2618, 0x121a16])));
+    const k = new THREE.CylinderGeometry(0.25, 0.35, 4, 6); k.translate(x, 2, -z); Tr.geom(k, col(0x1a1410));
+  }
+  Tr.mesh(tree, 0, root);
+  // the hall: a stone base, a body of vermilion and white with its doors open on gold light, a great hip roof with a gable on its
+  // front slope, a ridge with its ends turned up
+  const Z0 = -z0, Z1 = -(z0 + 9);
+  S.box(-6.4, 0, Z1, 6.4, 0.9, Z0, STONE, 'pz px nx py');
+  S.box(-2.2, 0, Z0, 2.2, 0.3, Z0 + 0.9, STONE, 'pz px nx py');
+  S.box(-2.2, 0.3, Z0, 2.2, 0.6, Z0 + 0.45, STONE, 'pz px nx py');
+  S.box(-5.2, 0.9, Z1 + 1, 5.2, 4.9, Z0 - 1, col(0xece4d4), 'px nx');
+  F.box(-5.2, 0.9, Z0 - 1.02, 5.2, 4.9, Z0 - 1, WHITE, 'pz');
+  S.box(-7.3, 4.75, Z1 - 0.6, 7.3, 4.95, Z0 + 0.6, ROOF, 'pz ny px nx');
+  const zr = (Z0 + Z1) / 2;
+  S.quad(P3(-7.3, 4.95, Z0 + 0.6), P3(7.3, 4.95, Z0 + 0.6), P3(4.6, 9.0, zr), P3(-4.6, 9.0, zr), [0, 0, 1, 1], ROOF);
+  for (const s of [-1, 1]) {
+    const a = P3(s * 7.3, 4.95, Z0 + 0.6), b = P3(s * 7.3, 4.95, Z1 - 0.6), c = P3(s * 4.6, 9.0, zr);
+    if (s > 0) S.quad(a, b, c, c, [0, 0, 1, 1], ROOF); else S.quad(b, a, c, c, [0, 0, 1, 1], ROOF);
+  }
+  S.quad(P3(-2.6, 5.75, Z0 - 0.4), P3(2.6, 5.75, Z0 - 0.4), P3(0, 8.0, Z0 - 1.4), P3(0, 8.0, Z0 - 1.4), [0, 0, 1, 1], col(0x3a3a42));
+  S.box(-4.9, 9.0, zr - 0.3, 4.9, 9.35, zr + 0.3, ROOF, 'pz py px nx');
+  for (const s of [-1, 1]) beam(S, P3(s * 4.7, 9.1, zr), P3(s * 5.4, 9.9, zr), 0.3, 0.5, ROOF);
+  for (const x of [-5.2, -3.1, -1.05, 1.05, 3.1, 5.2]) S.box(x - 0.16, 0.9, Z0 - 1.1, x + 0.16, 4.75, Z0 - 0.8, RED, 'pz px nx');
+  for (let i = 0; i <= 36; i++) Lb.add(-7.2 + 14.4 * i / 36, 4.8, Z0 + 0.62, 0.42, col(0xffd890), -1, 1.4);
+  for (let k = 0; k <= 10; k++) { const t = k / 10; for (const s of [-1, 1]) Lb.add(s * 2.6 * (1 - t), 5.8 + 2.25 * t, Z0 - 0.35 - t, 0.36, col(0xffd890), -1, 1.4); }
+  for (const s of [-1, 1]) lantern(B, Lb, s * 3.4, 3.7, Z0 - 0.3, 0.9, 1.3, 1, 1.2);
+  Lb.add(0, 2.6, Z0 - 0.4, 6, col(0xffa040), -1, 0.7);
+  S.mesh(wood, 0, root);
+  const fr = makeShrineFrontTex();
+  F.mesh(lessFog(new THREE.MeshLambertMaterial({ map: fr.map, emissiveMap: fr.em, emissive: 0xffffff, emissiveIntensity: 1.6 }), 0.22), 0, root);
+  Lb.points(root);
+}
+// the launch stand: a deck on legs across the path, the banner on its front, nine mortars in a frame aimed our way and the big one
+// behind them, the fuse along their feet, boxes of shells, red flags, work lights. A group of its own, so that it can shake when hit.
+// Returns what 76-fest.js needs: the group, its wood (to flash), and where each mortar's mouth is (game x, h, z)
+function buildRack(root) {
+  const g = new THREE.Group(); g.position.set(0, 0, -RACK.z); root.add(g);
+  const wood = lessFog(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x000000 }), 0.6, 0.3);
+  const tubeM = lessFog(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: 0.2, roughness: 0.7, emissive: 0x000000 }), 0.6, 0.2);
+  const W = new GeoBuf(), Tb = new GeoBuf(), Ban = new GeoBuf(), Wn = new GeoBuf(), Fl = new GeoBuf(), Lb = new Bulbs();
+  const PLANK = col(0x8a6a48), BEAM = col(0x5a4230), hw = RACK.hw, dk = RACK.deck;
+  for (const x of [-3.7, 0, 3.7]) for (const z of [-0.7, 0.7]) W.box(x - 0.08, 0, z - 0.08, x + 0.08, dk - 0.12, z + 0.08, BEAM, 'pz px nx nz');
+  for (const [xa, xb] of [[-3.7, 0], [0, 3.7]]) for (const z of [0.72, -0.72]) { beam(W, P3(xa, 0.1, z), P3(xb, dk - 0.9, z), 0.07, 0.05, BEAM); beam(W, P3(xa, dk - 0.9, z), P3(xb, 0.1, z), 0.07, 0.05, BEAM); }
+  for (const x of [-3.7, 3.7]) { beam(W, P3(x, 0.1, -0.7), P3(x, dk - 0.3, 0.7), 0.06, 0.06, BEAM); beam(W, P3(x, dk - 0.3, -0.7), P3(x, 0.1, 0.7), 0.06, 0.06, BEAM); }
+  W.box(-hw, dk - 0.12, -0.85, hw, dk, 0.85, PLANK, 'pz py px nx ny');
+  Ban.box(-2.7, dk - 0.82, 0.86, 2.7, dk - 0.06, 0.87, WHITE, 'pz');
+  Wn.box(2.92, 0.32, 0.79, 3.62, 0.82, 0.8, WHITE, 'pz');
+  // the frame the mortars stand in
+  for (const [y, z] of [[dk + 0.23, -0.13], [dk + 0.53, 0.06]]) W.box(-3.65, y, z - 0.04, 3.65, y + 0.07, z + 0.04, BEAM, 'pz py ny');
+  for (const x of [-3.65, 3.65]) W.box(x - 0.05, dk, -0.16, x + 0.05, dk + 0.65, -0.04, BEAM, 'pz px nx py');
+  // the mortars: wrapped in paper and bound with straw rope, leaning toward us
+  const mouths = [], TUBE = col(0x3a3424), ROPE = col(0xb89a5a), RIM = col(0x141210), lean = 0.56, Lt = 1.05;
+  for (let i = 0; i < RACK.n; i++) {
+    const x = -3.2 + i * 0.8, base = P3(x, dk + 0.02, -0.26), ax = P3(0, Math.cos(lean), Math.sin(lean));
+    const put = (geo, from, c) => { geo.translate(0, from, 0); geo.rotateX(lean); geo.translate(base.x, base.y, base.z); Tb.geom(geo, c); };
+    put(new THREE.CylinderGeometry(0.12, 0.13, Lt, 10, 1, true), Lt / 2, TUBE);
+    put(new THREE.CylinderGeometry(0.135, 0.135, 0.06, 10), Lt - 0.03, RIM);
+    for (const u of [0.25, 0.6]) put(new THREE.CylinderGeometry(0.14, 0.14, 0.07, 10), Lt * u, ROPE);
+    const m = base.clone().addScaledVector(ax, Lt);
+    mouths.push({ x: m.x, h: m.y, z: RACK.z - m.z, dx: 0, dh: ax.y, dz: -ax.z });
+  }
+  // the big one for the 尺玉, behind the row, leaning a little away
+  const bb = P3(0, dk + 0.02, -0.62), bl = -0.16, Lb2 = 1.25;
+  { const geo = new THREE.CylinderGeometry(0.25, 0.27, Lb2, 14, 1, true); geo.translate(0, Lb2 / 2, 0); geo.rotateX(bl); geo.translate(bb.x, bb.y, bb.z); Tb.geom(geo, col(0x2a2a20)); }
+  { const geo = new THREE.CylinderGeometry(0.28, 0.28, 0.08, 14); geo.translate(0, Lb2 - 0.04, 0); geo.rotateX(bl); geo.translate(bb.x, bb.y, bb.z); Tb.geom(geo, RIM); }
+  const bigM = bb.clone().addScaledVector(P3(0, Math.cos(bl), Math.sin(bl)), Lb2);
+  // the fuse along their feet, red
+  {
+    const pts = []; for (let i = 0; i <= 24; i++) { const x = -3.5 + 7 * i / 24; pts.push(P3(x, dk + 0.04 + 0.02 * Math.sin(i * 1.7), -0.05 + 0.04 * Math.cos(i * 2.3))); }
+    Tb.geom(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.018, 4, false), col(0xc82018));
+  }
+  // boxes of shells, red flags on the corners, a row of work lights along the front
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { const x = s * 3.35, y = dk + k * 0.3; W.box(x - 0.28, y, -0.75 + (k % 2) * 0.05, x + 0.28, y + 0.29, -0.4, col(pick([0x9a7a50, 0x8a6a44, 0xa8885a])), 'pz px nx py'); }
+  for (const s of [-1, 1]) {
+    const x = s * 3.9;
+    W.box(x - 0.025, dk, 0.75, x + 0.025, dk + 1.85, 0.8, BEAM, 'pz px nx');
+    const xa = x, xb = x - s * 0.55, xl = Math.min(xa, xb), xr = Math.max(xa, xb);
+    Fl.quad(P3(xl, dk + 1.42, 0.78), P3(xr, dk + 1.42, 0.78), P3(xr, dk + 1.82, 0.78), P3(xl, dk + 1.82, 0.78), [0, 0, 1, 1], col(0xd8201a, 0.95));
+  }
+  for (let i = 0; i <= 14; i++) Lb.add(-hw + 0.1 + (2 * hw - 0.2) * i / 14, dk + 0.02, 0.88, 0.32, col(0xfff0c8), -1, 1.8);
+  W.mesh(wood, 0, g); Tb.mesh(tubeM, 0, g);
+  Ban.mesh(lessFog(new THREE.MeshBasicMaterial({ map: makeRackBannerTex(), color: col(0xffffff, 1.15) }), 0.6), 0, g);
+  Wn.mesh(lessFog(new THREE.MeshBasicMaterial({ map: makeWarnTex(), color: col(0xffffff, 0.95) }), 0.6), 0, g);
+  Fl.mesh(lessFog(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.6), 0, g);
+  Lb.points(g);
+  // its pool of light on the path
+  const P = new GeoBuf(); P.flat(0, 0.02, 0, 9.5, 3.4, 0, col(0xffc890, 0.3)); P.mesh(MAT.glow, 3, g);
+  return { g, wood, tubeM, mouths, big: { x: bigM.x, h: bigM.y, z: RACK.z - bigM.z } };
 }
 
 // ===== 30-fx.js
@@ -2483,6 +3046,9 @@ function addPart(p) {
 }
 // a crater blown in the road stays for the rest of the round (2026-10-24, kazu: the road blowing up too would be even better)
 function addCrater(x, z, r) {
+  // a blast in a crater already there opens it up and heats it again (a horde blown up at the wire laid dozens on one spot)
+  const c = craters.find(c => Math.hypot(c.x - x, c.z - z) < 0.8 * Math.max(c.r, r));
+  if (c) { c.r = Math.min(1.3, Math.max(c.r, r) * 1.06); c.life = 40; return; }
   craters.push({ x, z, r, rot: rand(0, 6.28), life: 40 });
   if (craters.length > 24) craters.shift();
 }
@@ -2547,6 +3113,15 @@ function drawParts() {
   _sortBuf.length = 0; fireLoad = 0;
   // a tall narrow screen sees the spray from close kills over a much smaller area: smaller drops and thinner mist, or it turns red all over
   const nk = Math.min(1, W / H * 1.4), dropK = Math.pow(nk, 0.7), mistK = 0.4 + 0.6 * nk;
+  // a run of blasts at once (the drums in a horde going up one after another, a salvo of missiles) lights the road and sends
+  // its rings out no brighter in all than three blasts and two: seventeen rings across the street before the wire had
+  // turned the whole screen to cream
+  let flSum = 0, shSum = 0;
+  for (const p of parts) {
+    if (p.k === 'flash') { const u = p.life / p.max; flSum += u * u * (p.a || 1); }
+    else if (p.k === 'shock') shSum += p.life / p.max * (p.a || 1);
+  }
+  const flK = Math.min(1, 3 / Math.max(1, flSum)), shK = Math.min(1, 2 / Math.max(1, shSum));
   for (const p of parts) {
     const t = 1 - p.life / p.max, X = p.x, Y = p.h, Z = -p.z, nf = p.nf ? 10 : 0;
     switch (p.k) {
@@ -2565,14 +3140,15 @@ function drawParts() {
       case 'core': { const k = Math.pow(1 - t, 1.6) * (p.fade || 1); FIRE.push(X, Y, Z, p.r * 1.7 * (0.7 + 0.5 * t), p.rot, 0, nf, 4 * k, 3 * k, 1.6 * k, k); break; }
       case 'glow': { const k = (1 - t) * (p.a || 1); ADD.push(X, Y, Z, p.r * 2, p.rot, p.f || 0, nf, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1); break; }
       case 'ring': { const k = (1 - t) * (p.a || 1); ADD.push(X, Y, Z, p.r * 2, p.rot, 6, nf, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1); break; }
-      case 'flash': { const k = (1 - t) * (1 - t) * (p.a || 1); ADD.push(X, 0.03, Z, p.r * 2, p.rot, 0, 2, 1.6 * k, 0.7 * k, 0.22 * k, 1); break; }
-      case 'shock': { const k = (1 - t) * (p.a || 1); ADD.push(X, Y + 0.05, Z, p.r * 2, p.rot, 6, 2, 3 * k, 2 * k, 1.2 * k, 1); break; }
+      case 'flash': { const k = (1 - t) * (1 - t) * (p.a || 1) * flK; ADD.push(X, 0.03, Z, p.r * 2, p.rot, 0, 2, 1.6 * k, 0.7 * k, 0.22 * k, 1); break; }
+      case 'shock': { const k = (1 - t) * (p.a || 1) * shK; ADD.push(X, Y + 0.05, Z, p.r * 2, p.rot, 6, 2, 3 * k, 2 * k, 1.2 * k, 1); break; }
       case 'wshock': { const k = (1 - t) * (p.a || 1); ADD.push(X, Y, Z, p.r * 2, p.rot, 6, 3, 3 * k, 2 * k, 1.2 * k, 1); break; }
       case 'muzzle': { const k = 1 - t; ADD.push(X, Y, Z, p.r * 2, p.rot, 7, 0, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1); break; }
       case 'tracer': { const k = 1 - t; ADD.push(X, Y, Z, p.r, 0, 14, 1, p.c[0] * k, p.c[1] * k, p.c[2] * k, 1, p.dx, p.dy, p.dz); break; }
       case 'spark': { const k = 1 - t, s = p.streak || 0.035, c = p.c || SPARK_C; ADD.push(X, Y, Z, p.r, 0, 5, 1 + nf, c[0] * k, c[1] * k, c[2] * k, 1, p.vx * s, p.vh * s, -p.vz * s); break; }
       case 'brand': { const k = 1 - t * 0.6, s = 0.05; ADD.push(X, Y, Z, p.r * 2, 0, 5, 1, 6 * k, 2.2 * k, 0.5 * k, 1, p.vx * s, p.vh * s, -p.vz * s); break; }
       case 'ember': { const k = (1 - t) * (0.5 + 0.5 * Math.sin(p.life * 30 + p.rot * 5)); ADD.push(X, Y, Z, p.r * 2, 0, 5, nf, 6 * k, 2.4 * k, 0.6 * k, 1); break; }
+      case 'glitter': { const k = (1 - t) * (Math.sin(p.life * 53 + p.rot * 11) > 0.1 ? 1 : 0.12), c = p.c; ADD.push(X, Y, Z, p.r * 2, 0, 0, nf, c[0] * k, c[1] * k, c[2] * k, 1); break; }   // the 尺玉's crackle (76-fest.js)
       case 'flame': { const k = Math.min(1, p.life) * (0.8 + 0.2 * Math.sin(p.life * 23)); FIRE.push(X, 0.04, Z, p.r * 4.5, p.rot, 0, 2, 1.6 * k, 0.6 * k, 0.15 * k, 1); break; }
       case 'beacon': break;
       default: _sortBuf.push(p);
@@ -2598,9 +3174,13 @@ function drawParts() {
     }
   }
   // craters under everything else on the road: the cracks, then the hole. For their first seconds the hole and the cracks glow
-  // red-hot, so they show in the dark street, then cool to black
+  // red-hot, so they show in the dark street, then cool to black; a dozen at once glow no brighter than four, or the street
+  // before the wire turned to lava
+  let nHot = 0;
+  for (const c of craters) if (c.life > 35.5) nHot++;
+  const hotK = Math.min(1, 4 / Math.max(1, nHot));
   for (const c of craters) {
-    const k = Math.min(1, c.life / 2), hot = Math.max(0, 1 - (40 - c.life) / 4.5), h2 = hot * hot;
+    const k = Math.min(1, c.life / 2), hot = Math.max(0, 1 - (40 - c.life) / 4.5) * hotK, h2 = hot * hot;
     DECAL.push(c.x, 0.006, -c.z, c.r * 3.8, c.rot, 17, 2, 0.004, 0.003, 0.005, 0.8 * k);
     DECAL.push(c.x, 0.007, -c.z, c.r * 2, c.rot + 1.3, 16, 2, 0.003, 0.002, 0.004, 0.96 * k);
     if (hot > 0) {
@@ -3430,11 +4010,12 @@ function rayBox(O, D, x0, y0, z0, x1, y1, z1) {
   }
   return tmin > 0 ? tmin : -1;
 }
-// aim: a body under the reticle wins over what is behind it; the assist only reaches bodies in front of the solid hit
+// aim: a body under the reticle wins over what is behind it; the assist only reaches bodies in front of the solid hit, and not
+// in front of the festival's launch stand, which stands just over the horde's heads (76-fest.js)
 function aimHit(px, py, assist) {
   rayAt(px, py);
   const solid = raySolid(_O, _D), z = rayZombies(_O, _D, assist);
-  if (z && (z.inside ? z.t < solid.t : z.t < solid.t + 1.5)) return { kind: 'zombie', hit: z, p: z.p, solid };
+  if (z && (z.inside ? z.t < solid.t : z.t < solid.t + 1.5 && solid.park !== 'rack')) return { kind: 'zombie', hit: z, p: z.p, solid };
   return { kind: solid.kind, p: solid.p, car: solid.car, side: solid.side, block: solid.block, solid };
 }
 
@@ -3502,12 +4083,14 @@ const ROCKET_GEO = (() => {
   return { body, red: mergeGeometries([nose, ...fins].map(g => g.toNonIndexed())) };
 })();
 let rocketMats = null;
+// (the missiles' too, 58-missile.js)
+const rocketMaterials = () => rocketMats = rocketMats || { body: new THREE.MeshStandardMaterial({ color: 0xd8d2c4, metalness: 0.3, roughness: 0.4, envMap }), red: new THREE.MeshStandardMaterial({ color: 0xc23b2a, metalness: 0.3, roughness: 0.4, envMap }) };
 function rocketMesh() {
   let m = rocketPool.find(r => !r.visible);
   if (m) { m.visible = true; return m; }
-  rocketMats = rocketMats || { body: new THREE.MeshStandardMaterial({ color: 0xd8d2c4, metalness: 0.3, roughness: 0.4, envMap }), red: new THREE.MeshStandardMaterial({ color: 0xc23b2a, metalness: 0.3, roughness: 0.4, envMap }) };
+  const M = rocketMaterials();
   m = new THREE.Group();
-  m.add(new THREE.Mesh(ROCKET_GEO.body, rocketMats.body), new THREE.Mesh(ROCKET_GEO.red, rocketMats.red));
+  m.add(new THREE.Mesh(ROCKET_GEO.body, M.body), new THREE.Mesh(ROCKET_GEO.red, M.red));
   scene.add(m); rocketPool.push(m);
   return m;
 }
@@ -3538,7 +4121,8 @@ function fireRocket(A, offX, ch) {
   if (offX) th = Math.max(0.4, th - 0.3);
   const x0 = _wp.x, h0 = _wp.y, z0 = -_wp.z;
   const dx = tx - x0, dz = tz - z0, dh = th - h0, T = Math.max(0.08, Math.hypot(dx, dz, dh) / 60);
-  rockets.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, mesh: rocketMesh(), kind: A.kind, car: A.car, side: A.side, ch });
+  // one at the festival's launch stand goes over the horde's heads (only a giant gets in its way)
+  rockets.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, mesh: rocketMesh(), kind: A.kind, car: A.car, side: A.side, ch, over: A.kind === 'park' && A.solid.park === 'rack' });
 }
 function updateRockets(dt) {
   for (const r of rockets) {
@@ -3550,6 +4134,7 @@ function updateRockets(dt) {
     addPart({ k: 'fire', x: r.x - r.vx * 0.006, z: r.z - r.vz * 0.006, h: r.h - r.vh * 0.006, vx: -r.vx * 0.05, vz: -r.vz * 0.05, vh: -r.vh * 0.05, r: rand(0.1, 0.16), life: 0.09, heat: 1.3, f: 1 });
     let hitZ = null, hitC = null;
     for (const z of zombies) {
+      if (r.over && z.type !== 'boss') continue;
       if (z.state === 'hang' && Math.abs(z.z - r.z) < 0.5 && Math.abs(z.x - r.x) < 0.45 * z.size && r.h > z.h && r.h < z.h + 2.1 * z.size) { hitZ = z; break; }
       if (z.state !== 'walk' || Math.abs(z.z - r.z) > 0.6 * Math.max(1, z.size * 0.5)) continue;
       if (Math.abs(z.x - r.x) < 0.45 * z.size && r.h < ZOMBIE_H * z.size) { hitZ = z; break; }
@@ -3595,7 +4180,7 @@ function poseGun(dt) {
 // flinging them down the road, and blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
-const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲' };
+const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25)
 const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
@@ -3677,7 +4262,7 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
   setWeapon(b.dataset.w);
 });
 // a quick tap (or right click, or space) fires the heavy weapon
-function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock }[weapon] || tryRocket)(); }
+function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile }[weapon] || tryRocket)(); }
 function tryCannon() {
   if (!running) return;
   if (cannonT > 0) { softClick(); return; }
@@ -4131,8 +4716,8 @@ function setBeam(b, A, B, o) {
   if (o.core) u.uCore.value.fromArray(o.core);
   if (o.glow) u.uGlow.value.fromArray(o.glow);
 }
-// the round the tube holds, glowing in its mouth (the railgun's and the wave gun's), the flamethrower's pilot light and the
-// shock gun's spark
+// the round the tube holds, glowing in its mouth (the railgun's and the wave gun's), the flamethrower's pilot light, the
+// shock gun's spark and the missile pod's red light
 let beamOrb = null, beamHalo = null;
 function buildBeamOrb() {
   // drawn over the gun: from behind it, the tube would hide all but a sliver of what sits in its mouth
@@ -4164,6 +4749,10 @@ function poseBeamOrb() {
   } else if (weapon === 'shock') {
     c = ZAP_ORB; on = (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4;
     s = 0.8 + 0.3 * Math.abs(Math.sin(T * 47) * Math.sin(T * 31)); h = 0.11 + 0.05 * Math.abs(Math.sin(T * 53));
+  } else if (weapon === 'missile') {
+    // the pod's red light, blinking while it has a salvo in it
+    c = MS_ORB; on = (feverT > 0 || salvosLeft > 0) && Math.floor(T * 4) % 2 === 0;
+    s = 0.45; h = 0.06;
   }
   beamOrb.visible = beamHalo.visible = on;
   if (!on) return;
@@ -4960,6 +5549,251 @@ function putBones(z, R) {
   }
 }
 
+// ===== 58-missile.js
+// ---------- the missile pod, ミサイル乱れ撃ち (2026-10-30, kazu: one more weapon, the most exhilarating there could be) ----------
+// Tap: a salvo of MS_N small missiles out of the tube one after another, MS_GAP apart, each locked on to a zombie of its own
+// round the reticle: drums and cylinders first, then the nearest, never two on one spot (MS_SPREAD), and MS_ON_BOSS of them
+// on the giant when it is there. They climb in a fan, corkscrewing on white smoke trails, and dive on their marks, each going
+// off at the chest in a small blast (MS_POWER), so a salvo comes down as a ripple of blasts across the bunch. A mark that dies
+// before its missile arrives hands it on to the nearest one standing. Aimed at the helicopter, the airship, a ride, the
+// launch stand, a car or a wall, MS_ON_THING of them go there instead. A red lock-on mark sits on each mark until its missile
+// arrives (drawLocks, on the 2D canvas). One salvo is one chain; every missile hitting a body pays 全弾命中. MAX_SALVOS
+// salvos, one back every MS_REFILL; through FEVER, MS_N_FEVER of them every MS_FEVER_CD. It opens at 60 medals (UNLOCKS,
+// 77-mission.js).
+const MAX_SALVOS = 3, MS_REFILL = 1.5, MS_FEVER_CD = 0.45, MS_N = 10, MS_N_FEVER = 14, MS_GAP = 0.035;
+const MS_POWER = 0.75, MS_SPREAD = 1.3, MS_ON_BOSS = 4, MS_ON_THING = 3, MS_BOSS = 9, MS_REACH = 46, MS_TRAIL = 0.75, MS_ALL = 5000;
+// a salvo's chain pays MS_PAY a kill: ten blasts across the bunch make nearly every kill in it a double one, and at a full
+// kill the pod scored 5 to 10% over the rocket in bot rounds (2026-10-30)
+const MS_PAY = 0.9;
+const MS_ORB = [6, 0.5, 0.35], MS_FIRE = [4.2, 2.0, 0.6], MS_SMOKE = lin('#b0a8b0');
+const MS_TXT = ['シュババババ!!', 'シュドドド!!', 'バシュシュシュ!!'];
+let salvosLeft = MAX_SALVOS, salvoTimer = 0, salvoCD = 0, missiles = [], msTrails = [], msClock = 0;
+let msBody = null, msRed = null, TRAIL = null;
+function resetMissiles() {
+  salvosLeft = MAX_SALVOS; salvoTimer = 0; salvoCD = 0; missiles = []; msTrails = [];
+  if (msBody) msBody.count = msRed.count = 0;
+}
+function tryMissile() {
+  if (!running) return;
+  const fev = feverT > 0;
+  if (fev ? salvoCD > 0 : salvosLeft <= 0) { softClick(); return; }
+  if (fev) salvoCD = MS_FEVER_CD; else salvosLeft--;
+  fireSalvo(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev ? MS_N_FEVER : MS_N);
+}
+// the ones on their feet a missile can go for
+const msOK = o => o.state === 'walk' && !o.gone && !o.held && !(o.rise > 0) && !o.zap && o.z > Z_WALL + 0.3 && o.z < MS_REACH;
+function msNearest(x, z, r, S) {
+  let best = null, bd = r;
+  for (const o of zombies) {
+    if (!msOK(o) || o.type === 'boss' || S.taken.has(o)) continue;
+    const d = Math.hypot(o.x - x, o.z - z);
+    if (d < bd) { bd = d; best = o; }
+  }
+  return best;
+}
+// what each missile goes for: the thing under the reticle, the giant, then the horde round the spot tapped
+function msTargets(A, N, S) {
+  const out = [], P = A.p, ax = P.x, az = -P.z;
+  const thing = { heli: 1, ship: 1, park: 1, car: 1, facade: 1 }[A.kind];
+  if (thing) for (let i = 0; i < MS_ON_THING; i++) out.push({ kind: A.kind, car: A.car, side: A.side, park: A.solid && A.solid.park, x: P.x, z: -P.z, h: P.y });
+  const boss = bosses.find(z => z.state === 'walk' && z.z < MS_REACH && ((A.kind === 'zombie' && A.hit.z === z) || Math.hypot(z.x - ax, z.z - az) < 2 + 0.5 * z.size));
+  if (boss) for (let i = 0; i < MS_ON_BOSS; i++) out.push({ kind: 'boss', zb: boss });
+  const pool = zombies.filter(o => msOK(o) && o.type !== 'boss');
+  const rank = o => Math.hypot(o.x - ax, o.z - az) - (o.type === 'barrel' || o.type === 'gas' ? 2.5 : 0);
+  pool.sort((a, b) => rank(a) - rank(b));
+  if (A.kind === 'zombie' && A.hit.z.type !== 'boss') { const i = pool.indexOf(A.hit.z); if (i > 0) pool.unshift(...pool.splice(i, 1)); }
+  const picked = [];
+  for (const o of pool) {
+    if (out.length + picked.length >= N) break;
+    if (picked.some(t => Math.hypot(t.x - o.x, t.z - o.z) < MS_SPREAD)) continue;
+    picked.push(o);
+  }
+  // not enough apart: the nearest of the rest
+  for (const o of pool) { if (out.length + picked.length >= N) break; if (!picked.includes(o)) picked.push(o); }
+  for (const o of picked) { out.push({ kind: 'zombie', zb: o }); S.taken.add(o); }
+  // an empty street: they come down round the spot tapped
+  while (out.length < N) {
+    const a = rand(0, 6.28), d = rand(1, 4), z = clamp(az + Math.sin(a) * d, Z_WALL + 2, MS_REACH - 4);
+    out.push({ kind: 'ground', x: clamp(ax + Math.cos(a) * d, -ROAD, ROAD), z, h: 0.2 });
+  }
+  return out.slice(0, N);
+}
+function fireSalvo(A, N) {
+  tubeTip.getWorldPosition(_wp);
+  const x0 = _wp.x, z0 = -_wp.z, h0 = _wp.y;
+  const S = { ch: Object.assign(newChain(), { pay: MS_PAY }), n: N, left: N, hits: 0, taken: new Set() };
+  const T = msTargets(A, N, S);
+  T.forEach((g, i) => {
+    const m = { S, tgt: g, t: -i * MS_GAP, t0: i * MS_GAP, x0, z0, h0, x: x0, z: z0, h: h0, px: x0, pz: z0 - 0.2, ph: h0 - 0.02, tx: 0, tz: 0, th: 0, ph0: rand(0, 6.28), turns: rand(1.2, 2.2) * (Math.random() < 0.5 ? -1 : 1), amp: rand(0.025, 0.045), lift: rand(0.06, 0.2), side: rand(-0.07, 0.07), trail: { pts: [], done: false } };
+    if (g.kind === 'zombie' || g.kind === 'boss') { m.tx = g.zb.x; m.tz = g.zb.z; m.th = g.zb.h + 1.05 * g.zb.size; }
+    else { m.tx = g.x; m.tz = g.z; m.th = g.h; }
+    const L = Math.hypot(m.tx - x0, m.tz - z0, m.th - h0);
+    m.T = 0.42 + L * 0.018;
+    missiles.push(m); msTrails.push(m.trail);
+  });
+  if (!msBody) initMissileMeshes();
+  salvoSnd(N); lockSnd(); buzz([30, 25, 30, 25, 30, 25, 50], 2);
+  tubeRecoil = 1; shake = Math.min(shake + 4, 24);
+  if (running) {
+    const s = toScreen(x0, z0, h0);
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: pick(MS_TXT), rot: rand(-0.2, 0.2), life: 0.7, max: 0.7, size: 40 });
+  }
+}
+// the mark moves, or is gone: where the missile is going now
+function msTrack(m) {
+  const g = m.tgt;
+  if (g.zb) {
+    if (g.zb.state !== 'walk' || g.zb.gone) {
+      const o = g.kind === 'zombie' ? msNearest(m.tx, m.tz, 3, m.S) : null;
+      g.zb = o; if (o) m.S.taken.add(o);
+    }
+    if (g.zb) { m.tx = g.zb.x; m.tz = g.zb.z; m.th = g.zb.h + (g.kind === 'boss' ? 1.2 : 1.05) * g.zb.size; }
+  } else if (g.kind === 'heli' && heli && heli.state !== 'crash') { m.tx = heli.x; m.tz = heli.z; m.th = heli.h; }
+  else if (g.kind === 'ship' && ship && (ship.state === 'in' || ship.state === 'hover')) { m.tx = ship.x; m.tz = ship.z; m.th = ship.h; }
+  else if (g.kind === 'car' && g.car && (g.car.state === 'park' || g.car.state === 'roll')) { m.tx = g.car.x; m.tz = g.car.z; m.th = g.car.ht * 0.8; }
+}
+// where it is at s (0 to 1) of its flight: a curve up and over from the tube to its mark, picking up speed as it dives, with a corkscrew round it that is widest midway and as wide on screen near as far
+function missilePos(m, s) {
+  const u = 0.55 * s + 0.45 * s * s;
+  const dx = m.tx - m.x0, dz = m.tz - m.z0, dh = m.th - m.h0, L = Math.hypot(dx, dz, dh) || 1, lh = Math.hypot(dx, dz) || 1;
+  const e1x = dz / lh, e1z = -dx / lh, e2x = -dh * e1z / L, e2z = dh * e1x / L, e2h = (dx * e1z - dz * e1x) / L;
+  const cx = m.x0 + dx * 0.45 + e1x * L * m.side, cz = m.z0 + dz * 0.45 + e1z * L * m.side, chh = m.h0 + dh * 0.45 + L * m.lift;
+  const a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
+  let x = a * m.x0 + b * cx + c * m.tx, z = a * m.z0 + b * cz + c * m.tz, h = a * m.h0 + b * chh + c * m.th;
+  const f = m.ph0 + s * m.turns * 6.283, r = m.amp * Math.hypot(x, z, h - CAM_H) * Math.sin(Math.PI * s), cf = Math.cos(f) * r, sf = Math.sin(f) * r;
+  m.x = x + e1x * cf + e2x * sf; m.z = z + e1z * cf + e2z * sf; m.h = h + e2h * sf;
+}
+// it gets there: a small blast at the chest, or into whatever it was sent at
+function missileHit(m) {
+  const S = m.S, g = m.tgt, x = m.x, z = Math.max(Z_WALL + 0.3, m.z), h = Math.max(0.2, m.h);
+  if (g.kind === 'boss' && g.zb) { damageBoss(MS_BOSS, S.ch, g.zb); S.hits++; }
+  else if (g.kind === 'zombie' && g.zb) S.hits++;
+  else if (g.kind === 'heli' && heliNear(x, h, z, 3)) downHeli(S.ch);
+  else if (g.kind === 'ship' && shipNear(x, h, z, 1)) hitShip(10, S.ch, x, h, z);
+  else if (g.kind === 'park') { const P = parkNear(x, h, z, 0.6); if (P) hitPark(P, 12, S.ch, x, h, z); }
+  const b = g.kind === 'facade' ? blockAt(g.side, z) : null;
+  if (b && !b.ruined) facadeBlast(b, z, h, MS_POWER, S.ch);
+  else { fxSoft = fxPop = true; explode(x, z, MS_POWER, h, null, S.ch); fxSoft = fxPop = false; }   // (73-finale.js: ten at once washed the screen out)
+  if (--S.left === 0 && S.hits === S.n && running) {
+    score += MS_ALL;
+    floaters.push({ screen: true, x: clamp(aim.x, 110, W - 110), y: clamp(aim.y - 80, hudH + 70, H * 0.55), text: '全弾命中!!', sub: `+${MS_ALL.toLocaleString()}`, life: 1.2, big: true });
+  }
+}
+function updateMissiles(dt) {
+  msClock += dt;
+  if (running && weapon === 'missile') {
+    salvoCD = Math.max(0, salvoCD - dt);
+    if (salvosLeft < MAX_SALVOS) { salvoTimer += dt; if (salvoTimer >= MS_REFILL) { salvoTimer = 0; salvosLeft++; } } else salvoTimer = 0;
+  }
+  for (const m of missiles) {
+    const was = m.t;
+    m.t += dt;
+    if (m.t < 0) continue;
+    if (was < 0) {
+      // out of the tube: a flash and a puff, and the gun kicks with each one
+      m.trail.pts.push({ x: m.x0, z: m.z0, h: m.h0, t: msClock });
+      addPart({ k: 'glow', x: m.x0, z: m.z0, h: m.h0, vx: 0, vz: 0, vh: 0, r: 0.3, life: 0.07, c: [4, 2.2, 0.8], a: 1 });
+      addPart({ k: 'smoke', x: m.x0, z: m.z0 + 0.3, h: m.h0, vx: rand(-0.6, 0.6), vz: rand(0.5, 1.5), vh: rand(0.2, 0.8), r: 0.1, grow: 1, drag: 2.5, life: rand(0.4, 0.7), a: 0.3, warm: 0.5 });
+      tubeRecoil = Math.max(tubeRecoil, 0.55);
+    }
+    msTrack(m);
+    m.px = m.x; m.pz = m.z; m.ph = m.h;
+    const s = Math.min(1, m.t / m.T);
+    missilePos(m, s);
+    const P = m.trail.pts, l = P[P.length - 1];
+    if (!l || msClock - l.t > 0.02) P.push({ x: m.x, z: m.z, h: m.h, t: msClock });
+    if (s >= 1) { m.done = true; m.trail.done = true; missileHit(m); }
+  }
+  if (missiles.some(m => m.done)) missiles = missiles.filter(m => !m.done);
+  for (const tr of msTrails) { const P = tr.pts; while (P.length && msClock - P[0].t > MS_TRAIL) P.shift(); }
+  if (msTrails.some(tr => tr.done && !tr.pts.length)) msTrails = msTrails.filter(tr => !tr.done || tr.pts.length);
+}
+
+// ---------- drawing: the missiles (two instanced meshes), their motors, the smoke trails and the lock-on marks ----------
+const _mq = new THREE.Quaternion(), _mv = new THREE.Vector3(), _mS = new THREE.Vector3(0.55, 0.55, 0.55), _mm = new THREE.Matrix4(), _mZ = new THREE.Vector3(0, 0, 1), _mp = new THREE.Vector3();
+function initMissileMeshes() {
+  const M = rocketMaterials();
+  msBody = new THREE.InstancedMesh(ROCKET_GEO.body, M.body, 48); msRed = new THREE.InstancedMesh(ROCKET_GEO.red, M.red, 48);
+  for (const o of [msBody, msRed]) { o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); o.frustumCulled = false; o.count = 0; scene.add(o); }
+  TRAIL = new PBuf(1200, false, 6);
+}
+function drawMissiles() {
+  if (!msBody) return;
+  let n = 0;
+  for (const m of missiles) {
+    if (m.t < 0) continue;
+    _mv.set(m.x - m.px, m.h - m.ph, -(m.z - m.pz));
+    if (_mv.lengthSq() < 1e-8) _mv.set(0, 0, -1);
+    _mv.normalize();
+    // the motor: a white-hot point in an orange flare, just behind it (smaller close to us, or ten leaving the tube are a sun)
+    const d = Math.hypot(m.x, m.z, m.h - CAM_H), k = clamp(d / 8, 0.25, 1);
+    const bx = m.x - _mv.x * 0.13, by = m.h - _mv.y * 0.13, bz = -m.z - _mv.z * 0.13;
+    ADD.push(bx, by, bz, 0.22 * k, 0, 0, 0, MS_FIRE[0] * k, MS_FIRE[1] * k, MS_FIRE[2] * k, 1);
+    ADD.push(bx, by, bz, 0.07 * k, 0, 5, 0, 3, 2.8, 2.4, 1);
+    // the body only once it is out a little way: just out of the tube it crossed the middle of the screen as big as a log
+    if (d < 2.5 || n >= 48) continue;
+    _mq.setFromUnitVectors(_mZ, _mv);
+    _mm.compose(_mp.set(m.x, m.h, -m.z), _mq, _mS.setScalar(0.55 * clamp(d / 7, 0.4, 1)));
+    msBody.setMatrixAt(n, _mm); msRed.setMatrixAt(n, _mm); n++;
+  }
+  msBody.count = msRed.count = n;
+  msBody.instanceMatrix.needsUpdate = msRed.instanceMatrix.needsUpdate = true;
+  msBody.visible = msRed.visible = n > 0;
+  // the trails: pieces of rope from point to point, as wide on screen however far off (wider in metres near by, a trail out of
+  // the tube stood up the middle of the screen like a pillar of smoke), from a few pixels to a finger as they age and thin
+  // out, the newest lit by the motor
+  for (const tr of msTrails) {
+    const P = tr.pts;
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], age = msClock - b.t, k = 1 - age / MS_TRAIL;
+      if (k <= 0) continue;
+      const d = Math.hypot(b.x, b.z, b.h - CAM_H);
+      const w = d * (0.005 + 0.024 * age), al = 0.55 * k * Math.sqrt(k) * clamp(d - 0.6, 0, 1), f = Math.max(0, 1 - age * 5);
+      TRAIL.push((a.x + b.x) / 2, (a.h + b.h) / 2, -(a.z + b.z) / 2, w, 0, 18, 1, MS_SMOKE[0] + f * 0.7, MS_SMOKE[1] + f * 0.3, MS_SMOKE[2] + f * 0.06, al, (b.x - a.x) / 2, (b.h - a.h) / 2, -(b.z - a.z) / 2);
+    }
+  }
+  TRAIL.mesh.visible = TRAIL.n > 0;
+  TRAIL.flush();
+}
+// a red diamond on each mark, snapping in from wide as it locks on
+function drawLocks() {
+  if (!missiles.length || !running) return;
+  ctx.save();
+  ctx.lineWidth = 2; ctx.strokeStyle = '#ff3b30'; ctx.shadowColor = 'rgba(255,40,30,.8)'; ctx.shadowBlur = 6;
+  const blink = Math.floor(performance.now() / 90) % 2;
+  for (const m of missiles) {
+    const g = m.tgt;
+    if (g.kind === 'ground' || ((g.kind === 'zombie' || g.kind === 'boss') && !g.zb)) continue;
+    const p = toScreen(m.tx, m.tz, m.th);
+    if (p.behind) continue;
+    const age = m.t + m.t0, snap = Math.max(0, 1 - age / 0.16);
+    const r = clamp(pxPerM(Math.hypot(m.tx, m.tz, m.th - CAM_H)) * 0.3, 8, 20) * (1 + 1.6 * snap);
+    ctx.globalAlpha = snap > 0 ? 1 : blink ? 0.95 : 0.6;
+    ctx.beginPath(); ctx.moveTo(p.X, p.Y - r); ctx.lineTo(p.X + r, p.Y); ctx.lineTo(p.X, p.Y + r); ctx.lineTo(p.X - r, p.Y); ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------- the missiles' sounds ----------
+// the salvo goes: a thump in the tube, then each missile's hiss as it leaves, MS_GAP apart
+function salvoSnd(n) {
+  if (!live()) return;
+  const t = actx.currentTime;
+  const o = osc('sine', 150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  o.connect(gain(t, 0.5, 0.003, 0.14)).connect(master); o.start(t); o.stop(t + 0.18);
+  for (let i = 0; i < n; i++) {
+    const tt = t + i * MS_GAP, bp = filt('bandpass', 700, 1.4);
+    bp.frequency.setValueAtTime(rand(600, 900), tt); bp.frequency.exponentialRampToValueAtTime(rand(3000, 4200), tt + 0.22);
+    noiseSrc(tt, 0.3).connect(bp).connect(gain(tt, 0.2, 0.004, 0.26)).connect(master);
+  }
+}
+// locked on: two quick high beeps
+function lockSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (const d of [0, 0.07]) { const o = osc('square', 1900, t + d); o.connect(gain(t + d, 0.045, 0.002, 0.04)).connect(master); o.start(t + d); o.stop(t + d + 0.05); }
+}
+
 // ===== 60-audio.js
 
 // ---------- audio: same synth and voices as the 2D game ----------
@@ -5669,7 +6503,7 @@ function reset() {
   fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetReplay(); resetPark();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetReplay(); resetPark(); resetFest();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -5681,7 +6515,8 @@ const MILESTONES = [[10, 'NICE!!', 'nice'], [25, 'GREAT!!', 'great'], [50, 'BRAV
 // A chain is everything one shot of ours sets off: the blast, the cars and drums it touches off, the bodies it throws into
 // the others, the block it brings down. Only kills in a chain score (2026-10-25: a round played with no input at all scored
 // an S, as the giant's stomps and what they knocked over counted too), and from the 11th kill on, a chain pays double.
-// No more than that, so that one lucky pile-up late in the round cannot outweigh fifteen seconds of good shooting.
+// No more than that, so that one lucky pile-up late in the round cannot outweigh fifteen seconds of good shooting. A chain
+// can pay less a kill than that (`pay`: the missile pod's salvos, 58-missile.js).
 let chains = [], bestChain = 0;
 const newChain = () => ({ n: 0, extra: 0, quiet: 0, shown: 0, m: 1, live: false, x: 0, z: 0 });
 const chainMult = i => i > 10 ? 2 : 1;
@@ -5691,7 +6526,7 @@ function registerKills(k, x, z, label, blast, ch, mul = 1) {
   if (strike) ch = strike.ch;   // while the jets are in, everything we kill goes on the air strike's one chain
   const prev = combo;
   combo += k; comboTimer = 1.5; maxCombo = Math.max(maxCombo, combo);
-  const base = 100 * Math.min(combo, 50) * mul;
+  const base = 100 * Math.min(combo, 50) * mul * (ch.pay || 1);
   let pts = 0;
   for (let i = 0; i < k; i++) pts += base * chainMult(++ch.n);
   score += pts; ch.extra += pts - base * k; ch.quiet = 0; ch.x = x; ch.z = z;
@@ -5748,7 +6583,7 @@ function addFever(v) {
   if (fever >= 100) strikeReady();
 }
 // what FEVER does to the tap
-const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射' };
+const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', weapon === 'tank' ? '機銃2倍 ・ 主砲連射' : `マシンガン2倍 ・ ${FEVER_TAP[weapon]}`, C.flare, 1.4);
@@ -5904,7 +6739,7 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
   const R = 3.3 * power, near = Math.min(1.6, 14 / z), low = clamp((z - 4) / 6, 0.4, 1), hh = clamp(h0, 0.2, 8);
   boom(power, z);
   if (power >= 2) buzz(Math.round(90 * power * Math.min(1, near)), 2);
-  shake = Math.min(shake + 13 * power * near, 24);
+  shake = Math.min(shake + 13 * power * near * (fxPop ? 0.5 : 1), 24);
   flashScreen = Math.max(flashScreen, 0.04 * near);
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.03 * power * near);
   blastLight(x, z, hh, power);
@@ -5913,8 +6748,8 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
   // fewer extras when the street is already full of them
   const fx = fxFull ? 1 : (parts.length > 1900 * LOD ? 0.45 : parts.length > 1300 * LOD ? 0.7 : 1) * (coarse ? 0.8 : 1), n = c => Math.max(1, Math.round(c * fx));
   addPart({ k: 'core', x, z, h: hh + 0.6, vx: 0, vz: 0, vh: 0, r: 1.8 * power * (0.55 + 0.45 * low) * (fxSoft ? 0.75 : 1), life: 0.3, fade: 0.5 + 0.5 * low });
-  addPart({ k: 'flash', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: R * 1.3, life: 0.35, a: fxSoft ? 0.4 : 1 });
-  addPart({ k: 'shock', x, z, h: Math.min(hh, 0.6), vx: 0, vz: 0, vh: 0, r: 0.3, R: R * 1.6, life: 0.3, a: fxSoft ? 0.35 : 1 });
+  addPart({ k: 'flash', x, z, h: 0, vx: 0, vz: 0, vh: 0, r: R * 1.3, life: 0.35, a: (fxSoft ? 0.4 : 1) * (fxPop ? 0.3 : 1) });
+  if (!fxPop) addPart({ k: 'shock', x, z, h: Math.min(hh, 0.6), vx: 0, vz: 0, vh: 0, r: 0.3, R: R * 1.6, life: 0.3, a: fxSoft ? 0.35 : 1 });
   for (let i = 0, N = n(26 * power); i < N; i++) {   // the fireball
     const a = rand(0, 6.28), e = rand(0.1, 1.3), sp = rand(3, 8.5) * power;
     addPart({ k: 'fire', x, z, h: hh + 0.3, vx: Math.cos(a) * Math.cos(e) * sp, vz: Math.sin(a) * Math.cos(e) * sp * 0.8, vh: Math.sin(e) * sp * low + 1.5, r: rand(0.4, 0.85) * power * (0.6 + 0.4 * low), grow: rand(0.6, 1.4), drag: 3.2, life: rand(0.5, 0.95), heat: rand(0.8, 1.3) * (0.6 + 0.4 * low), f: 1 + (Math.random() * 2 | 0), cool: rand(0.9, 1.3) });
@@ -5924,15 +6759,15 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
     addPart({ k: 'plume', x: x + rand(-0.25, 0.25), z: z + rand(-0.25, 0.25), h: hh + 0.2, vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vh: (5 + 9 * u) * power * low, r: (0.8 - u * 0.35) * power, grow: 0.5, drag: 2.6, life: rand(0.55, 0.85), heat: 1.1, f: 1 + (i % 2) });
   }
   const top = 2.6 * power * clamp((z - 4) / 8, 0.45, 1), sk = clamp(z / 14, 0.55, 1);   // smoke stays smaller close to the wire
-  for (let i = 0, N = n(12 * (0.4 + 0.6 * low)); i < N; i++) {   // ...black smoke...
+  for (let i = 0, N = n(12 * (0.4 + 0.6 * low) * (fxAir ? 0.5 : 1)); i < N; i++) {   // ...black smoke...
     const a = rand(0, 6.28), sp = rand(0.4, 1.8);
     addPart({ k: 'smoke', x: x + rand(-0.6, 0.6), z: z + rand(-0.6, 0.6), h: hh + rand(0.5, 1.5), vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(1, 3), r: rand(0.6, 1.1) * power * sk, grow: 0.9 * sk, drag: 0.7, life: rand(1.8, 3), a: 0.55, warm: 1, fin: 0.15, f: 3 + (i % 2) });
   }
-  for (let i = 0, N = n(7 * clamp((z - 5) / 6, 0.15, 1)); i < N; i++) {   // ...that mushrooms at the top
+  for (let i = 0, N = fxAir ? 0 : n(7 * clamp((z - 5) / 6, 0.15, 1)); i < N; i++) {   // ...that mushrooms at the top
     const a = rand(0, 6.28), sp = rand(0.8, 2.4);
     addPart({ k: 'cap', x, z, h: hh + 0.6, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.6, vh: top * 1.8 * rand(0.9, 1.15), r: rand(0.55, 0.9) * power * sk, grow: 1.1 * sk, drag: 1.2, life: rand(1.6, 2.4), a: 0.5, warm: 0.8, f: 3 + (i % 2) });
   }
-  for (let i = 0, N = n(fxSoft ? 4 : 12); i < N; i++) {   // the shock kicks grit out along the road
+  for (let i = 0, N = fxAir ? 0 : n(fxSoft ? 4 : 12); i < N; i++) {   // the shock kicks grit out along the road
     const a = i / N * 6.283 + rand(-0.2, 0.2), sp = rand(7, 11) * power;
     addPart({ k: 'dust', x, z, h: 0.2, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.8, vh: rand(0.2, 1), r: rand(0.3, 0.45), grow: 1.4, drag: 3.5, life: rand(0.6, 0.9), a: 0.42 });
   }
@@ -5945,7 +6780,7 @@ function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
     addPart({ k: 'brand', x, z, h: hh + 0.4, vx: Math.cos(a) * sp, vz: Math.abs(Math.sin(a)) * sp, vh: rand(9, 16) * power, g: 18, r: rand(0.07, 0.12), life: rand(1.2, 1.8) });
   }
   for (let i = 0, N = n(14); i < N; i++) addPart({ k: 'ember', x: x + rand(-1, 1), z: z + rand(-1, 1), h: hh + rand(0.5, 2), vx: rand(-1, 1), vz: rand(-1, 1), vh: rand(2, 5), g: -0.5, drag: 1.2, r: rand(0.025, 0.04), life: rand(1, 2) });
-  for (let i = 0, N = n(14); i < N; i++) {   // asphalt thrown up, some of it glowing
+  for (let i = 0, N = fxAir ? 0 : n(14); i < N; i++) {   // asphalt thrown up, some of it glowing
     const a = rand(0, 6.28), sp = rand(3, 9);
     addChunk({ x, z, h: hh + 0.2, vx: Math.cos(a) * sp, vz: Math.max(-2, Math.sin(a) * sp), vh: rand(5, 12), sx: rand(0.06, 0.16), sy: rand(0.04, 0.1), sz: rand(0.06, 0.16), c: Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: rand(1.6, 2.6), hot: Math.random() < 0.3 ? 1 : 0 });
   }
@@ -6058,6 +6893,9 @@ const CAR_KINDS = {
   // the park's food trucks: a lit board on the roof facing down the street (21-park.js)
   crepe:  { body: '#f0a8c8', low: '#f0a8c8', truck: 'クレープ', board: '#e84aa8' },
   hotdog: { body: '#e8c040', low: '#e8c040', truck: 'ホットドッグ', board: '#d8202a' },
+  // and the festival's (22-fest.js)
+  takoyaki: { body: '#d8302a', low: '#d8302a', truck: 'たこ焼き', board: '#1a1a1a' },
+  kakigori: { body: '#9ad8f0', low: '#9ad8f0', truck: 'かき氷', board: '#2a6ad8' },
 };
 let cars = [], carRespawn = [];
 // pull the top of a box in along its length (and a little in width): a cabin with raked glass
@@ -6423,7 +7261,7 @@ function update(dt, raw) {
     finaleTick(raw);
     endT -= raw;
     if (endT <= 0) {
-      if (bossBusy() || shipBusy() || parkBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, gets there before the results come up
+      if (bossBusy() || shipBusy() || parkBusy() || festBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, the festival's last fireworks, get there before the results come up
       else if (moonBroken && !moonWait && moonBreakT < 1.6) { moonWait = true; endT = 1.6 - moonBreakT; }   // and the moon is seen breaking
       else finish();
     }
@@ -6444,12 +7282,14 @@ function update(dt, raw) {
   updateWave(dt);
   updateFlame(dt);
   updateShock(dt);
+  updateMissiles(dt);
   updateStrike(dt);
   updateCars(dt);
   updateHeli(dt);
   updatePipe(dt);
   updateShip(dt);
   updatePark(dt);
+  updateFest(dt);
   updateBuildings(dt);
   updateBoss(dt, raw);
   updateChains(dt);
@@ -6592,8 +7432,8 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
-  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : rocketsLeft;
+  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
+  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : ms ? 'M' + salvosLeft : rocketsLeft;
   const key = [tv.toFixed(1), score, ammoKey, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
@@ -6606,6 +7446,7 @@ function hud() {
     : wv ? `<span class="gauge wv${wave ? ' fire' : waveLoad >= 1 ? ' ready' : ''}"><b style="width:${(wave ? 100 : waveLoad * 100).toFixed(0)}%"></b></span>`
     : fl ? Array.from({ length: MAX_FLAMES }, (_, i) => `<i class="fl${feverT > 0 || i < flamesLeft ? ' on' : ''}${flame && i === flamesLeft ? ' burn' : ''}"></i>`).join('')
     : zp ? Array.from({ length: MAX_SHOCKS }, (_, i) => `<i class="zp${feverT > 0 || i < shocksLeft ? ' on' : ''}"></i>`).join('')
+    : ms ? Array.from({ length: MAX_SALVOS }, (_, i) => `<i class="ms${feverT > 0 || i < salvosLeft ? ' on' : ''}"></i>`).join('')
     : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
   // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
   const sp = $('spMeter');
@@ -6656,13 +7497,14 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   drawReticle();
+  drawLocks();
   layoutFloaters();
   for (const f of floaters) drawFloater(f);
   ctx.restore();
@@ -6738,7 +7580,7 @@ async function boot() {
   }
 }
 async function bootInner() {
-  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS + PARK_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   buildWorld(firstStage()); initZombieMeshes(); initBoneMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); prebuildLater();
@@ -6756,11 +7598,12 @@ async function bootInner() {
     window.__ready = () => { if (running && feverT <= 0) { fever = 100; strikeReady(); } };
     window.__fcount = () => frameCount;
     window.__prep = n => { const t = performance.now(); for (let i = 0; i < n; i++) { render(1 / 60); drawOverlay(); } return (performance.now() - t) / n; };
-    window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, drawBuildingFx, bossRigs, dogRig };
+    window.__dbg = { THREE, scene, bloom, search, gunRoot, renderer, hemi, moonLight, camera, MAT, GLQ, pictureOK, city, DECAL, ADD, FIRE, ALPHA, blastLights, drawBuildingFx, bossRigs, dogRig, parts: () => parts, craters: () => craters };
     window.__boss = () => { if (!bossSpawned) { elapsed = Math.max(elapsed, bossAt); spawnBoss(); } };
     window.__hap = k => { hapKind = ''; startHappening(k); };
     window.__park = { topple: () => onPark() && toppleWheel(newChain()), derail: () => onPark() && derailTrain(newChain()), train: z => { if (onPark()) Object.assign(park.train, { state: 'run', z }); },
       st: () => park && { stage: stageId, wheel: park.wheel.state, hp: +park.wheel.hp.toFixed(1), fly: park.wheel.fly, train: park.train.state, z: +park.train.z.toFixed(1), gon: park.wheel.gon.map(g => g.state[0]).join('') } };
+    window.__fest = { light: () => onFest() && lightRack(newChain()), st: () => fest && { stage: stageId, rack: fest.state, hp: fest.hp, shells: fest.shells.length, big: fest.big ? fest.big.state : '', sky: fest.sky.length } };
     window.__noStrike = v => { noStrike = v; };
     window.__noBoss = () => { bossSpawned = true; };
     window.__noHap = () => { hapAt = 99; };
@@ -6823,6 +7666,7 @@ async function bootInner() {
     heli: heli ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: heli.z, state: heli.state }; })() : null,
     tilt: +look.tilt.toFixed(3),
     park: onPark() ? (() => { const Wh = park.wheel, T = park.train, c = T.cars[0], w = toScreen(0, WHEEL.z - WHEEL.foot, WHEEL.h), t = toScreen(c.x, c.z, c.h + 0.8); return { wheel: Wh.state, hp: +Wh.hp.toFixed(1), wx: w.X, wy: w.Y, train: T.state, tz: +c.z.toFixed(1), tx: t.X, ty: t.Y }; })() : null,
+    fest: onFest() ? (() => { const s = toScreen(0, RACK.z, RACK.deck + 0.55); return { rack: fest.state, hp: fest.hp, rx: s.X, ry: s.Y, shells: fest.shells.length, big: fest.big ? fest.big.state : '' }; })() : null,
     ship: ship ? (() => { const s = toScreen(ship.x, ship.z, ship.h); return { x: s.X, y: s.Y, z: +ship.z.toFixed(1), h: +ship.h.toFixed(1), state: ship.state, hp: ship.hp, hang: ship.hangers.filter(z => z.state === 'hang').length, hy: ship.hangers.filter(z => z.state === 'hang').map(z => toScreen(z.x, z.z, z.h + 1).Y | 0) }; })() : null,
     pipe: pipe ? { lit: pipe.lit, t: +pipe.t.toFixed(2), holes: pipe.holes.map(o => { const s = toScreen(o.x, o.z, 0.05); return { x: s.X, y: s.Y, z: o.z, st: o.state, c: o.cover.state }; }) } : null, moon: { x: moonNow.X, y: moonNow.Y, r: moonNow.r },
     blocks: city.blocks.filter(b => b.group && !b.ruined && b.z1 > 12).map(b => { const zc = clamp((b.z0 + b.z1) / 2, 12, b.z1), s = toScreen(b.side * b.xf, zc, Math.min(b.h * 0.5, 6)); return { x: s.X, y: s.Y, z: zc, hp: b.hp }; }),
@@ -8113,8 +8957,10 @@ function drawMoonFx(raw) {
 // ---------- the finale: at the whistle everything still standing goes up in one chain, then the street falls quiet ----------
 // Nothing scores after time-up (registerKills and friends check `running`); the result comes up once the smoke climbs.
 const FIN_END = 2.9;   // seconds from the whistle to the result
-let fin = null, over = false, moonWait = false, fxFull = false, fxSoft = false;
-// a chain blast near us goes easy on the glow and grit along the ground, which would wash out the whole screen
+let fin = null, over = false, moonWait = false, fxFull = false, fxSoft = false, fxAir = false, fxPop = false;
+// a chain blast near us goes easy on the glow and grit along the ground, which would wash out the whole screen (fxSoft);
+// a blast in the air, the festival's shells (76-fest.js), throws up no road and leaves less smoke to hide the next ones (fxAir);
+// a missile's (58-missile.js) is one of ten coming down together: a faint flash on the road, no ring, a dim light (fxPop)
 function chainBlast(x, z, power, h) { fxSoft = z < 10; explode(x, z, power, h); fxSoft = false; }
 function startFinale() {
   over = true; carRespawn = [];
@@ -8574,6 +9420,288 @@ function drawOverlays() {
     ctx.restore();
   }
   drawBanner();
+}
+
+// ===== 76-fest.js
+// ---------- 大スターマイン, the festival's grand finale (2026-10-30, kazu: one more stage) ----------
+// The launch stand across the path at 50 m holds nine mortars aimed our way and a big one behind them. Shoot it (a rocket, a
+// shell, a beam, a blast beside it, or ten bullets) and the fuse runs along the row: shell after shell comes screaming out over
+// the street, each into the thickest of the horde, bursting there at head height in a ball of coloured stars and fire; last a
+// 尺玉 goes up behind the torii and opens gold over the whole night. Once a round; left alone it goes off in the finale, for
+// nothing. Fireworks go up over the shrine all night anyway, for the look. Only on the festival (the stand is built with it,
+// 22-fest.js); the weapons reach it through the park's calls (76-park.js), which hand over to these when on the festival.
+const RACK_HP = 10, FW_N = 14, FW_GAP = 0.11, FW_FUSE = 0.45, FW_BLAST = 1.15, FEST_BONUS = 150000;
+// the stars' colours, in linear HDR: red, green, blue, gold, pink, violet, silver, orange
+const FW_COLS = [[6.5, 1.0, 1.2], [1.2, 5.5, 1.6], [1.4, 2.6, 7.0], [6.0, 4.2, 1.0], [5.6, 1.5, 5.2], [3.4, 1.3, 7.0], [5.0, 5.0, 5.0], [6.5, 2.6, 0.6]];
+const FW_ORDER = [4, 0, 8, 2, 6, 1, 7, 3, 5], GOLD_C = [5.2, 3.2, 0.9], TAIL_C = [4.4, 2.6, 0.9];
+const onFest = () => !!fest && stageId === 'fest';
+function resetFest() {
+  if (!fest) return;
+  Object.assign(fest, { state: 'ready', hp: RACK_HP, t: 0, ch: null, fast: false, fired: 0, shells: [], big: null, aimed: [], flash: 0, jolt: 0, smokeT: 0, hinted: false, sky: fest.sky || [], skyT: rand(0.3, 1.2), steamT: 0 });
+  fest.rack.wood.emissive.setScalar(0); fest.rack.tubeM.emissive.setScalar(0);
+}
+// lit: by our shot (the bonus and the callout), or in the finale (fast, for nothing)
+function lightRack(ch, fast) {
+  const F = fest;
+  if (F.state !== 'ready') return;
+  Object.assign(F, { state: 'fuse', t: 0, ch: ch || null, fast: !!fast, fired: 0, aimed: [] });
+  fuseSnd();
+  if (running && ch) {
+    score += FEST_BONUS;
+    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: '大スターマイン!!', sub: `+${FEST_BONUS.toLocaleString()}`, life: 1.8, big: true });
+    say('incredible', 3);
+  }
+}
+// where a shell goes: the thickest bunch of the horde not already aimed at, a little short of it as they keep walking; an empty
+// street still gets its show
+function shellTarget(F) {
+  const near = zombies.filter(o => o.state === 'walk' && o.type !== 'boss' && o.z > 10 && o.z < 34);
+  let best = null, bn = -1;
+  for (const a of near) {
+    if (F.aimed.some(p => Math.hypot(p.x - a.x, p.z - a.z) < 2.6)) continue;
+    let n = 0;
+    for (const o of near) if (Math.abs(o.x - a.x) < 2 && Math.abs(o.z - a.z) < 2) n++;
+    if (n > bn) { bn = n; best = a; }
+  }
+  const p = best ? { x: best.x, z: Math.max(11, best.z - 1.2) } : { x: rand(-1.1, 1.1) * halfX, z: rand(12, 28) };
+  F.aimed.push(p); if (F.aimed.length > 5) F.aimed.shift();
+  return p;
+}
+function launchShell(F, i) {
+  const m = F.rack.mouths[FW_ORDER[i % FW_ORDER.length]], p = shellTarget(F), T = (0.55 + Math.hypot(p.x - m.x, p.z - m.z) * 0.013) * (F.fast ? 0.85 : 1);
+  const c = pick(FW_COLS), c2 = Math.random() < 0.45 ? pick(FW_COLS) : null;
+  F.shells.push({ x0: m.x, h0: m.h, z0: m.z, x1: p.x, z1: p.z, h1: rand(1.9, 2.5), A: rand(2.6, 3.4), T, t: 0, x: m.x, h: m.h, z: m.z, c, c2, ch: F.ch, tail: 0 });
+  // the mortar's flash, sparks and a puff of smoke
+  addPart({ k: 'glow', nf: 1, x: m.x, z: m.z, h: m.h, vx: 0, vz: 0, vh: 0, r: 1.1, life: 0.12, c: [3.2, 2.2, 1.0], a: 1 });
+  for (let k = 0; k < 6; k++) addPart({ k: 'spark', nf: 1, x: m.x, z: m.z, h: m.h, vx: rand(-2, 2), vz: -rand(2, 6), vh: rand(2, 6), g: 10, r: 0.04, life: rand(0.2, 0.4), streak: 0.04 });
+  addPart({ k: 'smoke', x: m.x, z: m.z, h: m.h + 0.2, vx: rand(-0.3, 0.3), vz: -rand(0.5, 1.2), vh: rand(1, 2), r: 0.35, grow: 1, drag: 1, life: rand(1, 1.6), a: 0.45 });
+  F.jolt = Math.min(1, F.jolt + 0.25);
+  fwLaunchSnd(i, T);
+}
+// a shell bursts over the horde: the blast (in the air, 73-finale.js fxAir), a ball of stars, two colours in some, a flash
+function shellBurst(s) {
+  const x = s.x1, z = Math.max(Z_WALL + 4, s.z1), h = s.h1, soft = clamp((z - 8) / 14, 0.5, 1);
+  fxAir = true; fxSoft = z < 13; explode(x, z, FW_BLAST, h, null, s.ch); fxSoft = false; fxAir = false;
+  for (let i = 0, N = Math.round(54 * LOD); i < N; i++) {
+    const inner = s.c2 && i % 3 === 0, c = inner ? s.c2 : s.c, u = rand(-1, 1), a = rand(0, 6.28), r = Math.sqrt(1 - u * u), sp = rand(6.4, 7.4) * (inner ? 0.55 : 1);
+    addPart({ k: 'spark', x, z, h, vx: Math.cos(a) * r * sp, vz: Math.sin(a) * r * sp, vh: u * sp + 0.8, g: 3.4, drag: 2.1, r: rand(0.06, 0.085), life: rand(0.95, 1.35), c: [c[0] * soft, c[1] * soft, c[2] * soft], streak: 0.05 });
+  }
+  addPart({ k: 'glow', x, z, h, vx: 0, vz: 0, vh: 0, r: 2.4, life: 0.2, c: [s.c[0] * 0.35 * soft, s.c[1] * 0.35 * soft, s.c[2] * 0.35 * soft], a: 1 });
+  fwCrackle(z, 10, 0.25, 0.9);
+}
+// the 尺玉: up from the big mortar, away over the torii, slowing as it climbs
+function launchShaku(F) {
+  const b = F.rack.big;
+  F.big = { state: 'up', t: 0, T: F.fast ? 1.0 : 1.25, x0: b.x, h0: b.h, z0: b.z, x1: rand(-1.2, 1.2), z1: 74, h1: 9.6, x: b.x, h: b.h, z: b.z, tail: 0, glit: false };
+  addPart({ k: 'glow', nf: 1, x: b.x, z: b.z, h: b.h, vx: 0, vz: 0, vh: 0, r: 2.2, life: 0.2, c: [3.6, 2.4, 1.0], a: 1 });
+  for (let k = 0; k < 14; k++) addPart({ k: 'spark', nf: 1, x: b.x, z: b.z, h: b.h, vx: rand(-3, 3), vz: rand(-1, 4), vh: rand(4, 9), g: 10, r: 0.05, life: rand(0.3, 0.6), streak: 0.05 });
+  for (let k = 0; k < 3; k++) addPart({ k: 'smoke', x: b.x, z: b.z, h: b.h + 0.3, vx: rand(-0.4, 0.4), vz: rand(-0.4, 0.4), vh: rand(2, 3.5), r: 0.5, grow: 1.1, drag: 1, life: rand(1.4, 2), a: 0.5 });
+  F.jolt = 1;
+  shakuLaunchSnd();
+}
+// it opens gold over the whole night, a red heart in it; the street, the torii and the hall flash gold
+function shakuBurst(F) {
+  const B = F.big, x = B.x, z = B.z, h = B.h;
+  B.state = 'open'; B.t = 0;
+  for (let i = 0, N = Math.round(150 * LOD); i < N; i++) {
+    const u = rand(-1, 1), a = rand(0, 6.28), r = Math.sqrt(1 - u * u), sp = rand(14.5, 16);
+    addPart({ k: 'spark', nf: 1, x, z, h, vx: Math.cos(a) * r * sp, vz: Math.sin(a) * r * sp, vh: u * sp, g: 2.4, drag: 1.3, r: rand(0.17, 0.23), life: rand(2.2, 2.9), c: GOLD_C, streak: 0.07 });
+  }
+  for (let i = 0, N = Math.round(46 * LOD); i < N; i++) {
+    const u = rand(-1, 1), a = rand(0, 6.28), r = Math.sqrt(1 - u * u), sp = rand(6.4, 7.2);
+    addPart({ k: 'spark', nf: 1, x, z, h, vx: Math.cos(a) * r * sp, vz: Math.sin(a) * r * sp, vh: u * sp, g: 2, drag: 1.6, r: 0.16, life: rand(1.4, 1.8), c: [6.5, 1.1, 1.3], streak: 0.06 });
+  }
+  addPart({ k: 'glow', nf: 1, x, z, h, vx: 0, vz: 0, vh: 0, r: 10, life: 0.35, c: [1.1, 0.85, 0.45], a: 1 });
+  blastLight(x, z, h - 3, 1.3);
+  shakuBoomSnd();
+  shake = Math.max(shake, 6); buzz([60, 40, 160], 2);
+  if (running || endT > 0) { floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: 'たまや〜!!', life: 1.8, big: true }); say('bravo', 3); }
+}
+function updateShaku(F, dt) {
+  const B = F.big;
+  B.t += dt;
+  if (B.state === 'up') {
+    const u = Math.min(1, B.t / B.T), e = 1 - (1 - u) * (1 - u);
+    B.x = B.x0 + (B.x1 - B.x0) * u; B.z = B.z0 + (B.z1 - B.z0) * u; B.h = B.h0 + (B.h1 - B.h0) * e;
+    for (B.tail += dt * 120; B.tail >= 1; B.tail--) addPart({ k: 'spark', nf: 1, x: B.x + rand(-0.06, 0.06), z: B.z, h: B.h, vx: rand(-0.4, 0.4), vz: rand(-0.4, 0.4), vh: rand(-1.5, -0.3), g: 3, drag: 1, r: rand(0.05, 0.08), life: rand(0.3, 0.55), c: GOLD_C, streak: 0.03 });
+    if (u >= 1) shakuBurst(F);
+  } else {
+    // a beat after it opens the whole ball glitters and crackles
+    if (!B.glit && B.t > 1.15) {
+      B.glit = true;
+      for (let i = 0, N = Math.round(90 * LOD); i < N; i++) {
+        const u = rand(-1, 1), a = rand(0, 6.28), r = Math.sqrt(1 - u * u), R = rand(7.5, 9.5);
+        addPart({ k: 'glitter', nf: 1, x: B.x + Math.cos(a) * r * R, z: B.z + Math.sin(a) * r * R, h: B.h + u * R - 1.2, vx: 0, vz: 0, vh: -rand(0.5, 1.5), drag: 0.5, r: rand(0.12, 0.2), life: rand(0.6, 1.2), c: [5, 4.6, 3.6] });
+      }
+      fwCrackle(B.z * 0.4, 26, 0, 1.1, 0.7);
+    }
+    if (B.t > 4) F.big = null;
+  }
+}
+// over the shrine, all night: a shell climbs, opens far off, and the thump comes a moment later
+function skyFireworks(F, dt) {
+  if ((F.skyT -= dt) <= 0) {
+    F.skyT = rand(0.7, 1.9);
+    const z = rand(115, 175), e = rand(0.045, 0.12);
+    F.sky.push({ x: rand(-0.22, 0.22) * z, z, h: CAM_H + z * Math.tan(e), t: 0, T: rand(0.7, 1.0), c: pick(FW_COLS), c2: Math.random() < 0.4 ? pick(FW_COLS) : null });
+  }
+  for (const s of F.sky) {
+    s.t += dt;
+    if (s.t < s.T) {
+      if (Math.random() < dt * 30) addPart({ k: 'spark', nf: 1, x: s.x, z: s.z, h: s.h - 14 * (1 - s.t / s.T), vx: 0, vz: 0, vh: -2, drag: 1, r: 0.004 * s.z, life: 0.35, c: [2.6, 1.6, 0.6], streak: 0.05 });
+      continue;
+    }
+    s.done = true;
+    const sp = rand(0.07, 0.095) * s.z;
+    for (let i = 0, N = Math.round(rand(30, 44) * LOD); i < N; i++) {
+      const inner = s.c2 && i % 3 === 0, c = inner ? s.c2 : s.c, u = rand(-1, 1), a = rand(0, 6.28), r = Math.sqrt(1 - u * u), v = sp * (inner ? 0.55 : 1);
+      addPart({ k: 'spark', nf: 1, x: s.x, z: s.z, h: s.h, vx: Math.cos(a) * r * v, vz: Math.sin(a) * r * v, vh: u * v, g: 1.6, drag: 1.4, r: 0.0042 * s.z, life: rand(1.2, 1.7), c: [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75], streak: 0.07 });
+    }
+    addPart({ k: 'glow', nf: 1, x: s.x, z: s.z, h: s.h, vx: 0, vz: 0, vh: 0, r: 0.05 * s.z, life: 0.25, c: [s.c[0] * 0.25, s.c[1] * 0.25, s.c[2] * 0.25], a: 1 });
+    if (running) skyBoomSnd(s.z);
+  }
+  if (F.sky.some(s => s.done)) F.sky = F.sky.filter(s => !s.done);
+}
+// ===== every frame =====
+function updateFest(dt) {
+  if (!onFest()) return;
+  const F = fest;
+  F.flash = Math.max(0, F.flash - dt); F.jolt = Math.max(0, F.jolt - dt * 3);
+  if (running && F.state === 'ready' && !F.hinted && elapsed > 0.6) { F.hinted = true; floaters.push({ x: 0, z: RACK.z, h: RACK.top + 1.2, text: '撃つと大スターマイン!', life: 2.6 }); }
+  if (F.state === 'fuse') {
+    F.t += dt;
+    const fuse = F.fast ? 0.12 : FW_FUSE;
+    // the spark runs along the fuse from the left end
+    for (let i = 0; i < 2; i++) addPart({ k: 'spark', nf: 1, x: -3.5 + 7 * Math.min(1, F.t / fuse), z: RACK.z + 0.05, h: RACK.deck + 0.06, vx: rand(-2, 2), vz: rand(-1.5, 1.5), vh: rand(1, 4), g: 10, r: 0.035, life: rand(0.2, 0.4), streak: 0.03 });
+    if (F.t >= fuse) { F.state = 'fire'; F.t = 0; }
+  } else if (F.state === 'fire') {
+    F.t += dt;
+    const gap = F.fast ? 0.06 : FW_GAP;
+    while (F.fired < FW_N && F.t >= F.fired * gap) launchShell(F, F.fired++);
+    if (F.fired >= FW_N && F.t >= (FW_N - 1) * gap + (F.fast ? 0.15 : 0.35)) { launchShaku(F); F.state = 'spent'; F.t = 0; }
+  } else if (F.state === 'spent') {
+    F.t += dt;
+    if ((F.smokeT -= dt) <= 0 && F.t < 9) {
+      F.smokeT = 0.08;
+      const m = pick(F.rack.mouths);
+      addPart({ k: 'smoke', x: m.x, z: m.z, h: m.h, vx: rand(-0.2, 0.2), vz: rand(-0.3, 0.1), vh: rand(1.2, 2.2), r: rand(0.25, 0.4), grow: 0.7, drag: 0.6, life: rand(1.6, 2.4), a: 0.4 });
+    }
+  }
+  for (const s of F.shells) {
+    s.t += dt;
+    const u = Math.min(1, s.t / s.T);
+    s.x = s.x0 + (s.x1 - s.x0) * u; s.z = s.z0 + (s.z1 - s.z0) * u; s.h = s.h0 + (s.h1 - s.h0) * u + 4 * s.A * u * (1 - u);
+    for (s.tail += dt * 110 * LOD; s.tail >= 1; s.tail--) addPart({ k: 'spark', x: s.x + rand(-0.05, 0.05), z: s.z, h: s.h, vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vh: rand(-0.6, 0.3), g: 2, drag: 1.5, r: rand(0.03, 0.05), life: rand(0.18, 0.34), c: TAIL_C, streak: 0.02 });
+    if (u >= 1) { s.done = true; shellBurst(s); }
+  }
+  if (F.shells.some(s => s.done)) F.shells = F.shells.filter(s => !s.done);
+  if (F.big) updateShaku(F, dt);
+  skyFireworks(F, dt);
+  // steam off the griddles
+  if (F.steam.length && (F.steamT -= dt) <= 0) {
+    F.steamT = 0.14;
+    const p = pick(F.steam);
+    addPart({ k: 'smoke', x: p.x + rand(-0.2, 0.2), z: p.z + rand(-0.5, 0.5), h: p.h, vx: rand(-0.1, 0.1), vz: rand(-0.1, 0.1), vh: rand(0.6, 1.1), r: rand(0.2, 0.32), grow: 0.5, drag: 0.6, life: rand(1.2, 1.8), a: 0.18, warm: 0.6 });
+  }
+}
+function drawFest(raw) {
+  if (!onFest()) return;
+  BULB_U.uT.value += raw * 1.6;
+  BULB_U.uScale.value = H * renderer.getPixelRatio() * camera.zoom / (2 * tanV);
+  const F = fest, R = F.rack, now = performance.now() / 1000;
+  // the stand shudders when hit and as the mortars fire, and they glow hot after
+  R.g.position.x = F.jolt * 0.06 * Math.sin(now * 57);
+  R.g.position.y = F.jolt * 0.03 * Math.abs(Math.sin(now * 43));
+  R.wood.emissive.setRGB(F.flash > 0 ? 0.5 : 0, F.flash > 0 ? 0.3 : 0, 0);
+  const heat = F.state === 'fire' ? 1 : F.state === 'spent' ? Math.max(0, 1 - F.t * 0.25) : 0;
+  R.tubeM.emissive.setRGB(0.5 * heat, 0.16 * heat, 0.02 * heat);
+  for (const s of F.shells) {
+    ADD.push(s.x, s.h, -s.z, 0.6, 0, 0, 0, s.c[0] * 0.35, s.c[1] * 0.35, s.c[2] * 0.35, 1);
+    ADD.push(s.x, s.h, -s.z, 0.22, 0, 0, 0, 3, 2.6, 2, 1);
+  }
+  if (F.big && F.big.state === 'up') { const B = F.big; ADD.push(B.x, B.h, -B.z, 1.0, 0, 0, 10, 2.4, 1.6, 0.6, 1); ADD.push(B.x, B.h, -B.z, 0.35, 0, 0, 10, 4, 3.4, 2.6, 1); }
+}
+// ===== what the weapons ask (through the park's calls) =====
+function rayFest(O, D) {
+  if (fest.state !== 'ready') return null;
+  const t = rayBox(O, D, -RACK.hw, 0, -(RACK.z + 0.85), RACK.hw, RACK.top, -(RACK.z - 0.85));
+  return t > 0 ? { t, what: 'rack' } : null;
+}
+function festNear(x, h, z, r) {
+  return fest.state === 'ready' && Math.abs(x) < RACK.hw + r && h < RACK.top + r && Math.abs(z - RACK.z) < 0.85 + r ? 'rack' : null;
+}
+function hitFest(what, dmg, ch, x, h, z) {
+  const F = fest;
+  if (what !== 'rack' || F.state !== 'ready') return;
+  for (let i = 0; i < 4 + Math.min(10, dmg); i++) addPart({ k: 'spark', nf: 1, x, z, h, vx: rand(-4, 4), vz: rand(-4, 1), vh: rand(-2, 4), g: 12, r: 0.035, life: rand(0.15, 0.45) });
+  if (Math.random() < 0.5) addChunk({ x, z, h, vx: rand(-2, 2), vz: -rand(1, 3), vh: rand(1, 4), sx: 0.05, sy: 0.02, sz: 0.12, c: CH.brass, life: 1.2 });
+  if (Math.random() < 0.4) thud();
+  F.hp -= dmg; F.flash = 0.06; F.jolt = Math.min(1, F.jolt + dmg * 0.05);
+  if (F.hp <= 0) lightRack(ch);
+}
+// a blast near enough sets it off
+function festBlast(x, z, h, R, power, ch) {
+  if (fest.state !== 'ready') return;
+  if (Math.hypot(Math.max(0, Math.abs(x) - RACK.hw), Math.max(0, Math.abs(z - RACK.z) - 0.85), Math.max(0, h - RACK.top)) < R) lightRack(ch);
+}
+function festWave(near, ch) {
+  if (fest.state === 'ready' && near(0, RACK.z, 0, RACK.top).d < waveReach(RACK.z) + RACK.hw) lightRack(ch);
+}
+function festFinale(at) { if (fest.state === 'ready') at(0.4, () => lightRack(null, true)); }
+// the results wait for the last shell and for the 尺玉 to open
+const festBusy = () => onFest() && (fest.state === 'fuse' || fest.state === 'fire' || fest.shells.length > 0 || !!(fest.big && (fest.big.state === 'up' || fest.big.t < 0.9)));
+
+// ---------- the fireworks' sounds ----------
+// the fuse: a fizzing hiss with spits in it
+function fuseSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  noiseSrc(t, 0.6).connect(filt('highpass', 3000)).connect(gain(t, 0.16, 0.02, 0.5)).connect(master);
+  for (let i = 0; i < 8; i++) { const tt = t + rand(0, 0.5); noiseSrc(tt, 0.03).connect(filt('bandpass', rand(2500, 6000), 4)).connect(gain(tt, 0.12, 0.001, 0.025)).connect(master); }
+}
+// a mortar fires: the thump of the lift charge, and every other shell whistles in toward us
+function fwLaunchSnd(i, T) {
+  if (!live()) return;
+  const t = actx.currentTime, k = i % 3 ? 0.7 : 1;
+  const o = osc('sine', 130, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+  o.connect(gain(t, 0.5 * k, 0.002, 0.14)).connect(master); o.start(t); o.stop(t + 0.18);
+  noiseSrc(t, 0.1).connect(filt('bandpass', 900, 1.2)).connect(gain(t, 0.32 * k, 0.002, 0.08)).connect(master);
+  if (i % 2 === 0) {
+    const w = osc('sine', rand(1100, 1300), t + 0.03); w.frequency.exponentialRampToValueAtTime(rand(2000, 2400), t + T);
+    w.connect(gain(t + 0.03, 0.045, 0.1, T - 0.1)).connect(master); w.start(t + 0.03); w.stop(t + T + 0.05);
+  }
+}
+// the stars crackling as they burn out (the blast itself makes the boom)
+function fwCrackle(z, n, t0, t1, k = 1) {
+  if (!live()) return;
+  const t = actx.currentTime, near = clamp(16 / z, 0.35, 1.1) * k;
+  for (let i = 0; i < n; i++) { const tt = t + rand(t0, t1); noiseSrc(tt, 0.03).connect(filt('bandpass', rand(1800, 5200), 5)).connect(gain(tt, rand(0.06, 0.16) * near, 0.001, 0.025)).connect(master); }
+}
+// the 尺玉 goes up: a deep thump and a long rising whistle
+function shakuLaunchSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  const o = osc('sine', 110, t); o.frequency.exponentialRampToValueAtTime(36, t + 0.22);
+  o.connect(gain(t, 0.9, 0.003, 0.3)).connect(master); o.start(t); o.stop(t + 0.35);
+  noiseSrc(t, 0.2).connect(filt('lowpass', 900)).connect(gain(t, 0.5, 0.003, 0.18)).connect(master);
+  const w = osc('sine', 600, t + 0.05), v = osc('sine', 22, t), vg = actx.createGain();
+  w.frequency.exponentialRampToValueAtTime(2100, t + 1.2); vg.gain.value = 30; v.connect(vg).connect(w.frequency);
+  w.connect(gain(t + 0.05, 0.08, 0.1, 1.1)).connect(master); w.start(t + 0.05); w.stop(t + 1.3); v.start(t); v.stop(t + 1.3);
+}
+// it opens: the biggest boom of the night, rolling on round the houses
+function shakuBoomSnd() {
+  boom(2.0, 18);
+  if (!live()) return;
+  const t = actx.currentTime;
+  noiseSrc(t, 2.6).connect(filt('lowpass', 160)).connect(gain(t, 0.9, 0.05, 2.4)).connect(master);
+}
+// far over the shrine: a dull thump a moment after the flash
+function skyBoomSnd(z) {
+  if (!live()) return;
+  const t = actx.currentTime + Math.min(0.5, z / 850), k = clamp(110 / z, 0.4, 0.8);
+  const o = osc('sine', rand(80, 100), t); o.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+  o.connect(gain(t, 0.32 * k, 0.004, 0.5)).connect(master); o.start(t); o.stop(t + 0.6);
+  noiseSrc(t, 0.6).connect(filt('lowpass', 300)).connect(gain(t, 0.22 * k, 0.01, 0.5)).connect(master);
 }
 
 // ===== 76-happen.js
@@ -9133,8 +10261,10 @@ function drawPark(raw) {
   if (T.state === 'run') { const c = T.cars[0]; ADD.push(c.x, c.h + 0.36 * TRAIN_K, -(c.z - 1.12 * TRAIN_K), 1.4, 0, 0, 0, 3, 2.8, 2.2, 1); }
 }
 // ===== what the weapons ask =====
-// the first thing of the park's on the ray: a car of the train, or the wheel
+// the first thing of the park's on the ray: a car of the train, or the wheel. These calls serve the festival's launch stand too
+// (76-fest.js), so the weapons need not know which stage they are on
 function rayPark(O, D) {
+  if (onFest()) return rayFest(O, D);
   if (!onPark()) return null;
   let best = null;
   const Wh = park.wheel, T = park.train;
@@ -9151,6 +10281,7 @@ function rayPark(O, D) {
 }
 // a point (world x, h, z) in reach of the train or the wheel, r metres out
 function parkNear(x, h, z, r) {
+  if (onFest()) return festNear(x, h, z, r);
   if (!onPark()) return null;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') for (const c of T.cars) if (c.z < TRAIN_SEEN && Math.abs(c.x - x) < TRAIN_HW + r && Math.abs(c.z - z) < TRAIN_HL + r && h > c.h - r && h < c.h + TRAIN_TOP + r) return 'train';
@@ -9158,6 +10289,7 @@ function parkNear(x, h, z, r) {
   return null;
 }
 function hitPark(what, dmg, ch, x, h, z) {
+  if (onFest()) { hitFest(what, dmg, ch, x, h, z); return; }
   if (!onPark() || !what) return;
   const Wh = park.wheel, T = park.train;
   if (what === 'train' && T.state !== 'run') return;
@@ -9171,6 +10303,7 @@ function hitPark(what, dmg, ch, x, h, z) {
 }
 // a blast near enough: the train comes off the rails, the wheel takes damage
 function parkBlast(x, z, h, R, power, ch) {
+  if (onFest()) { festBlast(x, z, h, R, power, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') {
@@ -9190,6 +10323,7 @@ function parkBeam(M, D, L, dmg, ch) {
 }
 // the wave gun's beam: near(x, z, lo, hi) as in waveHit
 function parkWave(near, ch) {
+  if (onFest()) { festWave(near, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run' && T.cars.some(c => c.z < TRAIN_SEEN && near(c.x, c.z, c.h, c.h + TRAIN_TOP).d < waveReach(c.z) + 1)) derailTrain(ch);
@@ -9197,6 +10331,7 @@ function parkWave(near, ch) {
 }
 // at the whistle: whatever is still up goes, for nothing
 function parkFinale(at) {
+  if (onFest()) { festFinale(at); return; }
   if (!onPark()) return;
   if (park.train.state === 'run' && park.train.cars[0].z < TRAIN_SEEN) at(0.35, () => derailTrain(null));
   if (park.wheel.state === 'stand') at(0.5, () => toppleWheel(null));
@@ -9837,16 +10972,18 @@ const MKEY = 'zb3d-missions';
 // once their colour has run out
 let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT = 0, fatPops = 0, bombesShot = 0;
 // the weapons the medals open, in order (2026-10-25: kazu picked the black hole for the first, then asked for the railgun and
-// the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30)
+// the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
+// missile pod, kazu asking for the most exhilarating weapon there could be)
 const UNLOCKS = [
   { w: 'hole', medals: 10, sub: 'マシンガン＋吸い込み弾' },
   { w: 'rail', medals: 20, sub: 'マシンガン＋貫通ビーム' },
   { w: 'wave', medals: 30, sub: 'マシンガン＋極太ビーム' },
   { w: 'flame', medals: 40, sub: 'マシンガン＋燃え広がる炎' },
   { w: 'shock', medals: 50, sub: 'マシンガン＋連鎖する稲妻' },
+  { w: 'missile', medals: 60, sub: 'マシンガン＋追尾ミサイル' },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
-function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!'; }
+function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバ'; }
 function drawMission(tier, not) {
   const pool = MISSIONS.filter(m => m.tier === tier && !not.includes(m.id));
   let fresh = pool.filter(m => !mis.seen.includes(m.id));
