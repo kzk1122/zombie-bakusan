@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ゾンビ爆散</title>
-<meta name="description" content="迫り来るゾンビの大群をマシンガンとロケランで吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
+<meta name="description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
 <meta name="theme-color" content="#1d1426">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
 <link rel="canonical" href="https://zombie-bakusan.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="ゾンビ爆散">
-<meta property="og:description" content="迫り来るゾンビの大群をマシンガンとロケランで吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
+<meta property="og:description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
 <meta property="og:url" content="https://zombie-bakusan.pages.dev/">
 <meta property="og:image" content="https://zombie-bakusan.pages.dev/screenshot.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -341,8 +341,8 @@ canvas { display: block; width: 100%; height: 100%; }
       <p class="tag"><span class="badge3d">3D版</span></p>
       <p class="tag"><span>ここが最終防衛ライン。</span><span>15秒で全部ぶっ飛ばせ。</span></p>
       <div class="pick" role="group" aria-label="武器を選ぶ">
-        <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span><span class="d">マシンガン＋ロケット</span></button>
-        <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span><span class="d">機銃＋主砲</span></button>
+        <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span><span class="d">爆発するロケット弾</span></button>
+        <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span><span class="d">串刺しにする主砲</span></button>
         <button class="pk bh locked" type="button" data-w="hole" aria-pressed="false" aria-disabled="true"><span class="t">ブラックホール</span><span class="d">メダル10枚で解放</span></button>
         <button class="pk rl locked" type="button" data-w="rail" aria-pressed="false" aria-disabled="true" hidden><span class="t">レールガン</span><span class="d">メダル20枚で解放</span></button>
         <button class="pk wv locked" type="button" data-w="wave" aria-pressed="false" aria-disabled="true" hidden><span class="t">波動砲</span><span class="d">メダル30枚で解放</span></button>
@@ -357,14 +357,14 @@ canvas { display: block; width: 100%; height: 100%; }
         <span class="d" id="startSub">3Dを準備中…</span>
       </button>
       <div class="controls">
-        <div class="ctl"><span class="key">長押し</span><span id="ctlHold">マシンガン</span></div>
         <div class="ctl"><span class="key">タップ</span><span id="ctlTap">ロケット</span></div>
+        <div class="ctl"><span class="key">長押し</span><span id="ctlHold">連射</span></div>
       </div>
       <div class="mis" id="misTitle">
         <div class="mis-h"><span>お題</span><span class="mis-m" id="misMedalsT"></span></div>
         <ol></ol>
       </div>
-      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCは右クリックかスペースでも<span id="ctlPc">ロケット</span>。</p>
+      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
     </div>
   </div>
 
@@ -4281,56 +4281,19 @@ function rayZombies(O, D, assistPx) {
 
 // ===== 50-weapons.js
 
-// ---------- the minigun with a rocket tube strapped on, held at the bottom of the screen ----------
-const gunRoot = new THREE.Group(), gunAim = new THREE.Group(), gunKick = new THREE.Group(), barrels = new THREE.Group();
-camera.add(gunRoot); gunRoot.add(gunAim); gunAim.add(gunKick); gunKick.add(barrels);
-const gunTip = new THREE.Object3D(), tubeTip = new THREE.Object3D(), ejectPt = new THREE.Object3D();
+// ---------- the weapon in hand, low on the screen (each weapon's own model: 51-arms.js) ----------
+const gunRoot = new THREE.Group(), gunAim = new THREE.Group(), gunKick = new THREE.Group();
+camera.add(gunRoot); gunRoot.add(gunAim); gunAim.add(gunKick);
+// where every weapon's shots come out: the mouth of the one in hand (showArm moves it)
+const tubeTip = new THREE.Object3D();
 let rocketHead = null;
-function buildGun() {
-  const metal = new THREE.MeshStandardMaterial({ color: 0x6a6a76, metalness: 0.9, roughness: 0.35, envMap, envMapIntensity: 0.8 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x24222c, metalness: 0.3, roughness: 0.58, envMap, envMapIntensity: 0.6 });
-  const olive = new THREE.MeshStandardMaterial({ color: 0x56603a, metalness: 0.2, roughness: 0.6, envMap, envMapIntensity: 0.5 });
-  const red = new THREE.MeshStandardMaterial({ color: 0xc23b2a, metalness: 0.3, roughness: 0.35, envMap, envMapIntensity: 0.8 });
-  // parts are collected per material and merged: the whole gun is a few draw calls
-  const bins = new Map();
-  const add = (parent, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
-    const g = geo.toNonIndexed(); g.deleteAttribute('uv');
-    g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(1, 1, 1)));
-    const key = parent.id + ':' + mat.uuid;
-    if (!bins.has(key)) bins.set(key, { parent, mat, list: [] });
-    bins.get(key).list.push(g);
-  };
-  const alongZ = Math.PI / 2;
-  add(gunKick, new THREE.BoxGeometry(0.13, 0.14, 0.3), dark, 0, 0, 0.02);
-  add(gunKick, new THREE.BoxGeometry(0.135, 0.03, 0.31), metal, 0, 0.072, 0.02);
-  add(gunKick, new THREE.CylinderGeometry(0.05, 0.05, 0.14, 16), metal, 0, 0, -0.18, alongZ);
-  add(gunKick, new THREE.BoxGeometry(0.03, 0.04, 0.2), dark, 0, 0.12, 0.0);
-  for (const z of [-0.07, 0.08]) add(gunKick, new THREE.BoxGeometry(0.025, 0.06, 0.025), dark, 0, 0.09, z);
-  add(gunKick, new THREE.BoxGeometry(0.05, 0.12, 0.15), olive, -0.09, -0.03, 0.0);
-  add(gunKick, new THREE.BoxGeometry(0.004, 0.035, 0.16), new THREE.MeshBasicMaterial({ color: col(0xff7a2f, 1.6) }), 0.066, 0.02, 0.02);
-  add(gunKick, new THREE.BoxGeometry(0.04, 0.12, 0.05), dark, 0, -0.12, -0.06, 0.3);
-  // six spinning barrels with three clamps
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(barrels, new THREE.CylinderGeometry(0.011, 0.011, 0.52, 8), metal, Math.cos(a) * 0.032, Math.sin(a) * 0.032, 0.26, alongZ); }
-  add(barrels, new THREE.CylinderGeometry(0.015, 0.015, 0.5, 8), dark, 0, 0, 0.25, alongZ);
-  for (const z of [0.1, 0.34, 0.5]) add(barrels, new THREE.CylinderGeometry(0.05, 0.05, 0.022, 16), dark, 0, 0, z, alongZ);
-  barrels.position.z = 0.17;
-  // the rocket tube on the left with a warhead sitting in the mouth
-  olive.side = THREE.DoubleSide;
-  add(gunKick, new THREE.CylinderGeometry(0.058, 0.058, 0.52, 18, 1, true), olive, -0.115, 0.055, 0.08, alongZ);
-  add(gunKick, new THREE.CylinderGeometry(0.064, 0.064, 0.05, 18), dark, -0.115, 0.055, 0.33, alongZ);
-  add(gunKick, new THREE.CylinderGeometry(0.064, 0.064, 0.05, 18), dark, -0.115, 0.055, -0.17, alongZ);
-  add(gunKick, new THREE.BoxGeometry(0.02, 0.05, 0.06), dark, -0.115, 0.12, 0.12);
-  for (const { parent, mat, list } of bins.values()) parent.add(new THREE.Mesh(mergeGeometries(list), mat));
-  rocketHead = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.11, 14), red); rocketHead.position.set(-0.115, 0.055, 0.34); rocketHead.rotation.x = alongZ; gunKick.add(rocketHead);
-  gunTip.position.set(0, 0, 0.71); gunKick.add(gunTip);
-  tubeTip.position.set(-0.115, 0.055, 0.36); gunKick.add(tubeTip);
-  ejectPt.position.set(0.07, 0.02, 0.03); gunKick.add(ejectPt);
-}
+function buildGun() { gunKick.add(tubeTip); buildArms(); }
 // where the gun sits on screen: low, just right of centre, about as big as the 2D one
 function placeGun() {
-  // the gun keeps the size and spot on screen it had with the old, wider lens
+  // the gun keeps the size it had with the old, wider lens; a little lower and further right than the old one sat, so that
+  // lying along the line to the reticle (poseGun) it stays under the wire, clear of the zombies at it
   const aspect = W / H, k = tanV / (0.387 + Math.max(0, 1.2 - aspect) * 0.15), s = (aspect < 1 ? 0.33 : 0.45) * k;
-  gunRoot.position.set((aspect < 1 ? 0.03 : 0.06) * k, (aspect < 1 ? -0.23 : -0.2) * k, -0.6);
+  gunRoot.position.set((aspect < 1 ? 0.047 : 0.08) * k, (aspect < 1 ? -0.25 : -0.22) * k, -0.6);
   gunRoot.scale.setScalar(s);
 }
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _O = new THREE.Vector3(), _D = new THREE.Vector3(), _wp = new THREE.Vector3(), _wp2 = new THREE.Vector3();
@@ -4399,59 +4362,10 @@ function aimHit(px, py, assist) {
   return { kind: solid.kind, p: solid.p, car: solid.car, side: solid.side, block: solid.block, solid };
 }
 
-let firing = false, fireCD = 0, dadadaT = 0, gunRecoil = 0, tubeRecoil = 0, barrelSpin = 0, spinV = 0, muzzleT = 0;
+// held down, the weapon keeps firing (2026-10-31: the machine gun that the hold fired is gone, kazu: with this many weapons it
+// was no longer needed). holdShot: a shot the hold fires, which clicks no "empty" at us while the weapon reloads
+let firing = false, fireCD = 0, holdShot = false, tubeRecoil = 0;
 const aimPt = new THREE.Vector3(0, 1, -15);
-function hueRGB(h, k) { const c = new THREE.Color().setHSL(h, 1, 0.6); return [c.r * k, c.g * k, c.b * k]; }
-function shootBullet() {
-  const fev = feverT > 0, spread = fev ? 16 : 10;
-  const px = aim.x + rand(-spread, spread), py = aim.y + rand(-spread, spread);
-  const A = aimHit(px, py, aim.touch ? 60 : 40);
-  gunRecoil = 1; muzzleT = 0.05; spinV = Math.max(spinV, 1);
-  gunShot(fev);
-  // the tank's machine gun sits beside its main gun and throws its cases inside the turret
-  const tank = weapon === 'tank', tip = tank ? coaxTip : gunTip;
-  tip.getWorldPosition(_wp);
-  // muzzle flash, light and a spent case kicked out to the right
-  const fc = fev ? hueRGB((performance.now() / 1400) % 1, 6) : [7, 4.6, 1.6];
-  addPart({ k: 'muzzle', x: _wp.x, z: -_wp.z, h: _wp.y, vx: 0, vz: 0, vh: 0, r: rand(0.09, 0.14) * (fev ? 1.4 : 1), life: 0.045, c: fc });
-  addPart({ k: 'glow', x: _wp.x, z: -_wp.z, h: _wp.y, vx: 0, vz: 0, vh: 0, r: 0.35, life: 0.06, c: [3, 1.6, 0.5], a: 1 });
-  muzzleLight.position.copy(_wp); muzzleLight.intensity = 5;
-  if (!tank) {
-    ejectPt.getWorldPosition(_wp2);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    addChunk({ x: _wp2.x, z: -_wp2.z, h: _wp2.y, vx: right.x * rand(1.5, 2.5), vz: -right.z * rand(1.5, 2.5), vh: rand(1.5, 2.6), sx: 0.012, sy: 0.012, sz: 0.04, c: CH.brass, life: 0.9, bounce: 0.4, g: 14, near: true });
-  }
-  // tracer from the muzzle to the hit
-  const end = A.p, dx = end.x - _wp.x, dy = end.y - _wp.y, dz = end.z - _wp.z;
-  const tc = fev ? hueRGB(((performance.now() / 1400) + 0.3) % 1, 5) : [5, 3, 1.1];
-  addPart({ k: 'tracer', x: _wp.x + dx * 0.56, z: -(_wp.z + dz * 0.56), h: _wp.y + dy * 0.56, vx: 0, vz: 0, vh: 0, r: fev ? 0.07 : 0.045, life: 0.05, dx: dx * 0.42, dy: dy * 0.42, dz: dz * 0.42, c: tc });
-  const P = end, gx = P.x, gz = -P.z, gh = P.y, ch = newChain();
-  if (A.kind === 'zombie') { hitZombie(A.hit, fev ? 2 : 1, _D.clone(), ch); if (pipe && Math.random() < 0.3) pipeShot(gx, gz, ch); }
-  else if (A.kind === 'car') hitCar(A.car, fev ? 2 : 1, gx, gz, gh, ch);
-  else if (A.kind === 'heli') hitHeli(fev ? 2 : 1, ch, gx, gh, gz);
-  else if (A.kind === 'ship') hitShip(fev ? 2 : 1, ch, gx, gh, gz);
-  else if (A.kind === 'park') hitPark(A.solid.park, fev ? 2 : 1, ch, gx, gh, gz);
-  else if (A.kind === 'facade') {
-    for (let i = 0; i < 4; i++) addPart({ k: 'spark', x: gx, z: gz, h: gh, vx: -A.side * rand(1, 5), vz: rand(-3, 3), vh: rand(-1, 4), g: 12, r: 0.03, life: rand(0.15, 0.35) });
-    addPart({ k: 'dust', x: gx - A.side * 0.15, z: gz, h: gh, vx: -A.side * 0.6, vz: 0, vh: 0.2, r: 0.18, grow: 0.8, drag: 2, life: 0.6, a: 0.5 });
-    if (Math.random() < 0.5) addChunk({ x: gx - A.side * 0.1, z: gz, h: gh, vx: -A.side * rand(1, 3), vz: rand(-1, 1), vh: rand(0, 2), sx: 0.05, sy: 0.04, sz: 0.05, c: CH.conc, life: 1.2 });
-    if (A.block) bulletFacade(A.block, gz, gh, ch);
-  } else if (A.kind === 'ground') {
-    pipeShot(gx, gz, ch);
-    addPart({ k: 'dust', x: gx, z: gz, h: 0.1, vx: 0, vz: 0, vh: 0.6, r: 0.16, grow: 0.9, drag: 2, life: 0.5, a: 0.5 });
-    for (let i = 0; i < 3; i++) addPart({ k: 'spark', x: gx, z: gz, h: 0.04, vx: rand(-3, 3), vz: rand(-3, 3), vh: rand(2, 5), g: 14, r: 0.025, life: rand(0.12, 0.3) });
-    if (Math.random() < 0.6) addChunk({ x: gx, z: gz, h: 0.05, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), vh: rand(2, 4.5), sx: 0.04, sy: 0.03, sz: 0.05, c: CH.asphalt, life: 0.8 });
-  }
-  if (running) {
-    dadadaT -= fev ? 1 / 26 : 1 / 13;
-    if (dadadaT <= 0) {
-      dadadaT = 0.45;
-      tip.getWorldPosition(_wp);
-      const s = toScreen(_wp.x, -_wp.z, _wp.y);
-      floaters.push({ sfx: true, x: clamp(s.X + rand(-50, 50), 60, W - 60), y: clamp(s.Y - rand(40, 90), hudH + 30, H - 40), text: pick(['ダダダ', 'ドドド', 'ズガガ']), rot: rand(-0.3, 0.3), life: 0.45, max: 0.45, size: 28 });
-    }
-  }
-}
 
 // ---------- rockets ----------
 let rockets = [];
@@ -4541,34 +4455,306 @@ function updateRockets(dt) {
   for (const r of rockets) if (r.done) r.mesh.visible = false;
   rockets = rockets.filter(r => !r.done);
 }
+// The barrel lies along the line on the screen from where the gun sits through the reticle, and on past it by GUN_OVER of that
+// again, so that we look down along it and see it lying there (aimed straight at what the reticle covers, the camera's long
+// lens showed nothing of it but its back). The shot still flies from its mouth to what the reticle covers.
+let GUN_OVER = 0.35;
+const _gs = new THREE.Vector3(), _gv = new THREE.Vector3();
 function poseGun(dt) {
   camera.updateMatrixWorld();
   const q0 = gunAim.quaternion.clone();
-  gunAim.lookAt(aimPt);
+  gunRoot.getWorldPosition(_gs).project(camera);
+  const rx = aim.x / W * 2 - 1, ry = 1 - aim.y / H * 2;
+  _ndc.set(clamp(rx + (rx - _gs.x) * GUN_OVER, -3, 3), clamp(ry + (ry - _gs.y) * GUN_OVER, -3, 3));
+  _ray.setFromCamera(_ndc, camera);
+  gunAim.lookAt(_gv.copy(_ray.ray.origin).addScaledVector(_ray.ray.direction, 40));
   const q1 = gunAim.quaternion.clone();
   gunAim.quaternion.copy(q0).slerp(q1, 1 - Math.exp(-dt * 28));
-  gunKick.position.set(rand(-1, 1) * gunRecoil * 0.004, rand(-1, 1) * gunRecoil * 0.004, -gunRecoil * 0.03 - tubeRecoil * 0.05);
-  spinV = Math.max(0, spinV - dt * 1.6);
-  barrelSpin += spinV * dt * 40;
-  barrels.rotation.z = barrelSpin;
+  gunKick.position.set(0, 0, -tubeRecoil * 0.05);
   if (rocketHead) rocketHead.visible = weapon === 'rocket' && (feverT > 0 || rocketsLeft > 0) && tubeRecoil < 0.4;
-  poseHoleOrb(); poseBeamOrb();
+  poseArms(dt); poseHoleOrb(); poseBeamOrb();
   muzzleLight.intensity *= Math.exp(-dt * 40);
+}
+
+// ===== 51-arms.js
+
+// ---------- the weapon in hand, one model each (2026-10-31, kazu: with the machine gun gone, each weapon should look like
+// itself; before, all but the tank were the same minigun with a tube strapped on, told apart by a glow in the tube) ----------
+// Built from plain shapes under gunKick (+z down the barrel, +y up, +x on our left), merged per material: a few draw calls,
+// and only the one in hand shows (showArm). We see each from behind and a little to the left, so what tells them apart is
+// what shows from there: the RPG's warhead wider than its tube, the black hole gun's rings, the railgun's two rails, the wave
+// gun's glowing back and charge lights, the flamethrower's red tanks, the shock gun's copper coil, the missile pod's ten
+// ports, the bits docked round their rack. tip: its mouth, where tubeTip (and the glow in it, 53-hole.js and 54-rail.js) goes.
+const ARM = {};
+const AX = Math.PI / 2;
+let armClock = 0;
+function armKit(group) {
+  const bins = new Map();
+  const add = (geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => {
+    const g = geo.index ? geo.toNonIndexed() : geo.clone();
+    if (g.attributes.uv) g.deleteAttribute('uv');
+    g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz)));
+    if (!bins.has(mat)) bins.set(mat, []);
+    bins.get(mat).push(g);
+  };
+  add.done = () => { for (const [mat, list] of bins) group.add(new THREE.Mesh(mergeGeometries(list), mat)); bins.clear(); return group; };
+  return add;
+}
+function buildArms() {
+  const std = (c, m, r, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: c, metalness: m, roughness: r, envMap, envMapIntensity: 0.8 }, o));
+  const glow = (hex, k) => new THREE.MeshBasicMaterial({ color: col(hex, k) });
+  const M = {
+    gun: std(0x34343e, 0.7, 0.36), steel: std(0x9c9ca8, 0.9, 0.26), dark: std(0x19181d, 0.35, 0.6, { side: THREE.DoubleSide }),
+    olive: std(0x5b6539, 0.25, 0.58, { side: THREE.DoubleSide }), drab: std(0x3f4a2b, 0.3, 0.5), red: std(0xc9302a, 0.35, 0.34),
+    wood: std(0x5a3b26, 0.08, 0.72), orange: std(0xe08a24, 0.3, 0.42), copper: std(0xd08442, 0.95, 0.28), white: std(0xe2dfe8, 0.45, 0.3),
+    khaki: std(0x6e6c4c, 0.3, 0.58), navy: std(0x27355a, 0.75, 0.32), ivory: std(0xd8d2c4, 0.3, 0.4),
+  };
+  const box = (w, h, d) => new THREE.BoxGeometry(w, h, d), cyl = (r0, r1, h, n = 20, open = false) => new THREE.CylinderGeometry(r0, r1, h, n, 1, open);
+  const ring = (r, t, n = 40) => new THREE.TorusGeometry(r, t, 8, n), disc = (r, n = 24) => new THREE.CircleGeometry(r, n);
+  const BACK = Math.PI;   // a disc turned to face us (circles face +z, down the barrel)
+
+  // ロケラン: an RPG, olive tube with a wooden guard, the blast cone flaring open at the back, a sight on the left, and the
+  // fat warhead sitting in its mouth while a rocket is loaded (rocketHead)
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(cyl(0.066, 0.066, 0.8, 24, true), M.olive, 0, 0, 0.06, AX);
+    add(cyl(0.066, 0.104, 0.15, 24, true), M.dark, 0, 0, -0.415, AX);
+    add(disc(0.065), M.dark, 0, 0, -0.2, 0, BACK);
+    add(cyl(0.077, 0.077, 0.24, 24), M.wood, 0, 0, 0.0, AX);
+    for (const z of [-0.3, 0.13, 0.42]) add(cyl(0.071, 0.071, 0.028, 24), M.steel, 0, 0, z, AX);
+    add(cyl(0.0695, 0.0695, 0.03, 24), M.orange, 0, 0, -0.22, AX);
+    add(box(0.035, 0.12, 0.05), M.dark, 0, -0.105, -0.07, -0.3);
+    add(box(0.035, 0.1, 0.045), M.dark, 0, -0.095, 0.16, -0.2);
+    add(box(0.034, 0.052, 0.15), M.dark, 0.09, 0.04, 0.08);
+    add(cyl(0.017, 0.017, 0.012, 14), glow(0xff3020, 2.2), 0.09, 0.044, 0.004, AX);
+    add(box(0.01, 0.034, 0.012), M.dark, 0, 0.082, 0.4);
+    add(box(0.01, 0.03, 0.012), M.dark, 0, 0.08, -0.16);
+    add.done();
+    const head = new THREE.Group(), addH = armKit(head);
+    addH(cyl(0.1, 0.062, 0.08, 24), M.drab, 0, 0, 0.5, AX);
+    addH(cyl(0.104, 0.1, 0.13, 24), M.drab, 0, 0, 0.605, AX);
+    addH(cyl(0.106, 0.106, 0.026, 24), M.red, 0, 0, 0.56, AX);
+    addH(new THREE.ConeGeometry(0.104, 0.25, 24), M.drab, 0, 0, 0.795, AX);
+    addH(cyl(0.012, 0.02, 0.06, 10), M.steel, 0, 0, 0.94, AX);
+    addH.done(); g.add(head); rocketHead = head;
+    ARM.rocket = { g, tip: [0, 0, 0.47] };
+  }
+  // ブラックホール: a squat dark gun, a violet core glowing in its back, and three rings round its mouth that spin
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(cyl(0.07, 0.082, 0.4, 24), M.gun, 0, 0, -0.1, AX);
+    add(new THREE.SphereGeometry(0.082, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), M.gun, 0, 0, -0.3, -AX);
+    add(ring(0.05, 0.012), M.steel, 0, 0, -0.36);
+    add(disc(0.042), glow(0xa060ff, 2.4), 0, 0, -0.372, 0, BACK);
+    add(cyl(0.022, 0.022, 0.24, 16), M.steel, 0, 0, 0.21, AX);
+    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 + 0.5; add(box(0.014, 0.014, 0.26), M.dark, Math.cos(a) * 0.09, Math.sin(a) * 0.09, 0.2); }
+    add(box(0.03, 0.1, 0.05), M.dark, 0, -0.1, -0.12, -0.3);
+    add.done();
+    const rings = [];
+    for (let i = 0; i < 3; i++) {
+      const r = new THREE.Group(), addR = armKit(r), R = 0.13 - i * 0.012;
+      addR(ring(R, 0.017), M.gun);
+      addR(ring(R - 0.016, 0.0055), glow(0xb070ff, 2.0 + i * 0.3));
+      for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2; addR(box(0.016, 0.016, 0.03), M.steel, Math.cos(a) * R, Math.sin(a) * R, 0); }
+      addR.done(); r.position.z = 0.03 + i * 0.11; g.add(r); rings.push(r);
+    }
+    ARM.hole = { g, tip: [0, 0, 0.36], rings };
+  }
+  // レールガン: two long rails out in front with their inner faces glowing blue, capacitors down the sides, cooling fins at
+  // the back over a blue panel
+  {
+    const g = new THREE.Group(), add = armKit(g), lit = glow(0x58b8ff, 2.2);
+    add(box(0.14, 0.1, 0.36), M.gun, 0, 0, -0.12);
+    add(box(0.12, 0.028, 0.3), M.steel, 0, 0.064, -0.1);
+    for (const y of [0.064, -0.064]) {
+      add(box(0.046, 0.036, 0.84), M.steel, 0, y, 0.34);
+      if (y > 0) add(box(0.014, 0.005, 0.72), lit, 0, y + 0.02, 0.38);
+      add(box(0.05, 0.012, 0.8), M.dark, 0, y + Math.sign(y) * 0.02, 0.34);
+      add(box(0.026, 0.006, 0.74), lit, 0, y - Math.sign(y) * 0.019, 0.36);
+    }
+    for (const z of [0.12, 0.42, 0.68]) add(box(0.06, 0.012, 0.024), M.dark, 0, 0, z, 0, 0, AX);
+    for (const x of [0.088, -0.088]) for (const y of [0.022, -0.026]) {
+      add(cyl(0.021, 0.021, 0.2, 14), M.gun, x, y, -0.12, AX);
+      for (const z of [-0.18, -0.06]) add(ring(0.0225, 0.004, 20), lit, x, y, z);
+    }
+    for (let i = 0; i < 5; i++) add(box(0.13, 0.09, 0.006), M.steel, 0, 0, -0.31 - i * 0.014);
+    add(box(0.1, 0.06, 0.004), glow(0x4aa8ff, 1.8), 0, 0, -0.302);
+    add(box(0.03, 0.1, 0.05), M.dark, 0, -0.1, -0.16, -0.3);
+    add.done();
+    ARM.rail = { g, tip: [0, 0, 0.72], lit };
+  }
+  // 波動砲: a fat navy barrel whose mouth flares wider than it, a glowing halo inside the flare, fins round its back, a ring
+  // glowing in the back plate and five charge lights along the top that fill as it charges
+  {
+    const g = new THREE.Group(), add = armKit(g), back = glow(0x6ad0ff, 1.6), halo = glow(0x6ad0ff, 1.2);
+    add(cyl(0.112, 0.122, 0.5, 32), M.navy, 0, 0, 0.0, AX);
+    add(cyl(0.15, 0.115, 0.08, 32, true), M.steel, 0, 0, 0.27, AX);
+    add(ring(0.15, 0.026, 48), M.steel, 0, 0, 0.31);
+    add(ring(0.128, 0.007, 48), halo, 0, 0, 0.26);
+    add(disc(0.122, 32), M.dark, 0, 0, -0.251, 0, BACK);
+    add(ring(0.082, 0.011, 40), back, 0, 0, -0.254);
+    add(disc(0.03, 16), back, 0, 0, -0.255, 0, BACK);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + Math.PI / 8; add(box(0.012, 0.06, 0.24), M.steel, Math.cos(a) * 0.14, Math.sin(a) * 0.14, -0.12, 0, 0, a + AX); }
+    add(box(0.05, 0.035, 0.36), M.dark, 0.02, 0.125, 0.0);
+    add(box(0.035, 0.11, 0.05), M.dark, 0, -0.14, -0.1, -0.3);
+    add.done();
+    const lights = [], on = glow(0x7ae0ff, 2.6), off = new THREE.MeshBasicMaterial({ color: 0x0c1830 });
+    for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.012, 0.05), off); m.position.set(0.02, 0.146, -0.14 + i * 0.07); g.add(m); lights.push(m); }
+    ARM.wave = { g, tip: [0, 0, 0.32], back, halo, lights, on, off };
+  }
+  // 火炎放射器: a long thin barrel in a ribbed heat shield, the nozzle with its ring, and two red fuel tanks slung under it
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(cyl(0.026, 0.026, 0.66, 16), M.steel, 0, 0.01, 0.24, AX);
+    add(cyl(0.05, 0.05, 0.34, 20, true), M.dark, 0, 0.01, 0.26, AX);
+    for (let i = 0; i < 6; i++) add(ring(0.05, 0.006, 24), M.steel, 0, 0.01, 0.1 + i * 0.064);
+    add(cyl(0.04, 0.03, 0.07, 16), M.dark, 0, 0.01, 0.6, AX);
+    add(ring(0.037, 0.006, 20), glow(0xff8a30, 2.0), 0, 0.01, 0.636);
+    add(box(0.1, 0.1, 0.22), M.gun, 0, 0.0, -0.12);
+    add(ring(0.032, 0.008, 20), M.red, 0.062, 0.03, -0.1, 0, AX);
+    add(box(0.008, 0.06, 0.008), M.red, 0.062, 0.03, -0.1);
+    for (const x of [0.064, -0.064]) {
+      add(cyl(0.054, 0.054, 0.36, 24), M.red, x, -0.105, -0.05, AX);
+      add(new THREE.SphereGeometry(0.054, 20, 10), M.red, x, -0.105, -0.23, 0, 0, 0, 1, 1, 0.45);
+      add(new THREE.SphereGeometry(0.054, 20, 10), M.red, x, -0.105, 0.13, 0, 0, 0, 1, 1, 0.45);
+      for (const z of [-0.16, 0.05]) add(ring(0.055, 0.006, 24), M.steel, x, -0.105, z);
+      add(cyl(0.012, 0.012, 0.03, 10), M.steel, x, -0.105, -0.262, AX);
+    }
+    add(cyl(0.011, 0.011, 0.14, 10), M.dark, 0, -0.06, -0.26, 0.9);
+    add(box(0.035, 0.1, 0.05), M.dark, 0, -0.07, 0.1, -0.2);
+    add.done();
+    ARM.flame = { g, tip: [0, 0.01, 0.66] };
+  }
+  // 電撃砲: a copper coil round a rod between two white insulators, a steel ball at its end, two prongs reaching up beside it
+  // with sparks jumping from their tips to the ball, and a blue grille glowing in its back
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(box(0.12, 0.11, 0.28), M.gun, 0, 0, -0.16);
+    add(box(0.084, 0.064, 0.004), glow(0x6aa0ff, 2.0), 0, 0, -0.302);
+    for (let i = 0; i < 4; i++) add(box(0.09, 0.006, 0.006), M.dark, 0, -0.024 + i * 0.016, -0.305);
+    add(cyl(0.018, 0.018, 0.44, 12), M.steel, 0, 0, 0.19, AX);
+    for (let i = 0; i < 8; i++) add(ring(0.058 - i * 0.002, 0.0105, 28), M.copper, 0, 0, 0.04 + i * 0.036);
+    for (const z of [0.005, 0.345]) add(cyl(0.074, 0.074, 0.014, 24), M.ivory, 0, 0, z, AX);
+    add(new THREE.SphereGeometry(0.05, 20, 14), M.steel, 0, 0, 0.44);
+    for (const x of [0.085, -0.085]) {
+      add(cyl(0.01, 0.01, 0.38, 10), M.steel, x, 0.01, 0.18, AX);
+      add(new THREE.SphereGeometry(0.019, 12, 8), M.steel, x, 0.01, 0.375);
+    }
+    add(box(0.03, 0.1, 0.05), M.dark, 0, -0.1, -0.16, -0.3);
+    add.done();
+    // where the sparks jump, from each prong's tip to the ball (drawShock, 57-shock.js)
+    const ends = [[0.085, 0.01, 0.375], [-0.085, 0.01, 0.375], [0, 0, 0.44]].map(p => { const o = new THREE.Object3D(); o.position.fromArray(p); g.add(o); return o; });
+    ARM.shock = { g, tip: [0, 0, 0.47], ends };
+  }
+  // ミサイル: a khaki box pod, ten ports in two rows on its back (what shows from behind), and ten red-tipped noses at its
+  // front while a salvo is in it
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(box(0.27, 0.17, 0.4), M.khaki, 0, 0, 0);
+    for (const y of [0.088, -0.088]) for (const x of [0.13, -0.13]) add(box(0.02, 0.012, 0.41), M.dark, x, y, 0);
+    for (const y of [0.088, -0.088]) for (const z of [0.198, -0.198]) add(box(0.28, 0.012, 0.016), M.dark, 0, y, z);
+    for (const x of [0.138, -0.138]) add(box(0.012, 0.18, 0.06), M.dark, x, 0, -0.12);
+    const cells = [];
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 5; c++) cells.push([(c - 2) * 0.05, r ? -0.04 : 0.04]);
+    for (const [x, y] of cells) {
+      add(disc(0.02, 16), M.dark, x, y, -0.203, 0, BACK);
+      add(ring(0.021, 0.004, 16), M.steel, x, y, -0.203);
+      add(disc(0.02, 16), M.dark, x, y, 0.202);
+    }
+    add(box(0.07, 0.045, 0.1), M.dark, 0.06, 0.11, -0.02);
+    const yel = std(0xe0b028, 0.3, 0.45);
+    for (let i = 0; i < 9; i++) add(box(0.022, 0.004, 0.06), i % 2 ? M.dark : yel, -0.12 + i * 0.03, 0.0875, -0.15, 0, 0.6, 0);
+    add(box(0.09, 0.003, 0.11), M.ivory, -0.07, 0.088, 0.08);
+    for (const x of [-0.035, -0.105]) add(box(0.006, 0.003, 0.07), M.dark, x, 0.0905, 0.08);
+    for (const z of [-0.06, 0.15]) { add(box(0.1, 0.008, 0.012), M.steel, 0.0, 0.118, z); for (const x of [0.045, -0.045]) add(box(0.008, 0.03, 0.012), M.steel, x, 0.103, z); }
+    add(box(0.035, 0.1, 0.05), M.dark, 0, -0.13, -0.08, -0.3);
+    add.done();
+    const noses = new THREE.Group(), addN = armKit(noses);
+    for (const [x, y] of cells) {
+      addN(cyl(0.017, 0.017, 0.03, 12), M.ivory, x, y, 0.215, AX);
+      addN(new THREE.ConeGeometry(0.017, 0.05, 12), M.red, x, y, 0.255, AX);
+    }
+    addN.done(); g.add(noses);
+    ARM.missile = { g, tip: [0, 0, 0.23], noses, lamp: [0.06, 0.14, -0.02] };
+  }
+  // ビット: a white hexagonal rack with six bits docked round it, noses forward, their tails glowing pink at us: three for
+  // each squad there is to send
+  {
+    const g = new THREE.Group(), add = armKit(g);
+    add(cyl(0.056, 0.066, 0.36, 6), M.white, 0, 0, -0.02, AX, 0, 0);
+    add(new THREE.ConeGeometry(0.056, 0.1, 6), M.white, 0, 0, 0.21, AX);
+    add(ring(0.05, 0.008, 6), glow(0xff5ac8, 1.8), 0, 0, -0.205);
+    add(disc(0.03, 6), glow(0xff5ac8, 1.2), 0, 0, -0.208, 0, BACK);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + Math.PI / 6; add(box(0.05, 0.016, 0.05), M.gun, Math.cos(a) * 0.08, Math.sin(a) * 0.08, 0.0, 0, 0, a); }
+    add(box(0.035, 0.1, 0.05), M.dark, 0, -0.11, -0.14, -0.3);
+    add.done();
+    // the pods: the bits' own shape (59-bits.js), smaller, as instances so that the ones away can drop out
+    const pod = mergeGeometries([
+      new THREE.CylinderGeometry(0.028, 0.072, 0.34, 10).rotateX(AX),
+      new THREE.CylinderGeometry(0.075, 0.058, 0.07, 10).rotateX(AX).translate(0, 0, -0.2),
+      ...[0, 1, 2].map(i => new THREE.BoxGeometry(0.012, 0.1, 0.13).translate(0, 0.085, -0.16).rotateZ(i * 2.0944)),
+    ].map(q => q.toNonIndexed()));
+    const pods = new THREE.InstancedMesh(pod, M.white, 6), eyes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.03, 10, 8).translate(0, 0, 0.18), glow(0xff4ac0, 2.4), 6);
+    const tails = new THREE.InstancedMesh(new THREE.CircleGeometry(0.04, 12).rotateY(BACK).translate(0, 0, -0.236), glow(0xff4ac0, 1.2), 6);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(0.52, 0.52, 0.52);
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * Math.PI * 2;
+      q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), a + Math.PI / 2);
+      m4.compose(new THREE.Vector3(Math.cos(a) * 0.118, Math.sin(a) * 0.118, 0.03), q, s);
+      for (const o of [pods, eyes, tails]) o.setMatrixAt(i, m4);
+    }
+    for (const o of [pods, eyes, tails]) { o.frustumCulled = false; g.add(o); }
+    ARM.bits = { g, tip: [0, 0, 0.27], pods: [pods, eyes, tails] };
+  }
+  for (const k in ARM) { ARM[k].g.visible = false; gunKick.add(ARM[k].g); }
+}
+// the one in hand shows, its mouth is where the shots come from
+function showArm() {
+  for (const k in ARM) ARM[k].g.visible = k === weapon;
+  const A = ARM[weapon];
+  if (!A) return;
+  tubeTip.position.fromArray(A.tip);
+  if (holeOrb) holeOrb.position.fromArray(A.tip);
+  if (beamOrb) { beamOrb.position.fromArray(A.lamp || A.tip); beamHalo.position.copy(beamOrb.position); }
+}
+// what moves on them
+function poseArms(dt) {
+  armClock += dt;
+  const T = armClock, fev = feverT > 0, A = ARM[weapon];
+  if (!A) return;
+  if (weapon === 'hole') A.rings.forEach((r, i) => { r.rotation.z += dt * (fev ? 9 : 3.2) * (1 + 0.45 * i) * (i % 2 ? -1 : 1); });
+  else if (weapon === 'rail') {
+    const k = (fev || railsLeft > 0 ? 1 : 0.18) * (0.75 + 0.25 * Math.sin(T * 24));
+    A.lit.color.setRGB(0.42 * 2.2 * k, 0.86 * 2.2 * k, 2.2 * k);
+  } else if (weapon === 'wave') {
+    // the charge lights fill as it charges back up, all of them flicker while it fires
+    const firing = wave && wave.phase !== 'charge', k = wave ? (wave.phase === 'charge' ? Math.min(1, wave.t / wave.T) : 1) : waveLoad, n = Math.floor(k * 5 + 1e-6);
+    A.lights.forEach((m, i) => { m.material = (firing ? Math.sin(T * 50 + i) > 0 : i < n) ? A.on : A.off; });
+    const b = 0.35 + 0.65 * k + (wave ? 0.5 * Math.abs(Math.sin(T * 30)) : 0);
+    A.back.color.setRGB(0.42 * 1.6 * b, 0.82 * 1.6 * b, 1.6 * b);
+    A.halo.color.setRGB(0.42 * 1.2 * b, 0.82 * 1.2 * b, 1.2 * b);
+  } else if (weapon === 'missile') A.noses.visible = (fev || salvosLeft > 0) && tubeRecoil < 0.4;
+  else if (weapon === 'bits') {
+    const n = fev ? (squadCD <= 0 ? 6 : 0) : Math.min(2, squadsLeft) * 3;
+    for (const o of A.pods) o.count = tubeRecoil > 0.4 ? Math.max(0, n - 3) : n;
+  }
 }
 
 // ===== 52-tank.js
 // ---------- the tank, picked instead of the rocket launcher (2026-10-24, kazu: a tank to pick as well would widen the game) ----------
-// Hold: the coaxial machine gun. Tap: the main gun, one round at a time. Its shell skewers every body on its way,
-// flinging them down the road, and blows up where it lands.
+// The main gun, one round at a time (held down, it fires again as soon as it has reloaded; its coaxial machine gun went with
+// the rocket launcher's minigun, 2026-10-31). Its shell skewers every body on its way, flinging them down the road, and
+// blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
 const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
-// (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25)
-const CANNON_RELOAD = 0.95, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
+// (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25; the reload
+// went from 0.95 to 0.75 s when the machine gun went, 2026-10-31: firing blind, the main gun alone scored about a fifth less)
+const CANNON_RELOAD = 0.75, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
 const tankRoot = new THREE.Group(), tankAim = new THREE.Group(), tankKick = new THREE.Group();
 camera.add(tankRoot); tankRoot.add(tankAim); tankAim.add(tankKick);
-const cannonTip = new THREE.Object3D(), coaxTip = new THREE.Object3D();
+const cannonTip = new THREE.Object3D();
 let cannonT = 0, cannonRecoil = 0, camKick = 0, shells = [], tankSnap = true;
 const _tp = new THREE.Vector3(), _tq = new THREE.Vector3();
 function buildTank() {
@@ -4594,14 +4780,11 @@ function buildTank() {
   // the muzzle brake, with its side ports
   add(new THREE.BoxGeometry(0.15, 0.092, 0.17), steel, 0, 0, 2.94);
   for (const z of [2.9, 2.98]) add(new THREE.BoxGeometry(0.156, 0.03, 0.026), black, 0, 0, z);
-  // the coaxial machine gun, a thin barrel along the right of the gun
-  add(new THREE.CylinderGeometry(0.011, 0.013, 1.6, 10), steel, -0.105, -0.035, 1.15, true);
   for (const [mat, list] of bins) tankKick.add(new THREE.Mesh(mergeGeometries(list), mat));
   cannonTip.position.set(0, 0, 3.05); tankKick.add(cannonTip);
-  coaxTip.position.set(-0.105, -0.035, 1.96); tankKick.add(coaxTip);
 }
 // The gun turns on a pivot just under us and lies along the line of sight through the reticle, so the muzzle keeps to one spot
-// on screen beside the reticle: a little right of it and well below, about where the minigun's muzzle is, with the barrel running
+// on screen beside the reticle: a little right of it and well below, about where the other weapons' muzzles are, with the barrel running
 // from there down out of the bottom of the screen. The pivot shifts with the reticle so the gun never leaves the screen: the
 // muzzle comes left of the reticle near the right edge, and up a little when aiming low.
 function tankPivot(out) {
@@ -4624,17 +4807,17 @@ function poseTank(dt) {
   tankAim.lookAt(_tp);
   const q1 = tankAim.quaternion.clone();
   tankAim.quaternion.copy(q0).slerp(q1, k);
-  // the gun runs back into the turret when it fires and creeps out again; the machine gun shivers it a little
-  tankKick.position.set(rand(-1, 1) * gunRecoil * 0.0015, rand(-1, 1) * gunRecoil * 0.0015, -cannonRecoil * cannonRecoil * 0.32);
+  // the gun runs back into the turret when it fires and creeps out again
+  tankKick.position.set(0, 0, -cannonRecoil * cannonRecoil * 0.32);
   muzzleLight.intensity *= Math.exp(-dt * 30);
 }
 function setWeapon(w) {
   weapon = WEAPON_NAME[w] && weaponOpen(w) ? w : 'rocket';
   try { localStorage.setItem('zb3d-weapon', weapon); } catch (e) {}
   const tank = weapon === 'tank';
-  gunRoot.visible = !tank; tankRoot.visible = tank; tankSnap = true;
+  gunRoot.visible = !tank; tankRoot.visible = tank; tankSnap = true; showArm();
   for (const b of document.querySelectorAll('.pk')) b.setAttribute('aria-pressed', String(b.dataset.w === weapon));
-  $('ctlHold').textContent = tank ? '機銃' : 'マシンガン';
+  $('ctlHold').textContent = HOLD_SAYS[weapon] || '連射';
   $('ctlTap').textContent = $('ctlPc').textContent = $('ammoLabel').textContent = WEAPON_NAME[weapon];
   hudKey = '';
 }
@@ -4643,7 +4826,9 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
   if (!weaponOpen(b.dataset.w)) { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); softClick(); return; }
   setWeapon(b.dataset.w);
 });
-// a quick tap (or right click, or space) fires the heavy weapon
+// a tap (a click, a right click, the space bar) fires the weapon; held down, it fires again every HOLD_GAP while it can
+const HOLD_GAP = { rocket: 0.2, tank: 0.1, hole: 0.3, rail: 0.22, wave: 0.1, flame: 0.1, shock: 0.25, missile: 0.4, bits: 0.45 };
+const HOLD_SAYS = { flame: '出しっぱなし' };
 function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits }[weapon] || tryRocket)(); }
 function tryCannon() {
   if (!running) return;
@@ -4760,7 +4945,7 @@ function shellBlast(s) {
 
 // ===== 53-hole.js
 // ---------- the black hole gun (2026-10-25: kazu's pick for the first weapon the medals unlock) ----------
-// The minigun as before, with gravity shells in the tube instead of rockets. A shell flies to the reticle and opens a black
+// Gravity shells in the tube instead of rockets. A shell flies to the reticle and opens a black
 // hole over the street: for SUCK_T it drags in everything round it, the horde off its feet, the dead, cars and bits of road,
 // all swinging round its glowing disk; then for SHUT_T it swallows the lot and shrinks to a point, and goes off, throwing
 // everything it held back out. One shell is
@@ -4805,10 +4990,11 @@ function holeMeshes() {
   holePool.push(m);
   return m;
 }
-// the shell sitting in the tube's mouth
+// the shell sitting in the gun's mouth
 function buildHoleOrb() {
-  holeOrb = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), new THREE.MeshBasicMaterial({ color: col(0xa060ff, 2.6), fog: false }));
-  holeOrb.position.set(-0.115, 0.055, 0.34); holeOrb.visible = false; gunKick.add(holeOrb);
+  // drawn over the gun, as the other weapons' glows are: we look at it along the barrel from behind (51-arms.js)
+  holeOrb = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), new THREE.MeshBasicMaterial({ color: col(0x9050ff, 2.0), fog: false, depthTest: false }));
+  holeOrb.renderOrder = 10; holeOrb.visible = false; gunKick.add(holeOrb);
 }
 function poseHoleOrb() {
   if (!holeOrb) return;
@@ -5507,7 +5693,13 @@ function resetFlame() {
 function tryFlame() {
   if (!running) return;
   const fev = feverT > 0;
-  if (flame) { if (fev) flame.T = Math.max(flame.T, flame.t + FLAME_FEVER_T); else softClick(); return; }
+  // held down, it keeps going: as one burst runs out, the next is lit in its place
+  if (flame) {
+    if (fev) flame.T = Math.max(flame.T, flame.t + FLAME_FEVER_T);
+    else if (holdShot && flamesLeft > 0 && flame.T - flame.t < 0.12) { flamesLeft--; flame.T += FLAME_T; flame.ch = newChain(); }   // a chain of its own, as a fresh tap's
+    else softClick();
+    return;
+  }
   if (!fev && flamesLeft <= 0) { softClick(); return; }
   if (!fev) flamesLeft--;
   flame = { t: 0, T: fev ? FLAME_T + FLAME_FEVER_T : FLAME_T, ch: newChain(), emit: 0, dir: null, lightT: 0, M: new THREE.Vector3(), E: new THREE.Vector3(), beam: takeBeam(), boss: 0, ship: 0, park: 0 };
@@ -5879,11 +6071,14 @@ function drawShock() {
     const k = (1 - u * u) * (step % 3 === 2 ? 0.45 : 1) * (a.t < 0.03 ? 1.4 : 1), len = a.A.distanceTo(a.B);
     bolt(a.A.x, a.A.y, a.A.z, a.B.x, a.B.y, a.B.z, Math.min(0.8, 0.06 * len + 0.04), a.w, k, a.fork);
   }
-  // the gun crackles while it has a shot in it
-  if (weapon === 'shock' && running && (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4 && Math.floor(now / 70) % 3 === 0) {
-    tubeTip.getWorldPosition(_wp);
-    _bs = Math.floor(now / 70) % 2147483646 + 7;
-    bolt(_wp.x, _wp.y, _wp.z, _wp.x + brnd() * 0.05, _wp.y + brnd() * 0.05, _wp.z + brnd() * 0.05, 0.015, 0.5, 0.8, 0);
+  // the gun crackles while it has a shot in it: sparks jumping from its prongs to the ball (51-arms.js)
+  if (weapon === 'shock' && running && (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4 && Math.floor(now / 60) % 3 !== 1) {
+    const [P0, P1, B] = ARM.shock.ends;
+    B.getWorldPosition(_wp2); _bs = Math.floor(now / 60) % 2147483646 + 7;
+    for (const P of Math.floor(now / 60) % 3 === 0 ? [P0, P1] : [Math.floor(now / 180) % 2 ? P0 : P1]) {
+      P.getWorldPosition(_wp);
+      bolt(_wp.x, _wp.y, _wp.z, _wp2.x, _wp2.y, _wp2.z, 0.004, 0.45, 0.9, 0);
+    }
   }
   // a soft blue glow round each one frying (small and faint: a bunch of them close to the fence add up to white)
   for (const z of zombies) {
@@ -6568,13 +6763,6 @@ function gain(t, peak, attack, decay) {
   g.gain.exponentialRampToValueAtTime(peak, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
   return g;
 }
-function gunShot(fev) {
-  if (!live()) return;
-  const t = actx.currentTime;
-  noiseSrc(t, 0.08).connect(filt('bandpass', rand(1300, 1900), 0.8)).connect(gain(t, fev ? 0.5 : 0.42, 0.002, 0.06)).connect(master);
-  const o = osc('triangle', 190, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.06);
-  o.connect(gain(t, 0.5, 0.002, 0.07)).connect(master); o.start(t); o.stop(t + 0.09);
-}
 function rocketSnd() {
   if (!live()) return;
   const t = actx.currentTime;
@@ -6825,7 +7013,7 @@ function comboSting() {
   });
 }
 function softClick() {
-  if (!live()) return;
+  if (!live() || holdShot) return;   // only a tap clicks empty, not a held-down weapon waiting to reload
   const t = actx.currentTime;
   const o = osc('square', 1400, t);
   o.connect(gain(t, 0.05, 0.001, 0.03)).connect(master); o.start(t); o.stop(t + 0.05);
@@ -7207,9 +7395,10 @@ let explosionsQ = [], floaters = [], bannerObj = null;
 let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
 let shake = 0, hitstop = 0, slowmo = 0, zoom = 1, speedLines = 0, flashScreen = 0;
 let combo = 0, comboTimer = 0, maxCombo = 0, fever = 0, feverT = 0, comboPulse = 0, lastLabelT = -9, lastSfxT = 0;
-let longestFlight = 0, headshots = 0, juggles = 0, carsBlown = 0;
+let longestFlight = 0, juggles = 0, carsBlown = 0;
 let groanT = 0, bangCD = 0, thudCD = 0;
 const pointers = new Map();
+let spaceHeld = false;
 const aim = { x: 0, y: 0, show: false, touch: false };
 
 function reset() {
@@ -7221,8 +7410,8 @@ function reset() {
   elapsed = 0; kills = 0; score = 0; rocketsLeft = MAX_ROCKETS; rocketTimer = 0; spawnTimer = 0.2; manholeT = 3;
   shake = 0; hitstop = 0; slowmo = 0; zoom = 1; speedLines = 0; flashScreen = 0;
   combo = 0; comboTimer = 0; maxCombo = 0; fever = 0; feverT = 0; comboPulse = 0; lastLabelT = -9;
-  longestFlight = 0; headshots = 0; juggles = 0; carsBlown = 0;
-  fireCD = 0; dadadaT = 0; gunRecoil = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
+  longestFlight = 0; juggles = 0; carsBlown = 0;
+  fireCD = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
   resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetReplay(); resetPark(); resetFest(); resetHwy();
@@ -7266,7 +7455,7 @@ function registerKills(k, x, z, label, blast, ch, mul = 1) {
   }
 }
 // a chain on the run counts up where it is going off, and stings when it starts paying double. One counter at a time,
-// for the longest chain going: every bullet is a chain of its own, and a counter each piled up over the street
+// for the longest chain going: every shot is a chain of its own, and a counter each piled up over the street
 function chainCallout(ch) {
   if (ch.n < 8) return;
   const m = chainMult(ch.n);
@@ -7308,7 +7497,7 @@ function addFever(v) {
 const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題', bits: 'ビット撃ち放題' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
-  showBanner('FEVER!!', weapon === 'tank' ? '機銃2倍 ・ 主砲連射' : `マシンガン2倍 ・ ${FEVER_TAP[weapon]}`, C.flare, 1.4);
+  showBanner('FEVER!!', FEVER_TAP[weapon], C.flare, 1.4);
   speedLines = 0.9;
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.08);
   sting(); say('fever', 3);
@@ -7329,41 +7518,6 @@ function bloodBurst(x, z, h, n, sp, up) {
 function meatChunk(zb, s) {
   const a = rand(0, 6.28), sp = rand(2, 7) * s, r = rand(0.06, 0.14) * Math.min(1.5, zb.size);
   addChunk({ m: 'meat', x: zb.x + rand(-0.2, 0.2), z: zb.z, h: rand(0.6, 1.4) * zb.size, vx: Math.cos(a) * sp + zb.vx * 0.2, vz: Math.sin(a) * sp + zb.vz * 0.2, vh: rand(4, 11) * s, sx: r, sy: r * 0.8, sz: r * 1.1, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(2.5, 4), blood: true, bounce: 0.15 });
-}
-function hitZombie(hit, dmg, D, ch) {
-  const z = hit.z, gx = hit.p.x, gz = -hit.p.z, gh = hit.p.y;
-  // the exit wound sprays out of the back: blood and bits of meat
-  if (z.type !== 'boss' && Math.random() < 0.35) addChunk({ m: 'meat', x: gx, z: gz, h: gh, vx: D.x * rand(1, 3) + rand(-1, 1), vz: -D.z * rand(1, 3) + rand(-0.5, 0.5), vh: rand(1, 4), sx: 0.035, sy: 0.028, sz: 0.04, c: Math.random() < 0.5 ? CH.meat : CH.meat2, life: rand(1.5, 2.5), blood: true, bounce: 0.1 });
-  for (let i = 0; i < 5; i++) addPart({ k: 'blood', x: gx, z: gz, h: gh, vx: D.x * rand(1, 4) + rand(-1.5, 1.5), vz: -D.z * rand(1, 4) + rand(-1, 1), vh: rand(0.5, 3.5), g: 14, r: rand(0.025, 0.06), life: 1.2, dark: Math.random() < 0.3 });
-  addPart({ k: 'mist', x: gx, z: gz + 0.1, h: gh, vx: D.x, vz: -D.z, vh: 0.2, r: 0.12, grow: 1.6, drag: 3, life: 0.3, a: 0.5 });
-  if (z.type === 'boss') { damageBoss(hit.head ? dmg * 2 : dmg, ch, z); if (Math.random() < 0.25) squelch(false); return; }
-  if (z.state === 'hang') {
-    // one off the airship's ropes
-    z.hp -= hit.head ? dmg * 3 : dmg; z.flash = 0.07;
-    if (z.hp <= 0) {
-      if (hit.head) { headshots++; squelch(true); popHead(z, true); }
-      dropHanger(z, ch, true);
-      registerKills(1, z.x, z.z, hit.head ? 'HEADSHOT!' : '撃ち落とし!', false, ch, hit.head ? 2 : 1);
-    }
-    return;
-  }
-  if (z.state === 'fly') {
-    // juggle bodies in the air
-    z.vh = Math.max(z.vh, 7); z.vz += 0.8; z.vx += rand(-1, 1); z.w.x -= rand(2, 5);
-    if (running) { score += 50; juggles++; }
-    if (Math.random() < 0.3) squelch(false);
-    return;
-  }
-  z.hp -= hit.head ? dmg * 3 : dmg;
-  z.flash = 0.07; z.stagger = 0.18; z.z += 0.1;
-  if (z.hp <= 0) {
-    if (hit.head) { headshots++; squelch(true); }
-    killZombie(z, { gun: true, head: hit.head, ch });
-    registerKills(1, z.x, z.z, hit.head ? 'HEADSHOT!' : null, false, ch, hit.head ? 2 : 1);   // a clean headshot pays double
-  } else {
-    if (Math.random() < 0.2) { const i = z.arms[0] ? 0 : z.arms[1] ? 1 : -1; if (i >= 0) tearArm(z, i, 0, 0); }
-    if (Math.random() < 0.35) squelch(false);
-  }
 }
 function tearArm(z, i, vx, vz) {
   makeGib(z, i ? LIMBS.armR : LIMBS.armL, { x: vx + rand(-4, 4), y: rand(6, 11), z: vz + rand(-1, 3) }, rand(12, 30));
@@ -7814,7 +7968,7 @@ function ambientFx(dt) {
   for (const p of parts) if (p.k === 'haze') { if (p.z < 12) p.z = 42; if (p.x > 6) p.x = -6; if (p.x < -6) p.x = 6; }
 }
 
-// ---------- input: hold = machine gun, quick tap = rocket ----------
+// ---------- input: a tap fires the weapon, and held down it keeps firing (HOLD_GAP, 52-tank.js) ----------
 function pt(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function setAim(p, touch) {
   // held down, the mouse can wander off the game's column on a wide screen: the reticle stays on its edge
@@ -7827,28 +7981,27 @@ cv.addEventListener('pointerdown', e => {
   const p = pt(e), touch = e.pointerType !== 'mouse';
   if (e.button === 2) { setAim(p, false); tapFire(); return; }
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-  pointers.set(e.pointerId, { sx: p.x, sy: p.y, t: performance.now(), moved: 0, fire: true });
+  pointers.set(e.pointerId, { fire: true });
   setAim(p, touch);
+  // it fires the moment we touch, however soon after the last one (a hold's next shot waits its gap)
+  tapFire(); fireCD = HOLD_GAP[weapon] || 0.2;
 });
 cv.addEventListener('pointermove', e => {
   const p = pt(e), touch = e.pointerType !== 'mouse';
-  const ptr = pointers.get(e.pointerId);
-  if (ptr) { ptr.moved = Math.max(ptr.moved, Math.hypot(p.x - ptr.sx, p.y - ptr.sy)); setAim(p, touch); }
+  if (pointers.has(e.pointerId)) setAim(p, touch);
   else if (!touch) setAim(p, false);
 });
-function endPointer(e) {
-  const ptr = pointers.get(e.pointerId);
-  if (!ptr) return;
-  pointers.delete(e.pointerId);
-  if (running && performance.now() - ptr.t < 220 && ptr.moved < 28) tapFire();
-}
+function endPointer(e) { pointers.delete(e.pointerId); }
 cv.addEventListener('pointerup', endPointer);
 cv.addEventListener('pointercancel', e => pointers.delete(e.pointerId));
 cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !pointers.size) aim.show = false; });
 cv.addEventListener('contextmenu', e => e.preventDefault());
+// the space bar as a finger on the reticle where the mouse is
 window.addEventListener('keydown', e => {
-  if (e.code === 'Space' && running) { e.preventDefault(); if (!e.repeat) tapFire(); }
+  if (e.code === 'Space' && running) { e.preventDefault(); if (!e.repeat) { spaceHeld = true; tapFire(); fireCD = HOLD_GAP[weapon] || 0.2; } }
 });
+window.addEventListener('keyup', e => { if (e.code === 'Space') spaceHeld = false; });
+window.addEventListener('blur', () => { spaceHeld = false; });
 function setMuted(m) {
   muted = m;
   $('mute').textContent = muted ? '音: OFF' : '音: ON';
@@ -7877,7 +8030,7 @@ function start() {
   sayWhenReady('go', 3);
 }
 function timeUp() {
-  running = false; endT = FIN_END; pointers.clear(); firing = false; feverT = 0; fever = 0; spReady = false; $('spMeter').hidden = true;
+  running = false; endT = FIN_END; pointers.clear(); spaceHeld = false; firing = false; feverT = 0; fever = 0; spReady = false; $('spMeter').hidden = true;
   musicOn = false; endSting();
   showBanner('FINISH!!', 'TIME UP', C.bone, 1.4, true); say('finish', 3);
   startFinale();
@@ -7902,7 +8055,6 @@ function finish() {
   if (moonBroken) badges.push('月を破壊');
   if (moonHits) badges.push(`月面着弾 ×${moonHits}`);
   if (bldDown) badges.push(`ビル倒壊 ×${bldDown}`);
-  if (headshots) badges.push(`HEADSHOT ×${headshots}`);
   if (carsBlown) badges.push(`車ごとドカン ×${carsBlown}`);
   if (juggles >= 10) badges.push(`空中コンボ ×${juggles}`);
   if (weapon === 'tank') badges.unshift('戦車モード');
@@ -7936,7 +8088,6 @@ function fxDecay(raw) {
   zoom += (1 - zoom) * Math.min(1, raw * 6);
   const bg = Math.max(bossTiltGoal(), shipTiltGoal()), sg = strikeTiltGoal();
   look.tilt += (Math.max(bg, sg) - look.tilt) * Math.min(1, raw * (sg > bg ? 3.5 : 2.2));
-  gunRecoil = Math.max(0, gunRecoil - raw * 14);
   tubeRecoil = Math.max(0, tubeRecoil - raw * 4);
   cannonRecoil = Math.max(0, cannonRecoil - raw * 2.2); camKick = Math.max(0, camKick - raw * 5);
   comboPulse = Math.max(0, comboPulse - raw * 6);
@@ -7975,10 +8126,10 @@ function update(dt, raw) {
     if (cannonT > 0 && (cannonT -= dt) <= 0) { cannonT = 0; if (weapon === 'tank' && feverT <= 0) clank(); }
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
     if (feverT > 0) { feverT -= dt; fever = Math.max(0, feverT / FEVER_TIME * 100); if (feverT <= 0) { feverT = 0; fever = 0; } }
-    firing = false;
+    firing = spaceHeld;
     for (const p of pointers.values()) if (p.fire) firing = true;
     fireCD -= dt;
-    if (firing && fireCD <= 0) { fireCD = feverT > 0 ? 1 / 26 : 1 / 13; shootBullet(); }
+    if (firing && fireCD <= 0) { fireCD = HOLD_GAP[weapon] || 0.2; holdShot = true; tapFire(); holdShot = false; }
     if (!bossSpawned && elapsed >= bossAt) spawnBoss();
     if (hapKind && elapsed >= hapAt) { startHappening(hapKind); hapKind = ''; }
     checkMissions();
@@ -8186,29 +8337,23 @@ function hud() {
 }
 
 // ---------- title demo: the horde shambles in and gets shot up behind the menu ----------
-let demoTimer = 1, demoFire = 0, demoTarget = null;
+let demoTimer = 1, demoTarget = null;
 function demoTick(dt) {
   if (running || endT > 0 || $('title').hidden) return;
   elapsed = Math.min(elapsed + dt * 0.12, DURATION * 0.47);
   spawnTimer -= dt;
   if (spawnTimer <= 0 && zombies.length < 22) { spawnWave(); spawnTimer = 1.0; }
   const aimAt = z => { const s = toScreen(z.x, z.z, 1.15 * z.size); aim.x = s.X; aim.y = s.Y; };
-  if (demoFire > 0) {
-    demoFire -= dt;
-    if (demoTarget && demoTarget.state === 'walk') aimAt(demoTarget);
-    fireCD -= dt;
-    if (fireCD <= 0) { fireCD = 1 / 12; shootBullet(); }
-  }
+  if (demoTarget && demoTarget.state === 'walk') aimAt(demoTarget);
   demoTimer -= dt;
   if (demoTimer <= 0) {
     const walking = zombies.filter(z => z.state === 'walk' && z.z < 24 && z.z > 8);
     if (walking.length) {
       const z = pick(walking);
-      aimAt(z);
-      if (Math.random() < 0.5) { if (weapon === 'tank') fireCannon(aimHit(aim.x, aim.y, 40)); else { fireRocket(aimHit(aim.x, aim.y, 40), 0); tubeRecoil = 1; } }
-      else { demoFire = 0.7; demoTarget = z; }
+      aimAt(z); demoTarget = z;
+      if (weapon === 'tank') fireCannon(aimHit(aim.x, aim.y, 40)); else { fireRocket(aimHit(aim.x, aim.y, 40), 0); tubeRecoil = 1; }
     }
-    demoTimer = rand(0.9, 1.6);
+    demoTimer = rand(1.2, 2.2);
   }
   for (const z of zombies) if (z.state === 'walk' && z.z < Z_WALL + 2.5) killZombie(z, { gun: true, head: Math.random() < 0.3 });
 }
@@ -8322,7 +8467,8 @@ async function bootInner() {
     window.__aim = (x, y) => { aim.x = x; aim.y = y; aim.show = true; };
     window.__rocket = () => tapFire();
     window.__weapon = w => setWeapon(w);
-    window.__fire = v => { pointers.clear(); if (v) pointers.set(-1, { sx: aim.x, sy: aim.y, t: performance.now(), moved: 99, fire: true }); };
+    window.__gun = (over, pos, sc) => { if (over !== undefined) GUN_OVER = over; if (pos) gunRoot.position.fromArray(pos); if (sc) gunRoot.scale.setScalar(sc); return { over: GUN_OVER, pos: gunRoot.position.toArray(), sc: gunRoot.scale.x }; };
+    window.__fire = v => { pointers.clear(); if (v) pointers.set(-1, { fire: true }); };   // a finger held down (the hold fires on the next frame)
     window.__fever = () => startFever();
     window.__special = () => trySpecial();
     window.__ready = () => { if (running && feverT <= 0) { fever = 100; strikeReady(); } };
@@ -8373,7 +8519,7 @@ async function bootInner() {
     };
     // the gore on show: an arm off every third, guts out of every other, a loose eye on every third
     window.__gore = () => { zombies.forEach((z, i) => { if (z.state !== 'walk') return; if (i % 3 === 0 && z.arms[0]) tearArm(z, 0, 0, 0); if (i % 2 === 0 && z.type !== 'barrel') z.look.guts = true; if (i % 3 === 1) z.look.face = 1; }); return zombies.length; };
-    // set off the first one of a kind still standing, as our shot would: by a bullet, or by a blast right beside it
+    // set off the first one of a kind still standing, as our shot would: by a direct hit, or by a blast right beside it
     window.__killType = (type, gun) => {
       const z = zombies.find(o => o.state === 'walk' && o.type === type);
       if (!z) return false;
@@ -8394,7 +8540,7 @@ async function bootInner() {
     boss: bosses[0] ? (() => { const b = bosses.find(o => o.state === 'walk') || bosses[0], s = toScreen(b.x, b.z, (b.dog ? 1.1 : 1.25) * b.size); return { x: s.X, y: s.Y, z: b.z, hp: b.hp, state: b.state }; })() : null,
     bosses: bosses.map(b => { const s = toScreen(b.x, b.z, (b.dog ? 1.1 : 1.25) * b.size); return { x: s.X, y: s.Y, gx: +b.x.toFixed(2), z: +b.z.toFixed(2), hp: +b.hp.toFixed(1), state: b.state, dest: b.dest || '', dog: !!b.dog, wall: !!b.atWall, top: b.dog ? +(b.top || 0).toFixed(2) : 0 }; }), bossKind, bossKills, bossStars,
     moonBroken, moonHits, bldDown, bestChain, carsBlown, spReady, strikes, strikeKills, fever, goldKills, hapAt, bossAt, lastHap, hapDone,
-    headshots, longestFlight, juggles, bossKilled, bossKillT, fatPops, bombesShot, weapon, holesLeft, railsLeft, waveLoad, holes: holes.map(H => ({ x: H.x, z: H.z, t: H.t, held: zombies.filter(z => z.held === H).length, sw: H.sw.length })), mis: { act: mis.act.slice(), now: misNow.slice(), medals: mis.medals },
+    longestFlight, juggles, bossKilled, bossKillT, fatPops, bombesShot, weapon, holesLeft, railsLeft, waveLoad, rocketsLeft, flamesLeft, shocksLeft, salvosLeft, squadsLeft, cannonT, firing, flameOn: !!flame, holes: holes.map(H => ({ x: H.x, z: H.z, t: H.t, held: zombies.filter(z => z.held === H).length, sw: H.sw.length })), mis: { act: mis.act.slice(), now: misNow.slice(), medals: mis.medals },
     heli: heli ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: heli.z, state: heli.state }; })() : null,
     tilt: +look.tilt.toFixed(3),
     park: onPark() ? (() => { const Wh = park.wheel, T = park.train, c = T.cars[0], w = toScreen(0, WHEEL.z - WHEEL.foot, WHEEL.h), t = toScreen(c.x, c.z, c.h + 0.8); return { wheel: Wh.state, hp: +Wh.hp.toFixed(1), wx: w.X, wy: w.Y, train: T.state, tz: +c.z.toFixed(1), tx: t.X, ty: t.Y }; })() : null,
@@ -8588,7 +8734,7 @@ function fatBurst(zb) {
 // ===== 72-big.js
 // ---------- the big stuff: blocks that come down, the giant, the moon ----------
 
-// ===== buildings: bullets and rockets chew holes in the near facades until a block comes down =====
+// ===== buildings: blasts chew holes in the near facades until a block comes down =====
 let bldDown = 0, smolderT = 0;
 const RUBBLE = ['#5a5260', '#4a434c', '#6a6270', '#3a3440', '#2a2428', '#7a7080'].map(h => new THREE.Color(h));
 function resetBuildings() {
@@ -8613,9 +8759,6 @@ function addHole(b, z, h, r) {
   if (zMax <= zMin || b.h < r * 2.2) return;
   b.holes.push({ z: clamp(z, zMin, zMax), h: clamp(h, r + 0.2, b.h - r * 0.8), r, rot: rand(0, 6.28), seed: Math.random() });
   if (b.holes.length > 14) b.holes.shift();
-}
-function bulletFacade(b, z, h, ch) {
-  damageBlock(b, feverT > 0 ? 0.06 : 0.035, z, h, false, ch);
 }
 // a rocket slams into a wall: fire and glass blow out over the sidewalk
 function facadeBlast(b, z, h, power, ch) {
@@ -8968,7 +9111,7 @@ function buildGiant() {
 // legs. A deep chest and a tucked-up waist torn open to the ribs on one flank with the guts hanging out, bone spikes down
 // the spine, a wolf's head with a long muzzle of fangs, four long clawed legs, a ragged tail ending in bare bone
 const DOG_Y = 0.87;
-// where bullets find it: [joint, x, y, z, radius, head] in rig units
+// where a shot finds it: [joint, x, y, z, radius, head] in rig units
 const DOG_HIT = [['head', 0, 0.02, 0.1, 0.2, true], ['head', 0, -0.02, 0.32, 0.11, true], ['neck', 0, 0, 0.24, 0.19, false], ['body', 0, 0.02, 0.5, 0.42, false], ['body', 0, 0.07, -0.05, 0.3, false], ['body', 0, 0.1, -0.58, 0.32, false]];
 function buildDog() {
   const U = bossU(), M = bossMats(U), J = () => new THREE.Group(), add = rigAdd;
@@ -9535,7 +9678,7 @@ function drawDog(z, raw) {
   bossGlow(z);
   R.root.updateMatrixWorld(true);
   if (z.state === 'moonshot') return;
-  // where bullets find it, and where its paws are
+  // where a shot finds it, and where its paws are
   if (!z.hs) { z.hs = DOG_HIT.map(() => [0, 0, 0, 0, false]); z.paws = [0, 1, 2, 3].map(() => [0, 0, 0]); }
   DOG_HIT.forEach(([j, x, y, zz, r, head], i) => { _dv.set(x, y, zz).applyMatrix4(R[j].matrixWorld); const H = z.hs[i]; H[0] = _dv.x; H[1] = _dv.y; H[2] = _dv.z; H[3] = r * s; H[4] = head; });
   [R.fw[0], R.fw[1], R.ha[0], R.ha[1]].forEach((P, i) => { _dv.set(0, -0.07, 0.04).applyMatrix4(P.matrixWorld); z.paws[i][0] = _dv.x; z.paws[i][1] = _dv.y; z.paws[i][2] = _dv.z; });
@@ -10158,7 +10301,7 @@ function drawOverlays() {
 // ===== 76-fest.js
 // ---------- 大スターマイン, the festival's grand finale (2026-10-30, kazu: one more stage) ----------
 // The launch stand across the path at 50 m holds nine mortars aimed our way and a big one behind them. Shoot it (a rocket, a
-// shell, a beam, a blast beside it, or ten bullets) and the fuse runs along the row: shell after shell comes screaming out over
+// shell, a beam, or a blast beside it) and the fuse runs along the row: shell after shell comes screaming out over
 // the street, each into the thickest of the horde, bursting there at head height in a ball of coloured stars and fire; last a
 // 尺玉 goes up behind the torii and opens gold over the whole night. Once a round; left alone it goes off in the finale, for
 // nothing. Fireworks go up over the shrine all night anyway, for the look. Only on the festival (the stand is built with it,
@@ -10736,7 +10879,7 @@ function drawHeli() {
   ADD.push(c.lx, 0.04, -c.lz, 4.2, 0, 0, 2, 1.1, 1.0, 0.8, 0.55);
 }
 const _hl = new THREE.Vector3(), _ht = new THREE.Vector3(), _hu = new THREE.Vector3(), _hd = new THREE.Vector3();
-// a bullet strikes sparks off it; enough of them, or one rocket or shell, and down it goes
+// a light hit (one of the bits' beams) strikes sparks off it; enough of them, or one rocket or shell, and down it goes
 function hitHeli(dmg, ch, x, h, z) {
   const c = heli;
   if (!c || c.state === 'crash') return;
@@ -10771,7 +10914,7 @@ const heliNear = (x, h, z, r) => heli && heli.state !== 'crash' && Math.hypot(he
 // ===== 76-hwy.js
 // ---------- the expressway's set piece and its zombie cars (2026-10-31, kazu: a highway stage, with zombie cars charging in) ----------
 // 高架崩落: the junction's overpass across the road at 54 m is jammed solid, a tanker lorry stuck in the middle of it. Shoot it (a
-// rocket, a shell, a beam, a blast beside it, or a burst of bullets) and the jam goes up car after car out from where it was hit,
+// rocket, a shell, a beam, or a blast beside it) and the jam goes up car after car out from where it was hit,
 // each flung burning off the deck and down the road into the thickest of the horde, bursting there with its zombies thrown out;
 // then the lorry goes up in a fireball that breaks the span, the lorry comes tumbling down the road into the horde for the biggest
 // blast of the round, and the span's two halves come down in a V across the road. Once a round; left alone it all goes in the
@@ -11520,12 +11663,7 @@ function lightPipe(i, ch) {
     say('unstoppable', 3);
   }
 }
-// a bullet into the road by a cover (or, now and then, one through a zombie standing on it), or a blast that reaches one
-function pipeShot(x, z, ch) {
-  if (!pipe || pipe.lit >= 0) return;
-  const i = pipe.holes.findIndex(o => Math.hypot(o.x - x, o.z - z) < 0.9);
-  if (i >= 0) lightPipe(i, ch);
-}
+// a blast that reaches a cover
 function pipeBlast(x, z, R, ch) {
   if (!pipe || pipe.lit >= 0) return;
   let best = -1, bd = 1e9;
@@ -12054,7 +12192,8 @@ function shipTiltGoal() {
 // toward unlocks. All of it lives in this browser only (localStorage), like the best score.
 const MISSIONS = [
   // [id, tier, line, done]: lines short enough for one line on a phone. The bars come from bot rounds (2026-10-25, redrawn
-  // for the bigger horde): bronze most rounds get, silver about half, gold one round in three or rarer
+  // for the bigger horde): bronze most rounds get, silver about half, gold one round in three or rarer. (2026-10-31: the
+  // headshots and the juggles in the air went with the machine gun, whose bullets made nearly all of them)
   ['chain40', 1, '1発で40体倒す', () => bestChain >= 40],
   ['chain80', 2, '1発で80体倒す', () => bestChain >= 80],
   ['chain150', 3, '1発で150体倒す', () => bestChain >= 150],
@@ -12074,9 +12213,7 @@ const MISSIONS = [
   ['kill900', 3, '900体倒す', () => kills >= 900],
   ['combo400', 1, '400コンボ', () => maxCombo >= 400],
   ['combo900', 3, '900コンボ', () => maxCombo >= 900],
-  ['head5', 2, 'ヘッドショット5回', () => headshots >= 5],
   ['fly80', 2, '80m吹っ飛ばす', () => longestFlight >= 80],
-  ['jug25', 3, '空中コンボ25回', () => juggles >= 25],
   ['fat10', 1, 'デブを10体破裂させる', () => fatPops >= 10],
   ['fat25', 2, 'デブを25体破裂させる', () => fatPops >= 25],
   ['gas12', 1, 'ボンベを12本飛ばす', () => bombesShot >= 12],
@@ -12092,13 +12229,13 @@ let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT
 // the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
 // missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam)
 const UNLOCKS = [
-  { w: 'hole', medals: 10, sub: 'マシンガン＋吸い込み弾' },
-  { w: 'rail', medals: 20, sub: 'マシンガン＋貫通ビーム' },
-  { w: 'wave', medals: 30, sub: 'マシンガン＋極太ビーム' },
-  { w: 'flame', medals: 40, sub: 'マシンガン＋燃え広がる炎' },
-  { w: 'shock', medals: 50, sub: 'マシンガン＋連鎖する稲妻' },
-  { w: 'missile', medals: 60, sub: 'マシンガン＋追尾ミサイル' },
-  { w: 'bits', medals: 70, sub: 'マシンガン＋浮遊ビーム砲台' },
+  { w: 'hole', medals: 10, sub: '吸い込んで大爆発' },
+  { w: 'rail', medals: 20, sub: '一瞬で貫くビーム' },
+  { w: 'wave', medals: 30, sub: '極太ビームで一掃' },
+  { w: 'flame', medals: 40, sub: '燃え広がる炎' },
+  { w: 'shock', medals: 50, sub: '飛び移る稲妻' },
+  { w: 'missile', medals: 60, sub: '10発の追尾ミサイル' },
+  { w: 'bits', medals: 70, sub: '浮遊ビーム砲台' },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
 function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射'; }
