@@ -151,6 +151,24 @@ canvas { display: block; width: 100%; height: 100%; }
   text-wrap: balance; margin: 0;
 }
 .tag { margin: 0; font-size: 15px; opacity: .85; }
+/* English or Japanese (2026-11-01): a small button in the title's corner; in English the logo keeps its kanji with the name
+   spelled out under it */
+.lang { position: absolute; top: 10px; right: max(12px, env(safe-area-inset-right, 0px)); z-index: 2; font: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--bone); background: color-mix(in srgb, var(--ink) 60%, transparent); border: 1.5px solid color-mix(in srgb, var(--bone) 40%, transparent);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.lang:hover { border-color: var(--flare); }
+.lang:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+.roman { margin: -8px 0 -4px; font-family: var(--display); font-size: clamp(15px, 5.2cqw, 24px); letter-spacing: .16em; color: var(--bone);
+  text-shadow: 0 2px 0 var(--ember); }
+#stage:not(.lang-en) .roman { display: none; }
+/* the English names are longer: the stage chips tighten a little so the five keep to one line, and on the narrowest phones
+   (320 px) the weapon names and the chips get smaller still (measured with pkw.mjs and chipw.mjs) */
+.lang-en .sg { font-size: 12px; padding: 4px 7px; }
+@container (max-width: 345px) {
+  .lang-en .sgs { gap: 3px; }
+  .lang-en .sg { font-size: 11px; padding: 3px 5px; letter-spacing: -.01em; }
+  #stage.lang-en .pick:not(.small) .pk .t { font-size: 14.5px; }
+}
 .btn {
   font: inherit; color: var(--ink);
   background: var(--bone); border: 0; border-radius: 10px;
@@ -326,45 +344,47 @@ canvas { display: block; width: 100%; height: 100%; }
   <canvas id="cv"></canvas>
 
   <div class="hud" id="hud" hidden>
-    <div class="stat time"><span class="k">残り</span><span class="v" id="time">15.0</span></div>
-    <div class="stat"><span class="k">スコア</span><span class="v" id="score">0</span></div>
+    <div class="stat time"><span class="k" data-en="TIME">残り</span><span class="v" id="time">15.0</span></div>
+    <div class="stat"><span class="k" data-en="SCORE">スコア</span><span class="v" id="score">0</span></div>
     <div class="stat"><span class="k" id="ammoLabel">ロケット</span><span class="ammo" id="ammo"></span></div>
     <span class="spacer"></span>
-    <button class="mute" id="mute" type="button">音: ON</button>
+    <button class="mute" id="mute" type="button" data-en="SOUND: ON">音: ON</button>
   </div>
 
-  <div class="sp" id="spMeter" hidden aria-hidden="true"><span class="t" id="spText">空爆</span></div>
+  <div class="sp" id="spMeter" hidden aria-hidden="true"><span class="t" id="spText" data-en="STRIKE">空爆</span></div>
 
   <div class="overlay" id="title">
+    <button class="lang" id="langBtn" type="button" lang="en" data-en="日本語">English</button>
     <div class="card">
       <h1 class="logo">ゾンビ<br>爆散</h1>
-      <p class="tag"><span class="badge3d">3D版</span></p>
-      <p class="tag"><span>ここが最終防衛ライン。</span><span>15秒で全部ぶっ飛ばせ。</span></p>
-      <div class="pick" role="group" aria-label="武器を選ぶ">
-        <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span><span class="d">爆発するロケット弾</span></button>
-        <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span><span class="d">串刺しにする主砲</span></button>
-        <button class="pk bh locked" type="button" data-w="hole" aria-pressed="false" aria-disabled="true"><span class="t">ブラックホール</span><span class="d">メダル10枚で解放</span></button>
-        <button class="pk rl locked" type="button" data-w="rail" aria-pressed="false" aria-disabled="true" hidden><span class="t">レールガン</span><span class="d">メダル20枚で解放</span></button>
-        <button class="pk wv locked" type="button" data-w="wave" aria-pressed="false" aria-disabled="true" hidden><span class="t">波動砲</span><span class="d">メダル30枚で解放</span></button>
-        <button class="pk fl locked" type="button" data-w="flame" aria-pressed="false" aria-disabled="true" hidden><span class="t">火炎放射器</span><span class="d">メダル40枚で解放</span></button>
-        <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t">電撃砲</span><span class="d">メダル50枚で解放</span></button>
-        <button class="pk ms locked" type="button" data-w="missile" aria-pressed="false" aria-disabled="true" hidden><span class="t">ミサイル</span><span class="d">メダル60枚で解放</span></button>
-        <button class="pk bt locked" type="button" data-w="bits" aria-pressed="false" aria-disabled="true" hidden><span class="t">ビット</span><span class="d">メダル70枚で解放</span></button>
+      <p class="roman" lang="en">ZOMBIE BAKUSAN</p>
+      <p class="tag"><span class="badge3d" data-en="3D">3D版</span></p>
+      <p class="tag" data-en-html="<span>This is the last line of defense.</span> <span>Blow them all away in 15 seconds.</span>"><span>ここが最終防衛ライン。</span><span>15秒で全部ぶっ飛ばせ。</span></p>
+      <div class="pick" role="group" aria-label="武器を選ぶ" data-en-label="Choose a weapon">
+        <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t" data-en="Rockets">ロケラン</span><span class="d" data-en="Explosive rockets">爆発するロケット弾</span></button>
+        <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t" data-en="Tank">戦車</span><span class="d" data-en="Skewering cannon">串刺しにする主砲</span></button>
+        <button class="pk bh locked" type="button" data-w="hole" aria-pressed="false" aria-disabled="true"><span class="t" data-en="Black Hole">ブラックホール</span><span class="d" data-en="10 medals to unlock">メダル10枚で解放</span></button>
+        <button class="pk rl locked" type="button" data-w="rail" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Railgun">レールガン</span><span class="d" data-en="20 medals to unlock">メダル20枚で解放</span></button>
+        <button class="pk wv locked" type="button" data-w="wave" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Wave Cannon">波動砲</span><span class="d" data-en="30 medals to unlock">メダル30枚で解放</span></button>
+        <button class="pk fl locked" type="button" data-w="flame" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Flamethrower">火炎放射器</span><span class="d" data-en="40 medals to unlock">メダル40枚で解放</span></button>
+        <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Shock Gun">電撃砲</span><span class="d" data-en="50 medals to unlock">メダル50枚で解放</span></button>
+        <button class="pk ms locked" type="button" data-w="missile" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Missiles">ミサイル</span><span class="d" data-en="60 medals to unlock">メダル60枚で解放</span></button>
+        <button class="pk bt locked" type="button" data-w="bits" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Bits">ビット</span><span class="d" data-en="70 medals to unlock">メダル70枚で解放</span></button>
       </div>
-      <div class="stg" role="group" aria-label="ステージを選ぶ"></div>
+      <div class="stg" role="group" aria-label="ステージを選ぶ" data-en-label="Choose a stage"></div>
       <button class="btn" id="startBtn" type="button" disabled>
-        <span class="t">スタート</span>
-        <span class="d" id="startSub">3Dを準備中…</span>
+        <span class="t" data-en="START">スタート</span>
+        <span class="d" id="startSub" data-en="Loading 3D…">3Dを準備中…</span>
       </button>
       <div class="controls">
-        <div class="ctl"><span class="key">タップ</span><span id="ctlTap">ロケット</span></div>
-        <div class="ctl"><span class="key">長押し</span><span id="ctlHold">連射</span></div>
+        <div class="ctl"><span class="key" data-en="TAP">タップ</span><span id="ctlTap">ロケット</span></div>
+        <div class="ctl"><span class="key" data-en="HOLD">長押し</span><span id="ctlHold">連射</span></div>
       </div>
       <div class="mis" id="misTitle">
-        <div class="mis-h"><span>お題</span><span class="mis-m" id="misMedalsT"></span></div>
+        <div class="mis-h"><span data-en="CHALLENGES">お題</span><span class="mis-m" id="misMedalsT"></span></div>
         <ol></ol>
       </div>
-      <p class="how"><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
+      <p class="how" data-en-html="<span>Drums and cars go up big,</span> <span>buildings fall when you shoot them.</span><br><span>Keep killing and an air strike rolls in.</span> <span>Send the giant to the moon.</span><br>On a PC, click or press Space to fire the <span id=&quot;ctlPc&quot;>Rocket</span>."><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
     </div>
   </div>
 
@@ -379,36 +399,36 @@ canvas { display: block; width: 100%; height: 100%; }
       <p class="rank-note" id="resNote"></p>
       <p class="score-big"><small>SCORE</small><span id="resScore">0</span></p>
       <div class="result-grid">
-        <div><div class="k">撃破</div><div class="v" id="resKills">0</div></div>
-        <div><div class="k">最大コンボ</div><div class="v" id="resCombo">0</div></div>
-        <div><div class="k">最長飛距離</div><div class="v" id="resFlight">0m</div></div>
+        <div><div class="k" data-en="Kills">撃破</div><div class="v" id="resKills">0</div></div>
+        <div><div class="k" data-en="Max combo">最大コンボ</div><div class="v" id="resCombo">0</div></div>
+        <div><div class="k" data-en="Longest flight">最長飛距離</div><div class="v" id="resFlight">0m</div></div>
       </div>
       <div class="badges" id="resBadges"></div>
       <div class="mis" id="misRes">
-        <div class="mis-h"><span>お題</span><span class="mis-m" id="misMedalsR"></span></div>
+        <div class="mis-h"><span data-en="CHALLENGES">お題</span><span class="mis-m" id="misMedalsR"></span></div>
         <ol></ol>
       </div>
       <p class="tag" id="resBest"></p>
-      <div class="stg small" role="group" aria-label="ステージを選ぶ"></div>
+      <div class="stg small" role="group" aria-label="ステージを選ぶ" data-en-label="Choose a stage"></div>
       <div class="row">
-        <div class="pick small" role="group" aria-label="武器を選ぶ">
-          <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t">ロケラン</span></button>
-          <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t">戦車</span></button>
-          <button class="pk bh" type="button" data-w="hole" aria-pressed="false" hidden><span class="t">ブラックホール</span></button>
-          <button class="pk rl" type="button" data-w="rail" aria-pressed="false" hidden><span class="t">レールガン</span></button>
-          <button class="pk wv" type="button" data-w="wave" aria-pressed="false" hidden><span class="t">波動砲</span></button>
-          <button class="pk fl" type="button" data-w="flame" aria-pressed="false" hidden><span class="t">火炎放射器</span></button>
-          <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t">電撃砲</span></button>
-          <button class="pk ms" type="button" data-w="missile" aria-pressed="false" hidden><span class="t">ミサイル</span></button>
-          <button class="pk bt" type="button" data-w="bits" aria-pressed="false" hidden><span class="t">ビット</span></button>
+        <div class="pick small" role="group" aria-label="武器を選ぶ" data-en-label="Choose a weapon">
+          <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t" data-en="Rockets">ロケラン</span></button>
+          <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t" data-en="Tank">戦車</span></button>
+          <button class="pk bh" type="button" data-w="hole" aria-pressed="false" hidden><span class="t" data-en="Black Hole">ブラックホール</span></button>
+          <button class="pk rl" type="button" data-w="rail" aria-pressed="false" hidden><span class="t" data-en="Railgun">レールガン</span></button>
+          <button class="pk wv" type="button" data-w="wave" aria-pressed="false" hidden><span class="t" data-en="Wave Cannon">波動砲</span></button>
+          <button class="pk fl" type="button" data-w="flame" aria-pressed="false" hidden><span class="t" data-en="Flamethrower">火炎放射器</span></button>
+          <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t" data-en="Shock Gun">電撃砲</span></button>
+          <button class="pk ms" type="button" data-w="missile" aria-pressed="false" hidden><span class="t" data-en="Missiles">ミサイル</span></button>
+          <button class="pk bt" type="button" data-w="bits" aria-pressed="false" hidden><span class="t" data-en="Bits">ビット</span></button>
         </div>
-        <button class="btn small" id="again" type="button"><span class="t">もう一回</span></button>
+        <button class="btn small" id="again" type="button"><span class="t" data-en="PLAY AGAIN">もう一回</span></button>
       </div>
       <div class="share">
-        <span class="k">結果をシェア</span>
-        <a class="sbtn x" id="shareX" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener">Xでポスト</a>
-        <a class="sbtn line" id="shareLine" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener">LINEで送る</a>
-        <button class="sbtn img" id="shareImg" type="button" disabled>画像で共有</button>
+        <span class="k" data-en="Share your result">結果をシェア</span>
+        <a class="sbtn x" id="shareX" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener" data-en="Post on X">Xでポスト</a>
+        <a class="sbtn line" id="shareLine" href="https://zombie-bakusan.pages.dev/" target="_blank" rel="noopener" data-en="Send on LINE">LINEで送る</a>
+        <button class="sbtn img" id="shareImg" type="button" disabled data-en="Share image">画像で共有</button>
       </div>
       <p class="share-msg" id="shareMsg" hidden></p>
     </div>
@@ -416,8 +436,44 @@ canvas { display: block; width: 100%; height: 100%; }
   <p class="diag" id="diag" hidden></p>
 </div>
 <script>
+// English or Japanese (2026-11-01, kazu: many come from English-speaking countries): ?lang=en|ja, else the player's choice
+// (localStorage zb3d-lang), else the browser's languages, Japanese if any of them is and English otherwise. The page's own
+// words carry their English in data-en (text), data-en-html (with markup) and data-en-label (aria-label); the game's come
+// from L() in the module, which reads window.ZB_LANG. The button in the title's corner switches and reloads.
+(function () {
+  var q = /[?&]lang=(en|ja)(?![\w-])/.exec(location.search), lang = q ? q[1] : null, i;
+  if (!lang) { try { var saved = localStorage.getItem('zb3d-lang'); if (saved === 'en' || saved === 'ja') lang = saved; } catch (e) {} }
+  if (!lang) {
+    var ls = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'ja'];
+    lang = 'en';
+    for (i = 0; i < ls.length; i++) if (/^ja(-|$)/i.test(ls[i])) { lang = 'ja'; break; }
+  }
+  window.ZB_LANG = lang;
+  document.documentElement.lang = lang;
+  document.getElementById('stage').classList.add('lang-' + lang);
+  if (lang === 'en') {
+    document.title = document.title.replace('ゾンビ爆散', 'ZOMBIE BAKUSAN').replace('試作版', 'preview');
+    var el = document.querySelectorAll('[data-en]');
+    for (i = 0; i < el.length; i++) el[i].textContent = el[i].getAttribute('data-en');
+    el = document.querySelectorAll('[data-en-html]');
+    for (i = 0; i < el.length; i++) el[i].innerHTML = el[i].getAttribute('data-en-html');
+    el = document.querySelectorAll('[data-en-label]');
+    for (i = 0; i < el.length; i++) el[i].setAttribute('aria-label', el[i].getAttribute('data-en-label'));
+  }
+  var btn = document.getElementById('langBtn');
+  btn.setAttribute('lang', lang === 'en' ? 'ja' : 'en');
+  btn.addEventListener('click', function () {
+    var to = lang === 'en' ? 'ja' : 'en', kept = false, s = location.search;
+    try { localStorage.setItem('zb3d-lang', to); kept = localStorage.getItem('zb3d-lang') === to; } catch (e) {}
+    // a lang in the address wins over the saved choice, so it is changed there too; with nowhere to save, the address carries it
+    if (q) location.search = s.replace(/([?&]lang=)(en|ja)/, '$1' + to);
+    else if (!kept) location.search = (s ? s + '&' : '?') + 'lang=' + to;
+    else location.reload();
+  });
+})();
 // Problem notes. Plain script, so it runs even when the 3D module never loads: zbDiag(key, text) sets one line, null clears it.
 (function () {
+  var en = window.ZB_LANG === 'en';
   var lines = {};
   window.zbDiag = function (key, text) {
     if (text == null) delete lines[key]; else lines[key] = String(text);
@@ -426,13 +482,13 @@ canvas { display: block; width: 100%; height: 100%; }
     el.textContent = out.join('\n');
     el.hidden = !out.length;
   };
-  window.addEventListener('error', function (e) { zbDiag('err', 'エラー: ' + (e.message || e) + (e.lineno ? ' (' + e.lineno + '行目)' : '')); });
-  window.addEventListener('unhandledrejection', function (e) { var r = e.reason; zbDiag('err', 'エラー: ' + (r && r.message || r)); });
+  window.addEventListener('error', function (e) { zbDiag('err', (en ? 'Error: ' : 'エラー: ') + (e.message || e) + (e.lineno ? (en ? ' (line ' + e.lineno + ')' : ' (' + e.lineno + '行目)') : '')); });
+  window.addEventListener('unhandledrejection', function (e) { var r = e.reason; zbDiag('err', (en ? 'Error: ' : 'エラー: ') + (r && r.message || r)); });
   // the 3D engine comes from a CDN; if it never arrives, say so instead of waiting forever
   setTimeout(function () {
     if (!document.getElementById('startBtn').disabled) return;
-    document.getElementById('startSub').textContent = '3Dを読み込めませんでした';
-    zbDiag('load', '3Dの部品を読み込めませんでした。通信状態を確かめて再読み込みしてください。');
+    document.getElementById('startSub').textContent = en ? 'Could not load 3D' : '3Dを読み込めませんでした';
+    zbDiag('load', en ? 'Could not load the 3D engine. Check your connection and reload.' : '3Dの部品を読み込めませんでした。通信状態を確かめて再読み込みしてください。');
   }, 20000);
 })();
 </script>
@@ -446,6 +502,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const $ = id => document.getElementById(id);
+// English or Japanese (2026-11-01, kazu: many players come from English-speaking countries): head.html picks it before the
+// module runs (?lang=, then the player's choice, then the browser's languages) and translates the page's own words; jaEn(ja, en)
+// gives the game's. Switching reloads the page, so every string here is fixed for the page's life
+const LANG = window.ZB_LANG === 'en' ? 'en' : 'ja', EN = LANG === 'en';
+const jaEn = (ja, en) => EN ? en : ja;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = matchMedia('(pointer: coarse)').matches;
 const LOD = coarse ? 0.7 : 1;   // phones get fewer particles
@@ -478,7 +539,7 @@ let pr = 0, prCap = 1.5;
 
 let renderer;
 try { renderer = new THREE.WebGLRenderer({ canvas: glCv, antialias: false, powerPreference: 'high-performance', stencil: false }); }
-catch (e) { $('startSub').textContent = 'この端末では3D表示ができません'; throw e; }
+catch (e) { $('startSub').textContent = jaEn('この端末では3D表示ができません', 'This device cannot show 3D'); throw e; }
 renderer.toneMapping = THREE.NeutralToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -494,9 +555,9 @@ renderer.debug.onShaderError = (gl, program, vs, fs) => {
   const log = [gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs)].join('\n');
   console.error('ZB shader error\n' + log);
   const line = log.split('\n').map(s => s.trim()).find(s => /error/i.test(s)) || log.trim().split('\n')[0] || '?';
-  zbDiag('shader', 'シェーダーエラー: ' + line.slice(0, 160) + ' / GPU: ' + gpuName());
+  zbDiag('shader', jaEn('シェーダーエラー: ', 'Shader error: ') + line.slice(0, 160) + ' / GPU: ' + gpuName());
 };
-glCv.addEventListener('webglcontextlost', () => zbDiag('lost', 'GPUがリセットされました。復帰を待っています…'));
+glCv.addEventListener('webglcontextlost', () => zbDiag('lost', jaEn('GPUがリセットされました。復帰を待っています…', 'The GPU was reset. Waiting for it to come back…')));
 glCv.addEventListener('webglcontextrestored', () => { zbDiag('lost', null); if (typeof refreshEnv === 'function') refreshEnv(); });
 
 const scene = new THREE.Scene();
@@ -510,7 +571,7 @@ scene.add(camera);
 // ---------- the picture: the scene into a half-float target, bloom on top, tone mapping out to the screen ----------
 // Some GPUs draw that chain as plain black, so checkPicture() looks at what reached the screen and steps down:
 // level 0 MSAA + bloom, 1 the same without MSAA, 2 straight to the screen without bloom, 3 nothing worked (say so)
-const GLQ = { level: 0, tried: ['標準'] };
+const GLQ = { level: 0, tried: [jaEn('標準', 'standard')] };
 const makeRT = samples => { const t = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples }); t.resolveDepthBuffer = false; return t; };
 let rt = makeRT(coarse ? 0 : 4);
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.5, 1.0);
@@ -561,11 +622,11 @@ function checkPicture(ms) {
 function stepDownPicture() {
   chk.bad = 0; chk.n = 0; chk.t = 0;
   GLQ.level += GLQ.level === 0 && rt.samples === 0 ? 2 : 1;   // phones start without MSAA
-  if (GLQ.level === 1) { rt.dispose(); rt = makeRT(0); sizePicture(); GLQ.tried.push('MSAAなし'); }
-  if (GLQ.level === 2) { rt.dispose(); GLQ.tried.push('シンプル'); }
-  if (GLQ.level === 1) zbDiag('mode', '描画を互換モードに切り替えました（MSAAなし）');
-  if (GLQ.level === 2) zbDiag('mode', '描画をシンプルモードに切り替えました（光のにじみなし）');
-  if (GLQ.level === 3) zbDiag('mode', '3Dの絵を出せませんでした。この文をそのまま教えてください。GPU: ' + gpuName() + ' / 試した描画: ' + GLQ.tried.join('→'));
+  if (GLQ.level === 1) { rt.dispose(); rt = makeRT(0); sizePicture(); GLQ.tried.push(jaEn('MSAAなし', 'no MSAA')); }
+  if (GLQ.level === 2) { rt.dispose(); GLQ.tried.push(jaEn('シンプル', 'simple')); }
+  if (GLQ.level === 1) zbDiag('mode', jaEn('描画を互換モードに切り替えました（MSAAなし）', 'Switched to compatible drawing (no MSAA)'));
+  if (GLQ.level === 2) zbDiag('mode', jaEn('描画をシンプルモードに切り替えました（光のにじみなし）', 'Switched to simple drawing (no glow)'));
+  if (GLQ.level === 3) zbDiag('mode', jaEn('3Dの絵を出せませんでした。この文をそのまま教えてください。GPU: ', 'Could not draw the 3D view. Please send us this line as it is. GPU: ') + gpuName() + jaEn(' / 試した描画: ', ' / tried: ') + GLQ.tried.join('→'));
   console.warn('ZB picture level', GLQ.level, gpuName());
 }
 
@@ -1423,7 +1484,7 @@ const MAT = {};
 // burnt-out one left burning further down [kind, x, z, yaw].
 const STAGES = {
   avenue: {
-    name: '大通り', build: buildAvenue, env: ENV_AVENUE, fog: 0x4a2436, zen: 0x0b0818, glow: col(0xff6a4a, 0.12),
+    name: jaEn('大通り', 'Avenue'), build: buildAvenue, env: ENV_AVENUE, fog: 0x4a2436, zen: 0x0b0818, glow: col(0xff6a4a, 0.12),
     hemi: [0x8a74c0, 0x2a1418, 1.25], search: 0xffe6c8, haze: '#5a3050', moon: { z: 62, top: 7.55 },
     cars: ['police', 'taxi', 'sedan', 'van', 'kei'], wreck: ['sedan', -2.4, 44, 0.5],
   },
@@ -1825,7 +1886,7 @@ const PARK_GLYPHS = PARK_SIGNS.join('') + '爆散ランド観覧車倒壊コー�
 const PARK_BULB = [0xff3a3a, 0xffc23a, 0x5aff6a, 0x4ab8ff, 0xff5ad8, 0xfff2d0];
 const ENV_PARK = { bg: 0x0a0a1c, floor: 0x120a10, top: 0x14123a, far: 0x3a2a6a, near: 0x201030, wall: 0x1a1030, strip: 0xfff0c0, neon: [0xff3a3a, 0xffc23a, 0x5aff6a, 0x4ab8ff, 0xff5ad8, 0xffffff] };
 STAGES.park = {
-  name: '遊園地', build: buildPark, env: ENV_PARK, fog: 0x2e2050, zen: 0x080a20, glow: col(0xff5ab4, 0.1),
+  name: jaEn('遊園地', 'Theme Park'), build: buildPark, env: ENV_PARK, fog: 0x2e2050, zen: 0x080a20, glow: col(0xff5ab4, 0.1),
   hemi: [0x8a8ae8, 0x2a1830, 1.3], search: 0xfff0dc, haze: '#4a3a70', moon: { z: 84, top: 8 },
   cars: ['crepe', 'hotdog', 'police', 'kei'], wreck: ['kei', 2.2, 41, -0.6], jetHi: 15.6,
 };
@@ -2396,7 +2457,7 @@ const ENV_FEST = { bg: 0x0e0810, floor: 0x160c08, top: 0x1a0e1c, far: 0x6a2a1a, 
 // and the torii's great lantern hangs high enough to show over the mortars
 const TORII = { z: 66, x: 3.9, top: 7.6 }, RACK = { z: 50, hw: 3.95, deck: 2.0, top: 3.0, n: 9 }, SHRINE = { z: 99.5 };
 STAGES.fest = {
-  name: '夏祭り', build: buildFest, env: ENV_FEST, fog: 0x3e2230, zen: 0x0a0716, glow: col(0xff7a3a, 0.14),
+  name: jaEn('夏祭り', 'Festival'), build: buildFest, env: ENV_FEST, fog: 0x3e2230, zen: 0x0a0716, glow: col(0xff7a3a, 0.14),
   hemi: [0x9a80b8, 0x2e1810, 1.25], search: 0xffe8c8, haze: '#5a3840', moon: { z: TORII.z, top: TORII.top },
   cars: ['takoyaki', 'kakigori', 'police', 'kei'], wreck: null, jetHi: 9.6,
 };
@@ -2949,7 +3010,7 @@ const HWY_TEXT = { led: 'ゾンビ渋滞 5km', jct: '爆散JCT', jctE: 'BAKUSAN 
 const HWY_GLYPHS = Object.values(HWY_TEXT).join('') + '高架崩落ゾンビカー撃破突撃タンクローリー直撃下敷き夜の高速道路渋滞km';
 const ENV_HWY = { bg: 0x0a0a12, floor: 0x0e0a0a, top: 0x12121e, far: 0x4a2c26, near: 0x18121a, wall: 0x12141a, strip: 0xffb060, neon: [0xffa040, 0xff9030, 0xfff0e0, 0xff3020, 0x40c080, 0x5aa0ff] };
 STAGES.hwy = {
-  name: '高速', build: buildHwy, env: ENV_HWY, fog: 0x382a36, zen: 0x080a18, glow: col(0xff8a3a, 0.16),
+  name: jaEn('高速', 'Highway'), build: buildHwy, env: ENV_HWY, fog: 0x382a36, zen: 0x080a18, glow: col(0xff8a3a, 0.16),
   hemi: [0x8a7cb8, 0x2a1a14, 1.25], search: 0xffe2c0, haze: '#5a4446', moon: { z: HWY.lanes[1], top: HWY.top + 1.6 },
   cars: ['sedan', 'van', 'kei', 'taxi', 'police'], wreck: ['van', 3.05, 40, -0.3], jetHi: 15,
 };
@@ -4747,7 +4808,8 @@ function poseArms(dt) {
 // blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
-const WEAPON_NAME = { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット' };
+const WEAPON_NAME = EN ? { rocket: 'Rocket', tank: 'Cannon', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits' }
+  : { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25; the reload
 // went from 0.95 to 0.75 s when the machine gun went, 2026-10-31: firing blind, the main gun alone scored about a fifth less)
@@ -4817,7 +4879,7 @@ function setWeapon(w) {
   const tank = weapon === 'tank';
   gunRoot.visible = !tank; tankRoot.visible = tank; tankSnap = true; showArm();
   for (const b of document.querySelectorAll('.pk')) b.setAttribute('aria-pressed', String(b.dataset.w === weapon));
-  $('ctlHold').textContent = HOLD_SAYS[weapon] || '連射';
+  $('ctlHold').textContent = HOLD_SAYS[weapon] || jaEn('連射', 'Rapid fire');
   $('ctlTap').textContent = $('ctlPc').textContent = $('ammoLabel').textContent = WEAPON_NAME[weapon];
   hudKey = '';
 }
@@ -4828,7 +4890,7 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
 });
 // a tap (a click, a right click, the space bar) fires the weapon; held down, it fires again every HOLD_GAP while it can
 const HOLD_GAP = { rocket: 0.2, tank: 0.1, hole: 0.3, rail: 0.22, wave: 0.1, flame: 0.1, shock: 0.25, missile: 0.4, bits: 0.45 };
-const HOLD_SAYS = { flame: '出しっぱなし' };
+const HOLD_SAYS = { flame: jaEn('出しっぱなし', 'Keep burning') };
 function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits }[weapon] || tryRocket)(); }
 function tryCannon() {
   if (!running) return;
@@ -4869,7 +4931,7 @@ function muzzleBlast(M, dir) {
   for (let i = 0; i < 10; i++) addPart({ k: 'spark', x, z, h, vx: rand(-3, 3) + dir.x * 12, vz: -dir.z * rand(10, 18), vh: rand(-1, 3), g: 10, r: 0.03, life: rand(0.2, 0.45) });
   if (!running) return;
   const s = toScreen(x, z, h);
-  floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(40, 90), hudH + 40, H - 50), text: pick(['ドォン!!', 'ズドン!!', 'ドンッ!!']), rot: rand(-0.25, 0.25), life: 0.5, max: 0.5, size: 44 });
+  floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(40, 90), hudH + 40, H - 50), text: pick(jaEn(['ドォン!!', 'ズドン!!', 'ドンッ!!'], ['BOOM!!', 'KA-BOOM!!', 'BLAM!!'])), rot: rand(-0.25, 0.25), life: 0.5, max: 0.5, size: 44 });
 }
 function updateShells(dt) {
   for (const s of shells) {
@@ -4938,7 +5000,7 @@ function shellBlast(s) {
     // several on one shell: a bonus that grows fast with the count
     const bonus = 200 * s.n * (s.n - 1);
     score += bonus;
-    floaters.push({ x: gx, z: Math.max(gz, Z_WALL + 1), h: 2.8, text: `串刺し ×${s.n}!!`, sub: `+${bonus.toLocaleString()}`, life: 1.1, big: true });
+    floaters.push({ x: gx, z: Math.max(gz, Z_WALL + 1), h: 2.8, text: jaEn(`串刺し ×${s.n}!!`, `SKEWERED ×${s.n}!!`), sub: `+${bonus.toLocaleString()}`, life: 1.1, big: true });
     if (s.n >= 4) say(pick(['awesome', 'amazing', 'incredible']), 1);
   }
 }
@@ -5082,8 +5144,8 @@ function liftCar(c, H) {
   if (running && H.ch) {
     score += BONUS.car; carsBlown++;
     const f = floaters.find(o => o.car);
-    if (f) { f.n++; f.life = 1.1; f.text = `車ごとドカン!! ×${f.n}`; f.sub = `+${(BONUS.car * f.n).toLocaleString()}`; }
-    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: '車ごとドカン!!', sub: `+${BONUS.car.toLocaleString()}`, life: 1.1, big: true });
+    if (f) { f.n++; f.life = 1.1; f.text = jaEn(`車ごとドカン!! ×${f.n}`, `CAR KABOOM!! ×${f.n}`); f.sub = `+${(BONUS.car * f.n).toLocaleString()}`; }
+    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: jaEn('車ごとドカン!!', 'CAR KABOOM!!'), sub: `+${BONUS.car.toLocaleString()}`, life: 1.1, big: true });
   }
 }
 // a car on the road: dragged round and in, spinning, hopping on its wheels
@@ -5403,7 +5465,7 @@ function fireRail(A) {
   if (n) {
     registerKills(n, cx / n, cz / n, null, true, ch);
     if (n >= 4 && !reduceMotion) hitstop = Math.max(hitstop, 0.05);
-    if (n >= 3 && running) floaters.push({ x: far.x, z: Math.max(far.z, Z_WALL + 1), h: 2.6, text: `貫通 ×${n}!!`, sub: '', life: 1.0, big: true });
+    if (n >= 3 && running) floaters.push({ x: far.x, z: Math.max(far.z, Z_WALL + 1), h: 2.6, text: jaEn(`貫通 ×${n}!!`, `PIERCED ×${n}!!`), sub: '', life: 1.0, big: true });
   }
   for (const g of gibs) {
     const t = clamp(((g.x - x0) * dx + (g.z - z0) * dz) / L2, 0, 1);
@@ -5456,7 +5518,7 @@ function fireRail(A) {
   addPart({ k: 'muzzle', x: M.x, z: -M.z, h: M.y, vx: 0, vz: 0, vh: 0, r: 0.22, life: 0.07, c: [4, 6, 9] });
   if (running) {
     const s = toScreen(M.x, -M.z, M.y);
-    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(50, 90), hudH + 40, H - 50), text: pick(['バシュン!!', 'ギュン!!', 'ズキュン!!']), rot: rand(-0.25, 0.25), life: 0.5, max: 0.5, size: 40 });
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(50, 90), hudH + 40, H - 50), text: pick(jaEn(['バシュン!!', 'ギュン!!', 'ズキュン!!'], ['VWOOM!!', 'ZWING!!', 'ZZZAP!!'])), rot: rand(-0.25, 0.25), life: 0.5, max: 0.5, size: 40 });
   }
 }
 function updateRails(dt) {
@@ -5502,7 +5564,7 @@ function tryWave() {
   waveLoad = 0;
   wave = { phase: 'charge', t: 0, T: feverT > 0 ? WAVE_CHARGE_FEVER : WAVE_CHARGE, ch: newChain(), beam: null, M: new THREE.Vector3(), E: new THREE.Vector3(), dir: null, head: 0, blastT: 0, blasts: 0, rode: new Set(), downed: new Set(), sw: 0 };
   // over the gun, clear of the words the blasts throw up round the horde
-  wave.f = { sfx: true, x: W / 2, y: H * 0.66, text: 'エネルギー充填 0%', rot: -0.04, life: wave.T + 0.25, max: wave.T + 0.25, size: 28 };
+  wave.f = { sfx: true, x: W / 2, y: H * 0.66, text: jaEn('エネルギー充填 0%', 'CHARGING 0%'), rot: -0.04, life: wave.T + 0.25, max: wave.T + 0.25, size: 28 };
   floaters.push(wave.f);
   waveChargeSnd(wave.T);
 }
@@ -5518,7 +5580,7 @@ function updateWave(dt) {
   if (Wv.phase === 'charge') {
     if (!running) { endWave(); return; }   // the whistle cuts a charge short
     const k = Math.min(1, Wv.t / Wv.T);
-    Wv.f.text = k < 1 ? `エネルギー充填 ${Math.round(k * 120)}%` : 'エネルギー充填 120%!!';
+    Wv.f.text = k < 1 ? jaEn(`エネルギー充填 ${Math.round(k * 120)}%`, `CHARGING ${Math.round(k * 120)}%`) : jaEn('エネルギー充填 120%!!', 'CHARGED 120%!!');
     shake = Math.max(shake, 1 + 4 * k);
     // the street's light streams into the muzzle, faster as it fills
     camera.getWorldPosition(_wc);
@@ -5558,7 +5620,7 @@ function endWave() {
 function fireWave(Wv) {
   Wv.phase = 'fire'; Wv.t = 0; Wv.beam = takeBeam();
   Wv.f.life = Math.min(Wv.f.life, 0.25);
-  if (running) floaters.push({ sfx: true, x: W / 2, y: H * 0.64, text: '波動砲発射!!', rot: rand(-0.1, 0.1), life: 1.0, max: 1.0, size: 44 });
+  if (running) floaters.push({ sfx: true, x: W / 2, y: H * 0.64, text: jaEn('波動砲発射!!', 'WAVE CANNON, FIRE!!'), rot: rand(-0.1, 0.1), life: 1.0, max: 1.0, size: 44 });
   waveFireSnd(); buzz([240, 40, 200, 40, 160], 3);
   shake = Math.min(shake + 14, 24); tubeRecoil = 1;
   if (!reduceMotion) zoom = Math.min(1.14, zoom + 0.07);
@@ -5682,7 +5744,7 @@ const BURN_T = 1.1, SPREAD_R = 0.8, SPREAD_RATE = 2.2, PATCH_T = 2.4, PATCH_R = 
 // at a full kill the flamethrower scored 5 to 8% over the rocket in bot rounds (2026-10-30)
 const FIRE_PAY = 0.9;
 const FLAME_ORB = [6, 2.3, 0.5], CHAR_C = new THREE.Color('#1d1612');
-const BURN_TXT = ['火だるま!', '丸焼け!', 'こんがり!'];
+const BURN_TXT = jaEn(['火だるま!', '丸焼け!', 'こんがり!'], ['ON FIRE!', 'ROASTED!', 'WELL DONE!']);
 let flamesLeft = MAX_FLAMES, flameTimer = 0, flame = null, blobs = [], patches = [];
 const _fp = new THREE.Vector3(), _fd = new THREE.Vector3();
 function resetFlame() {
@@ -5708,7 +5770,7 @@ function tryFlame() {
   if (running) {
     tubeTip.getWorldPosition(_wp);
     const s = toScreen(_wp.x, -_wp.z, _wp.y);
-    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: pick(['ゴォォォ!!', 'ボォォォ!!', 'ブォォォ!!']), rot: rand(-0.2, 0.2), life: 0.7, max: 0.7, size: 40 });
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: pick(jaEn(['ゴォォォ!!', 'ボォォォ!!', 'ブォォォ!!'], ['FWOOOSH!!', 'WHOOOMPH!!', 'FWOOOM!!'])), rot: rand(-0.2, 0.2), life: 0.7, max: 0.7, size: 40 });
   }
 }
 // something the jet reaches: a zombie on its feet catches fire, a drum or a cylinder goes up there and then
@@ -5720,7 +5782,7 @@ function igniteZombie(zb, ch) {
     return true;
   }
   zb.burn = { t: 0, T: BURN_T * rand(0.8, 1.25) * (zb.type === 'tank' ? 1.5 : zb.type === 'fat' ? 0.6 : 1), ch, ft: 0, st: rand(0, 0.3) };
-  if (ch && running && (ch.lit = (ch.lit || 0) + 1) === 12) floaters.push({ screen: true, x: clamp(aim.x, 90, W - 90), y: clamp(aim.y - 70, hudH + 60, H * 0.6), text: '大炎上!!', sub: '', life: 1.1, big: true });
+  if (ch && running && (ch.lit = (ch.lit || 0) + 1) === 12) floaters.push({ screen: true, x: clamp(aim.x, 90, W - 90), y: clamp(aim.y - 70, hudH + 60, H * 0.6), text: jaEn('大炎上!!', 'INFERNO!!'), sub: '', life: 1.1, big: true });
   return true;
 }
 // a body on fire, every frame it is on its feet (after it has walked): it zigzags, burns and lights its neighbours
@@ -5899,7 +5961,7 @@ const ZAP_MAX = 24, ZAP_MAX_FEVER = 34, ZAP_JUMP = 2.6, ZAP_FORK = 2, ZAP_STEP =
 // bloom's threshold: a bunch fried close to the fence washed the whole screen out white)
 const ZAP_CORE = [2.6, 3.2, 5], ZAP_GLOW = [0.16, 0.3, 1.0], ZAP_ORB = [2.4, 3.6, 7], ZAP_SPARK = [2.6, 3.6, 7], ZAP_CAR = 1.6;
 const ZAP_BODY = new THREE.Color(0.3, 0.62, 1.35), BONE_C = new THREE.Color(0.8, 0.9, 1.12);
-const ZAP_TXT = ['ビリビリ!!', 'バリバリ!!', 'ズバババ!!'];
+const ZAP_TXT = jaEn(['ビリビリ!!', 'バリバリ!!', 'ズバババ!!'], ['BZZZT!!', 'KRAKKA!!', 'ZZZAP!!']);
 let shocksLeft = MAX_SHOCKS, shockTimer = 0, shockCD = 0, arcs = [], zapQ = [];
 function resetShock() { shocksLeft = MAX_SHOCKS; shockTimer = 0; shockCD = 0; arcs = []; zapQ = []; }
 function tryShock() {
@@ -5967,7 +6029,7 @@ function strikeZap(q) {
     registerKills(1, zb.x, zb.z, null, false, S.ch);
   } else zb.zap = { t: 0, T: ZAP_T * rand(0.85, 1.15), ch: S.ch, ct: 0 };
   if (S.n >= 8 && !S.called && running) { S.called = true; S.f = { screen: true, x: clamp(aim.x, 100, W - 100), y: clamp(aim.y - 70, hudH + 60, H * 0.6), text: '', sub: '', life: 1.1, big: true }; floaters.push(S.f); }
-  if (S.f) { S.f.text = `連鎖放電 ×${S.n}!!`; S.f.life = 1.1; }
+  if (S.f) { S.f.text = jaEn(`連鎖放電 ×${S.n}!!`, `CHAIN LIGHTNING ×${S.n}!!`); S.f.life = 1.1; }
   if (S.n < S.max) for (const o of zapNear(zb.x, zb.z, ZAP_JUMP + (boss ? 0.5 * zb.size : 0), S, ZAP_FORK)) { if (S.n >= S.max) break; queueZap(o, to, ZAP_STEP * rand(0.8, 1.3), S); }
   // what is near enough to it: cars, and what hangs or flies over the street
   for (const c of cars) {
@@ -6147,7 +6209,7 @@ const MS_POWER = 0.75, MS_SPREAD = 1.3, MS_ON_BOSS = 4, MS_ON_THING = 3, MS_BOSS
 // kill the pod scored 5 to 10% over the rocket in bot rounds (2026-10-30)
 const MS_PAY = 0.9;
 const MS_ORB = [6, 0.5, 0.35], MS_FIRE = [4.2, 2.0, 0.6], MS_SMOKE = lin('#b0a8b0');
-const MS_TXT = ['シュババババ!!', 'シュドドド!!', 'バシュシュシュ!!'];
+const MS_TXT = jaEn(['シュババババ!!', 'シュドドド!!', 'バシュシュシュ!!'], ['FWOOSH-FWOOSH!!', 'SHOOM-SHOOM!!', 'WHOOSH!!']);
 let salvosLeft = MAX_SALVOS, salvoTimer = 0, salvoCD = 0, missiles = [], msTrails = [], msClock = 0;
 let msBody = null, msRed = null, TRAIL = null;
 function resetMissiles() {
@@ -6257,7 +6319,7 @@ function missileHit(m) {
   else { fxSoft = fxPop = true; explode(x, z, MS_POWER, h, null, S.ch); fxSoft = fxPop = false; }   // (73-finale.js: ten at once washed the screen out)
   if (--S.left === 0 && S.hits === S.n && running) {
     score += MS_ALL;
-    floaters.push({ screen: true, x: clamp(aim.x, 110, W - 110), y: clamp(aim.y - 80, hudH + 70, H * 0.55), text: '全弾命中!!', sub: `+${MS_ALL.toLocaleString()}`, life: 1.2, big: true });
+    floaters.push({ screen: true, x: clamp(aim.x, 110, W - 110), y: clamp(aim.y - 80, hudH + 70, H * 0.55), text: jaEn('全弾命中!!', 'ALL HITS!!'), sub: `+${MS_ALL.toLocaleString()}`, life: 1.2, big: true });
   }
 }
 function updateMissiles(dt) {
@@ -6432,7 +6494,7 @@ function launchSquad(A, N) {
   tubeRecoil = 1; shake = Math.min(shake + 3, 24);
   if (running) {
     const s = toScreen(x0, z0, h0);
-    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: 'ビット展開!!', rot: rand(-0.15, 0.15), life: 0.8, max: 0.8, size: 38 });
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 70, W - 70), y: clamp(s.Y - rand(60, 100), hudH + 40, H - 50), text: jaEn('ビット展開!!', 'BITS, DEPLOY!!'), rot: rand(-0.15, 0.15), life: 0.8, max: 0.8, size: 38 });
   }
 }
 // where a bit is on its leg: out of the tube on a curve swung out to its side that brakes hard at its place, home on one that
@@ -6574,7 +6636,7 @@ function bitsVolley(sq) {
   // the word goes up as a sound, by the spot (as a label it went under the chain's)
   if (running) {
     const s = toScreen(Q.x, Math.max(Q.z, Z_WALL + 1.5), Q.h + 1.2);
-    floaters.push({ sfx: true, x: clamp(s.X, 90, W - 90), y: clamp(s.Y, hudH + 60, H * 0.6), text: '一斉射!!', rot: rand(-0.12, 0.12), life: 0.9, max: 0.9, size: 46 });
+    floaters.push({ sfx: true, x: clamp(s.X, 90, W - 90), y: clamp(s.Y, hudH + 60, H * 0.6), text: jaEn('一斉射!!', 'FULL BARRAGE!!'), rot: rand(-0.12, 0.12), life: 0.9, max: 0.9, size: 46 });
   }
 }
 // at the whistle, or once they have fired together: home one after another
@@ -7420,8 +7482,8 @@ function reset() {
 }
 
 // ---------- kills, explosions, combos ----------
-const GORE_TXT = ['グチャァ!!', 'ブシャー!!', 'ベチャッ!!'];
-const BOOM_TXT = ['ドカーン!!', 'ズドーン!!', 'ボガーン!!', 'ドゴォ!!', 'バゴーン!!', 'ドガガーン!!', 'ズガァン!!', 'ドッカーン!!'];
+const GORE_TXT = jaEn(['グチャァ!!', 'ブシャー!!', 'ベチャッ!!'], ['SPLAT!!', 'SPLOOSH!!', 'SQUELCH!!']);
+const BOOM_TXT = jaEn(['ドカーン!!', 'ズドーン!!', 'ボガーン!!', 'ドゴォ!!', 'バゴーン!!', 'ドガガーン!!', 'ズガァン!!', 'ドッカーン!!'], ['BOOM!!', 'KABOOM!!', 'BLAM!!', 'WHAM!!', 'KA-BLAM!!', 'BA-BOOM!!', 'KRAKOOM!!', 'KABLOOEY!!']);
 const MILESTONES = [[10, 'NICE!!', 'nice'], [25, 'GREAT!!', 'great'], [50, 'BRAVO!!', 'bravo'], [100, 'EXCELLENT!!', 'excellent'], [150, 'UNSTOPPABLE!!', 'unstoppable'], [200, 'LEGENDARY!!', 'legendary']];
 // A chain is everything one shot of ours sets off: the blast, the cars and drums it touches off, the bodies it throws into
 // the others, the block it brings down. Only kills in a chain score (2026-10-25: a round played with no input at all scored
@@ -7468,7 +7530,7 @@ function chainCallout(ch) {
     floaters.push(chainF);
   }
   chainFCh = ch;
-  chainF.text = ch.strike ? `空爆 ${ch.n}体!!` : `${ch.n}体連鎖!!`; chainF.sub = m > 1 ? `×${m}` : ''; chainF.life = 1.2;
+  chainF.text = ch.strike ? jaEn(`空爆 ${ch.n}体!!`, `AIR STRIKE ×${ch.n}!!`) : jaEn(`${ch.n}体連鎖!!`, `${ch.n} CHAIN!!`); chainF.sub = m > 1 ? `×${m}` : ''; chainF.life = 1.2;
 }
 // once a chain has gone quiet, a long one gets the banner with what its length paid on top
 function updateChains(dt) {
@@ -7477,7 +7539,7 @@ function updateChains(dt) {
     ch.live = false;
     if (ch.n >= 20 && ch.n - ch.shown >= 10 && !strikeQuiet()) {   // the counter covers the shorter ones: a banner each piled up
       ch.shown = ch.n;
-      showBanner(ch.strike ? `空爆で${ch.n}体!!` : `1発で${ch.n}体!!`, `連鎖ボーナス +${ch.extra.toLocaleString()}`, C.flare, 1.3);
+      showBanner(ch.strike ? jaEn(`空爆で${ch.n}体!!`, `${ch.n} BY AIR STRIKE!!`) : jaEn(`1発で${ch.n}体!!`, `${ch.n} IN ONE SHOT!!`), jaEn(`連鎖ボーナス +${ch.extra.toLocaleString()}`, `CHAIN BONUS +${ch.extra.toLocaleString()}`), C.flare, 1.3);
       say(ch.n >= 25 ? 'incredible' : ch.n >= 15 ? 'excellent' : 'great', 2);
     }
   }
@@ -7494,7 +7556,8 @@ function addFever(v) {
   if (fever >= 100) strikeReady();
 }
 // what FEVER does to the tap
-const FEVER_TAP = { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題', bits: 'ビット撃ち放題' };
+const FEVER_TAP = EN ? { rocket: 'Unlimited rockets', tank: 'Rapid cannon', hole: 'Rapid black holes', rail: 'Rapid railgun', wave: 'Rapid wave cannon', flame: 'Unlimited fire', shock: 'Rapid shock gun', missile: 'Unlimited missiles', bits: 'Unlimited bits' }
+  : { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題', bits: 'ビット撃ち放題' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', FEVER_TAP[weapon], C.flare, 1.4);
@@ -7750,7 +7813,7 @@ function flyPast(px, big, ours = true) {
   if (!running || !ours) return;
   if (big) say('homerun', 1);
   score += big ? 500 : 200;
-  const kind = big ? 'hr' : 'neck', name = big ? '場外ホームラン!' : 'ナイス首!', f = floaters.find(o => o.fly === kind);
+  const kind = big ? 'hr' : 'neck', name = big ? jaEn('場外ホームラン!', 'HOME RUN!') : jaEn('ナイス首!', 'NICE HEAD!'), f = floaters.find(o => o.fly === kind);
   if (f) { f.n++; f.life = 1.1; f.text = `${name} ×${f.n}`; f.sub = `+${((big ? 500 : 200) * f.n).toLocaleString()}`; }
   else floaters.push({ fly: kind, n: 1, screen: true, x: clamp(px, 90, W - 90), y: H * 0.42, text: name, sub: big ? '+500' : '+200', life: 1.1, big: true });
 }
@@ -7859,8 +7922,8 @@ function carBoom(c, delay, ch) {
     score += BONUS.car; carsBlown++;
     // a chain of cars stacks into one counter instead of piling up text
     const f = floaters.find(o => o.car);
-    if (f) { f.n++; f.life = 1.1; f.text = `車ごとドカン!! ×${f.n}`; f.sub = `+${(BONUS.car * f.n).toLocaleString()}`; }
-    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: '車ごとドカン!!', sub: `+${BONUS.car.toLocaleString()}`, life: 1.1, big: true });
+    if (f) { f.n++; f.life = 1.1; f.text = jaEn(`車ごとドカン!! ×${f.n}`, `CAR KABOOM!! ×${f.n}`); f.sub = `+${(BONUS.car * f.n).toLocaleString()}`; }
+    else floaters.push({ car: true, n: 1, x: c.x, z: c.z, h: 3, text: jaEn('車ごとドカン!!', 'CAR KABOOM!!'), sub: `+${BONUS.car.toLocaleString()}`, life: 1.1, big: true });
     say('kaboom', 2);
   }
 }
@@ -8004,7 +8067,7 @@ window.addEventListener('keyup', e => { if (e.code === 'Space') spaceHeld = fals
 window.addEventListener('blur', () => { spaceHeld = false; });
 function setMuted(m) {
   muted = m;
-  $('mute').textContent = muted ? '音: OFF' : '音: ON';
+  $('mute').textContent = muted ? jaEn('音: OFF', 'SOUND: OFF') : jaEn('音: ON', 'SOUND: ON');
   if (mainOut) mainOut.gain.setTargetAtTime(muted ? 0 : 1, actx.currentTime, 0.02);
   try { localStorage.setItem('zb-muted', muted ? '1' : '0'); } catch (e) {}
 }
@@ -8020,13 +8083,13 @@ function start() {
   useStage(stageForRound()); roundsPlayed++;
   initAudio();
   reset(); resetShare(); running = true;
-  track('game_start', { weapon, stage: stageId });
+  track('game_start', { weapon, stage: stageId, lang: LANG });
   for (const z of [10.5, 13, 16, 19.5, 23]) spawnWave(z);   // a street already full of them
   spawnTimer = 0.5;
   $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false; $('spMeter').hidden = false;
   hudH = $('hud').offsetHeight + 10;
   startMusic();
-  showBanner("LET'S ROCK!!", 'ここが最終防衛ライン!', C.flare, 1.3);
+  showBanner("LET'S ROCK!!", jaEn('ここが最終防衛ライン!', 'HOLD THE LINE!'), C.flare, 1.3);
   sayWhenReady('go', 3);
 }
 function timeUp() {
@@ -8040,36 +8103,36 @@ function finish() {
   const i = RANKS.findIndex(r => score >= r.min);
   $('resRank').textContent = RANKS[i].r;
   say(['legendary', 'incredible', 'excellent', 'great', 'nice', 'nice'][i], 3);
-  $('resNote').textContent = i > 0 ? `ナイス爆破! あと${(RANKS[i - 1].min - score).toLocaleString()}点で${RANKS[i - 1].r}` : moonBroken ? '月まで壊すとは…' : '爆破マスター!';
+  $('resNote').textContent = i > 0 ? jaEn(`ナイス爆破! あと${(RANKS[i - 1].min - score).toLocaleString()}点で${RANKS[i - 1].r}`, `Nice blasting! ${(RANKS[i - 1].min - score).toLocaleString()} more for ${RANKS[i - 1].r}`) : moonBroken ? jaEn('月まで壊すとは…', 'You even broke the moon…') : jaEn('爆破マスター!', 'Demolition master!');
   $('resScore').textContent = score.toLocaleString();
   $('resKills').textContent = kills;
   $('resCombo').textContent = maxCombo;
   $('resFlight').textContent = `${longestFlight | 0}m`;
   const badges = [];
-  if (bestChain >= 10) badges.push(`1発で${bestChain}体`);
-  if (goldKills) badges.push(`金ピカ ×${goldKills}`);
+  if (bestChain >= 10) badges.push(jaEn(`1発で${bestChain}体`, `${bestChain} in one shot`));
+  if (goldKills) badges.push(jaEn(`金ピカ ×${goldKills}`, `Gold zombie ×${goldKills}`));
   for (const k of hapDone) badges.push(HAPS[k].name.replace('!!', ''));
-  if (strikeKills) badges.push(`空爆で${strikeKills}体`);
+  if (strikeKills) badges.push(jaEn(`空爆で${strikeKills}体`, `${strikeKills} by air strike`));
   if (bossKilled) badges.push(bossLabel());
-  if (bossStars) badges.push('キラーン');
-  if (moonBroken) badges.push('月を破壊');
-  if (moonHits) badges.push(`月面着弾 ×${moonHits}`);
-  if (bldDown) badges.push(`ビル倒壊 ×${bldDown}`);
-  if (carsBlown) badges.push(`車ごとドカン ×${carsBlown}`);
-  if (juggles >= 10) badges.push(`空中コンボ ×${juggles}`);
-  if (weapon === 'tank') badges.unshift('戦車モード');
+  if (bossStars) badges.push(jaEn('キラーン', 'Twinkle'));
+  if (moonBroken) badges.push(jaEn('月を破壊', 'Moon destroyed'));
+  if (moonHits) badges.push(jaEn(`月面着弾 ×${moonHits}`, `Moon hits ×${moonHits}`));
+  if (bldDown) badges.push(jaEn(`ビル倒壊 ×${bldDown}`, `Buildings down ×${bldDown}`));
+  if (carsBlown) badges.push(jaEn(`車ごとドカン ×${carsBlown}`, `Car kabooms ×${carsBlown}`));
+  if (juggles >= 10) badges.push(jaEn(`空中コンボ ×${juggles}`, `Air combo ×${juggles}`));
+  if (weapon === 'tank') badges.unshift(jaEn('戦車モード', 'Tank mode'));
   if (weapon !== 'rocket' && weapon !== 'tank') badges.unshift(WEAPON_NAME[weapon]);
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
   settleMissions();
   setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled ? bossLabel() : '', badges, weapon });
-  track('game_end', { weapon, rank: RANKS[i].r, score, stage: stageId });
+  track('game_end', { weapon, rank: RANKS[i].r, score, stage: stageId, lang: LANG });
   let best = '';
   try {
     const bestKey = weapon === 'tank' ? 'zb3d-best-tank' : 'zb3d-best', prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
     if (!prev || score > prev.score) {
       localStorage.setItem(bestKey, JSON.stringify({ score }));
-      best = prev ? 'ベスト更新!' : '';
-    } else best = `ベスト: ${prev.score.toLocaleString()}`;
+      best = prev ? jaEn('ベスト更新!', 'New best!') : '';
+    } else best = jaEn(`ベスト: ${prev.score.toLocaleString()}`, `Best: ${prev.score.toLocaleString()}`);
   } catch (e) {}
   $('resBest').textContent = best;
   startReplay();
@@ -8275,7 +8338,7 @@ function update(dt, raw) {
       const dx = wz.x - fz.x, dz = wz.z - fz.z, d = Math.hypot(dx, dz);
       if (d > 0.9) continue;
       killZombie(wz, { dx: dx + fz.vx * 0.05, dz: dz + fz.vz * 0.05, d: d + 0.01, f: 0.55, power: 0.9, ch: fz.ch });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false, fz.ch); if (running && fz.ch) say('strike', 1);
+      registerKills(1, wz.x, wz.z, jaEn('ストライク!', 'STRIKE!'), false, fz.ch); if (running && fz.ch) say('strike', 1);
     }
   }
   // a flying car flattens whatever it comes down on
@@ -8286,7 +8349,7 @@ function update(dt, raw) {
       const dx = wz.x - c.x, dz = wz.z - c.z, d = Math.hypot(dx, dz);
       if (d > Math.max(1.8, c.hw, c.hl)) continue;
       killZombie(wz, { dx, dz, d: d + 0.01, f: 0.6, power: 1, ch: c.ch });
-      registerKills(1, wz.x, wz.z, 'ストライク!', false, c.ch); if (running && c.ch) say('strike', 1);
+      registerKills(1, wz.x, wz.z, jaEn('ストライク!', 'STRIKE!'), false, c.ch); if (running && c.ch) say('strike', 1);
     }
   }
   // bodies stay down for a while; the oldest go first when the street is full
@@ -8333,7 +8396,7 @@ function hud() {
   const sp = $('spMeter');
   sp.style.setProperty('--p', fever.toFixed(1));
   sp.classList.toggle('ready', spReady); sp.classList.toggle('fever', feverT > 0);
-  $('spText').textContent = feverT > 0 ? 'FEVER' : '空爆';
+  $('spText').textContent = feverT > 0 ? 'FEVER' : jaEn('空爆', 'STRIKE');
 }
 
 // ---------- title demo: the horde shambles in and gets shot up behind the menu ----------
@@ -8414,7 +8477,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   try { tick(now); }
   catch (e) {
-    if (!frameErr) { frameErr = true; console.error(e); zbDiag('frame', 'エラー: ' + (e && e.message || e)); }
+    if (!frameErr) { frameErr = true; console.error(e); zbDiag('frame', jaEn('エラー: ', 'Error: ') + (e && e.message || e)); }
   }
 }
 function tick(now) {
@@ -8450,12 +8513,12 @@ async function boot() {
   try { await bootInner(); }
   catch (e) {
     console.error(e);
-    $('startSub').textContent = '準備中にエラーが出ました';
-    zbDiag('boot', 'エラー: ' + (e && e.message || e) + ' / GPU: ' + gpuName());
+    $('startSub').textContent = jaEn('準備中にエラーが出ました', 'Something went wrong while loading');
+    zbDiag('boot', jaEn('エラー: ', 'Error: ') + (e && e.message || e) + ' / GPU: ' + gpuName());
   }
 }
 async function bootInner() {
-  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?%+-,.~…' + CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   buildWorld(firstStage()); initZombieMeshes(); initBoneMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); prebuildLater();
@@ -8556,7 +8619,7 @@ async function bootInner() {
     const bad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m); bad.position.set(0, 1.5, -12); scene.add(bad);
   }
   booted = true;
-  $('startBtn').disabled = false; $('startSub').textContent = '15秒アタック'; zbDiag('load', null);
+  $('startBtn').disabled = false; $('startSub').textContent = jaEn('15秒アタック', '15-second attack'); zbDiag('load', null);
   requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 }
 
@@ -8577,7 +8640,7 @@ function resetSpecials() {
 function spawnGold() {
   const zb = makeZombie('gold', rand(-0.6, 0.6) * halfX, Z_FAR - rand(0, 2));
   zombies.push(zb);
-  floaters.push({ follow: zb, x: zb.x, z: zb.z, h: 2.4, text: '金ピカ!!', sub: '倒すと大当たり', life: 1.8, big: true });
+  floaters.push({ follow: zb, x: zb.x, z: zb.z, h: 2.4, text: jaEn('金ピカ!!', 'GOLD ZOMBIE!!'), sub: jaEn('倒すと大当たり', 'Jackpot if you get it'), life: 1.8, big: true });
   sparkleSnd();
 }
 // weaving across the street on its way in; near the wire it turns and makes off down the side of the street
@@ -8620,7 +8683,7 @@ function goldBurst(zb, ch) {
   addPart({ k: 'glow', x: zb.x, z: zb.z, h: 1.1 * s, vx: 0, vz: 0, vh: 0, r: 0.8, life: 0.3, c: [1.8, 1.2, 0.3], a: 1 });
   if (running && ch) {
     score += BONUS.gold; goldKills++;
-    floaters.push({ x: zb.x, z: zb.z, h: 2.6, text: '大当たり!!', sub: `+${BONUS.gold.toLocaleString()}`, life: 1.5, big: true });
+    floaters.push({ x: zb.x, z: zb.z, h: 2.6, text: jaEn('大当たり!!', 'JACKPOT!!'), sub: `+${BONUS.gold.toLocaleString()}`, life: 1.5, big: true });
     say('bullseye', 2);
   }
 }
@@ -8701,7 +8764,7 @@ function fatBurst(zb) {
   if ((running || endT > 0) && performance.now() - lastSfxT > 300) {
     lastSfxT = performance.now();
     const sp = toScreen(x, zz, 2.4);
-    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(['ドバァッ!!', 'ブッシャァ!!', 'バチュン!!']), rot: rand(-0.35, 0.35), life: 0.8, max: 0.8, size: clamp(30 * Math.min(1.6, 14 / zz), 30, 66) });
+    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: pick(jaEn(['ドバァッ!!', 'ブッシャァ!!', 'バチュン!!'], ['SPLURT!!', 'SPLOOSH!!', 'SPLAT!!'])), rot: rand(-0.35, 0.35), life: 0.8, max: 0.8, size: clamp(30 * Math.min(1.6, 14 / zz), 30, 66) });
   }
   // the burst throws everything round it off its feet, the way a blast does, but with no fire
   let k = 0;
@@ -8726,7 +8789,7 @@ function fatBurst(zb) {
     if (d < FAT_R) { const f = 1 - d / FAT_R; g.vh = Math.max(g.vh, 7 * f + 3); g.vx += dx / (d + 0.01) * 5 * f; g.vz += dz / (d + 0.01) * 5 * f + 2; g.life = Math.max(g.life, 2); }
   }
   if (k > 0 && running) {
-    registerKills(k, x, zz, 'デブ爆散!!', true, ch);
+    registerKills(k, x, zz, jaEn('デブ爆散!!', 'BLOATER POP!!'), true, ch);
     if (k >= 3 && !reduceMotion) hitstop = 0.05 + Math.min(k, 8) * 0.01;
   }
 }
@@ -8824,13 +8887,13 @@ function collapseBlock(b) {
     if (o.state !== 'walk' || o.type === 'boss' || o.x * b.side < -0.1 || o.z < b.z0 - 1.5 || o.z > b.z1 + 1.5) continue;
     killZombie(o, { dx: out * 0.5, dz: 0.4, d: 0.7, f: 0.45, power: 0.75, ch: b.ch }); k++;
   }
-  if (k) registerKills(k, X + out * 2, midZ, 'ビルの下敷き!', true, b.ch);
+  if (k) registerKills(k, X + out * 2, midZ, jaEn('ビルの下敷き!', 'CRUSHED!'), true, b.ch);
   for (const c of cars) if (c.x * b.side > 0 && c.z > b.z0 - 2 && c.z < b.z1 + 2) carBoom(c, rand(0.15, 0.5), b.ch);
   if (running) {
     score += BONUS.block; addFever(12); bldDown++;
     const f = floaters.find(o => o.bld), sp = toScreen(X, midZ, 4);
-    if (f) { f.n++; f.life = 1.5; f.text = `ビル倒壊!! ×${f.n}`; f.sub = `+${(BONUS.block * f.n).toLocaleString()}`; }
-    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: 'ビル倒壊!!', sub: `+${BONUS.block.toLocaleString()}`, life: 1.5, big: true });
+    if (f) { f.n++; f.life = 1.5; f.text = jaEn(`ビル倒壊!! ×${f.n}`, `BUILDING DOWN!! ×${f.n}`); f.sub = `+${(BONUS.block * f.n).toLocaleString()}`; }
+    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: jaEn('ビル倒壊!!', 'BUILDING DOWN!!'), sub: `+${BONUS.block.toLocaleString()}`, life: 1.5, big: true });
     say('incredible', 3);
   }
 }
@@ -9232,7 +9295,7 @@ function bossTiltGoal() {
 }
 const bossBusy = () => bosses.some(z => z.state === 'drop' || z.state === 'dying' || z.state === 'moonshot' || z.state === 'final');
 const bossFlying = () => bosses.some(z => z.state === 'dying' || z.state === 'moonshot');
-const bossLabel = () => bossKind === 'dog' ? '巨大ゾンビ犬撃破' : bossKills >= 2 ? '巨大ゾンビ2体撃破' : '巨大ゾンビ撃破';
+const bossLabel = () => bossKind === 'dog' ? jaEn('巨大ゾンビ犬撃破', 'Giant dog down') : bossKills >= 2 ? jaEn('巨大ゾンビ2体撃破', 'Both giants down') : jaEn('巨大ゾンビ撃破', 'Giant down');
 // the twins stand apart by most of what the screen shows of the street where they stop
 const twinX = () => clamp(halfX / (Z_WALL * 0.92) * wallZ({ size: TWIN_S, type: 'boss' }) * 0.6, 1.15, 1.7);
 function spawnBoss() {
@@ -9245,7 +9308,7 @@ function spawnBoss() {
     if (tw) { z.size = TWIN_S; z.hp = z.maxHp = TWIN_HP; z.mir = i ? 1 : -1; z.x = z.mir * twinX(); z.z += i * 0.7; z.wait = i * 0.55; }
     bosses.push(z); zombies.push(z);
   }
-  showBanner('WARNING!!', tw ? '巨大ゾンビが2体!!' : '巨大ゾンビ接近', C.blood, 1.6);
+  showBanner('WARNING!!', tw ? jaEn('巨大ゾンビが2体!!', 'TWO GIANT ZOMBIES!!') : jaEn('巨大ゾンビ接近', 'GIANT ZOMBIE INCOMING'), C.blood, 1.6);
   say('warning', 4); shake = Math.max(shake, 8);
 }
 function spawnDog() {
@@ -9253,7 +9316,7 @@ function spawnDog() {
   z.dog = true; z.size = DOG_S; z.hp = z.maxHp = DOG_HP; z.rig = dogRig; z.mir = 1; z.wait = 0; z.yaw = 0;
   z.wv = rand(0, 6.28); z.x = dogWeave(z) * Math.sin(z.wv); z.top = 1.6 * DOG_S; z.topZ = z.z;
   bosses.push(z); zombies.push(z);
-  showBanner('WARNING!!', '巨大ゾンビ犬接近', C.blood, 1.6);
+  showBanner('WARNING!!', jaEn('巨大ゾンビ犬接近', 'GIANT ZOMBIE DOG INCOMING'), C.blood, 1.6);
   say('warning', 4); howlSnd(false, 0.55);   // far off down the avenue
 }
 function stompSnd(k = 1) {
@@ -9304,7 +9367,7 @@ function bossStep(z, i) {
   if (running && performance.now() - lastSfxT > 300) {
     lastSfxT = performance.now();
     const sp = toScreen(fx, fz, 1.2);
-    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: 'ズシン!!', rot: rand(-0.2, 0.2), life: 0.6, max: 0.6, size: 40 });
+    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: jaEn('ズシン!!', 'THOOM!!'), rot: rand(-0.2, 0.2), life: 0.6, max: 0.6, size: 40 });
   }
 }
 function bossSlam(z) {
@@ -9331,7 +9394,7 @@ function bossDeath(z) {
   if (!reduceMotion) slowmo = Math.max(slowmo, 1.2);
   const both = bossKind === 'twins' && bossKills === 2, pts = BONUS.boss + (both ? BONUS.twin : 0);
   score += pts;
-  showBanner(both ? 'ダブル撃破!!' : 'BOSS撃破!!', `+${pts.toLocaleString()}`, C.flare, 1.4, true, true);
+  showBanner(both ? jaEn('ダブル撃破!!', 'DOUBLE KILL!!') : jaEn('BOSS撃破!!', 'BOSS DOWN!!'), `+${pts.toLocaleString()}`, C.flare, 1.4, true, true);
   speedLines = 1; if (z.dog) howlSnd(true); else roar();
   say('knockout', 4); buzz([90, 40, 280], 3);
 }
@@ -9578,7 +9641,7 @@ function dogStep(z, i) {
   if (running && i === 0 && z.z < Z_FAR + 2 && performance.now() - lastSfxT > 600) {
     lastSfxT = performance.now();
     const sp = toScreen(P[0][0] < z.x ? P[0][0] - 1 : P[0][0] + 1, -P[0][2], 0.2);   // beside its forepaws, clear of its head
-    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: 'ドドッ!!', rot: rand(-0.2, 0.2), life: 0.5, max: 0.5, size: 34 });
+    floaters.push({ sfx: true, x: clamp(sp.X, 70, W - 70), y: clamp(sp.Y, hudH + 40, H - 60), text: jaEn('ドドッ!!', 'THUD!!'), rot: rand(-0.2, 0.2), life: 0.5, max: 0.5, size: 34 });
   }
 }
 // What the dog hits it tosses straight up, not out: flung out low and fast, bodies bowl the horde over and set off the
@@ -9706,7 +9769,7 @@ function starTwinkle(z) {
   twinkles.push({ x: z.ms.SX, y: z.ms.SY, t: 0 });
   twinkleSnd(); buzz(40, 1);
   score += BONUS.star; bossStars++;
-  floaters.push({ screen: true, x: clamp(z.ms.SX, 110, W - 110), y: z.ms.SY + 54, text: 'キラーン!!', sub: `+${BONUS.star.toLocaleString()}`, life: 1.6, big: true });
+  floaters.push({ screen: true, x: clamp(z.ms.SX, 110, W - 110), y: z.ms.SY + 54, text: jaEn('キラーン!!', 'TWINKLE!!'), sub: `+${BONUS.star.toLocaleString()}`, life: 1.6, big: true });
 }
 // a four-pointed glint with a soft glow, flaring up and fading as it turns
 function drawTwinkles() {
@@ -9765,8 +9828,8 @@ function moonHit(z, X, Y) {
   boom(0.7, 40); say('bullseye', 1);
   // repeated hits stack into one counter at the moon instead of piling up text
   const f = floaters.find(o => o.moon);
-  if (f) { f.n++; f.pts += pts; f.life = 1.3; f.y = moonNow.Y + moonNow.r + 26; f.text = `月面着弾 ×${f.n}!`; f.sub = f.pts ? `+${f.pts.toLocaleString()}` : ''; }
-  else floaters.push({ screen: true, moon: true, n: 1, pts, x: clamp(moonNow.X, 90, W - 90), y: moonNow.Y + moonNow.r + 26, text: '月面着弾!', sub: pts ? '+3000' : '', life: 1.3, big: true });
+  if (f) { f.n++; f.pts += pts; f.life = 1.3; f.y = moonNow.Y + moonNow.r + 26; f.text = jaEn(`月面着弾 ×${f.n}!`, `MOON HIT ×${f.n}!`); f.sub = f.pts ? `+${f.pts.toLocaleString()}` : ''; }
+  else floaters.push({ screen: true, moon: true, n: 1, pts, x: clamp(moonNow.X, 90, W - 90), y: moonNow.Y + moonNow.r + 26, text: jaEn('月面着弾!', 'MOON HIT!'), sub: pts ? '+3000' : '', life: 1.3, big: true });
 }
 function moonShatter(z) {
   z.gone = true; z.state = 'gone'; z.rig.R.root.visible = false;
@@ -9800,7 +9863,7 @@ function moonShatter(z) {
   shake = 20; flashScreen = 0.16; speedLines = 1.4;
   if (!reduceMotion) zoom = Math.min(1.15, zoom + 0.12);
   score += BONUS.moon;
-  showBanner('PERFECT!!!', `月まで飛んだ!! +${BONUS.moon.toLocaleString()}`, C.flare, 2.2, true, true); say('perfect', 5);
+  showBanner('PERFECT!!!', jaEn(`月まで飛んだ!! +${BONUS.moon.toLocaleString()}`, `TO THE MOON!! +${BONUS.moon.toLocaleString()}`), C.flare, 2.2, true, true); say('perfect', 5);
   if (!running) requestShot(0.3);   // broken after the whistle: that is the picture to share
   moonLight.intensity = 0.55;
 }
@@ -9905,7 +9968,7 @@ function megaBlast(x, z) {
   shake = 24; flashScreen = Math.max(flashScreen, 0.14); speedLines = Math.max(speedLines, 1.3);
   if (!reduceMotion) { zoom = Math.min(1.16, zoom + 0.12); slowmo = Math.max(slowmo, 0.45); }
   // the word goes under the fireball, not over it
-  floaters.push({ sfx: true, nudged: true, x: W / 2, y: H * 0.68, text: 'ドガガガーン!!!', rot: rand(-0.1, 0.1), life: 1.2, max: 1.2, size: Math.min(72, W * 0.085) });
+  floaters.push({ sfx: true, nudged: true, x: W / 2, y: H * 0.68, text: jaEn('ドガガガーン!!!', 'KA-BA-BA-BOOM!!!'), rot: rand(-0.1, 0.1), life: 1.2, max: 1.2, size: Math.min(72, W * 0.085) });
   say('kaboom', 4);
   requestShot(0.45);   // the picture for sharing: the fireball at its biggest
 }
@@ -10006,7 +10069,7 @@ function trySpecial() {
   track('air_strike', { weapon });
   readySnd();
   startFever();
-  showBanner('空爆!!', `FEVER ・ ${FEVER_TAP[weapon]}`, C.flare, 1.1, false, true);   // low: the sky is for the jets
+  showBanner(jaEn('空爆!!', 'AIR STRIKE!!'), `FEVER ・ ${FEVER_TAP[weapon]}`, C.flare, 1.1, false, true);   // low: the sky is for the jets
   launchStrike();
 }
 function launchStrike() {
@@ -10276,7 +10339,7 @@ function drawOverlays() {
     ctx.fillStyle = 'rgba(18,12,23,.75)'; ctx.fillRect(x - 3, y - 3, w + 6, 16);
     ctx.fillStyle = C.blood; ctx.fillRect(x, y, w * hp / mx, 10);
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    outlined(bossKind === 'dog' ? '巨大ゾンビ犬' : bw.length > 1 ? '巨大ゾンビ ×2' : '巨大ゾンビ', x, y - 4, 14, C.bone); ctx.restore();
+    outlined(bossKind === 'dog' ? jaEn('巨大ゾンビ犬', 'GIANT ZOMBIE DOG') : bw.length > 1 ? jaEn('巨大ゾンビ ×2', 'GIANT ZOMBIES ×2') : jaEn('巨大ゾンビ', 'GIANT ZOMBIE'), x, y - 4, 14, C.bone); ctx.restore();
   }
   if (twinkles.length) drawTwinkles();
   if (comboShown()) {
@@ -10324,7 +10387,7 @@ function lightRack(ch, fast) {
   fuseSnd();
   if (running && ch) {
     score += FEST_BONUS;
-    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: '大スターマイン!!', sub: `+${FEST_BONUS.toLocaleString()}`, life: 1.8, big: true });
+    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: jaEn('大スターマイン!!', 'GRAND FIREWORKS!!'), sub: `+${FEST_BONUS.toLocaleString()}`, life: 1.8, big: true });
     say('incredible', 3);
   }
 }
@@ -10391,7 +10454,7 @@ function shakuBurst(F) {
   blastLight(x, z, h - 3, 1.3);
   shakuBoomSnd();
   shake = Math.max(shake, 6); buzz([60, 40, 160], 2);
-  if (running || endT > 0) { floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: 'たまや〜!!', life: 1.8, big: true }); say('bravo', 3); }
+  if (running || endT > 0) { floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: jaEn('たまや〜!!', 'TAMAYA~!!'), life: 1.8, big: true }); say('bravo', 3); }
 }
 function updateShaku(F, dt) {
   const B = F.big;
@@ -10443,7 +10506,7 @@ function updateFest(dt) {
   if (!onFest()) return;
   const F = fest;
   F.flash = Math.max(0, F.flash - dt); F.jolt = Math.max(0, F.jolt - dt * 3);
-  if (running && F.state === 'ready' && !F.hinted && elapsed > 0.6) { F.hinted = true; floaters.push({ x: 0, z: RACK.z, h: RACK.top + 1.2, text: '撃つと大スターマイン!', life: 2.6 }); }
+  if (running && F.state === 'ready' && !F.hinted && elapsed > 0.6) { F.hinted = true; floaters.push({ x: 0, z: RACK.z, h: RACK.top + 1.2, text: jaEn('撃つと大スターマイン!', 'Shoot it for fireworks!'), life: 2.6 }); }
   if (F.state === 'fuse') {
     F.t += dt;
     const fuse = F.fast ? 0.12 : FW_FUSE;
@@ -10594,11 +10657,11 @@ function skyBoomSnd(z) {
 // Nothing it does costs us anything, and only what we set off scores. A lorry or a bus left alone goes up in the finale.
 // The lorry and the bus ride on the cars' code (shot, blasted, thrown, burnt out); each has the one mesh, built at boot.
 const HAPS = {
-  tanker: { banner: 'タンクローリー突入!!', sub: '撃てば大爆発!!', bonus: 100000, name: 'タンクローリー爆破!!', w: 1.18, l: 4.5, ht: 2.95, hp: 45 },
-  bus: { banner: 'ゾンビ観光バス!!', sub: '満員でご到着', bonus: 50000, name: '観光バス爆破!!', w: 1.25, l: 4.6, ht: 3.1, hp: 40 },
-  heli: { banner: '取材ヘリ接近!!', sub: '撃ち落とせ!!', bonus: 100000, name: 'ヘリ撃墜!!' },
-  pipe: { banner: 'ガス管が破裂寸前!!', sub: 'マンホールを撃て!!', bonus: 100000, name: 'ガス管大爆発!!' },
-  ship: { banner: 'ゾンビ飛行船襲来!!', sub: '撃ち落とせ!!', bonus: 150000, name: '飛行船撃墜!!' },
+  tanker: { banner: jaEn('タンクローリー突入!!', 'TANKER INCOMING!!'), sub: jaEn('撃てば大爆発!!', 'Shoot it and it blows!!'), bonus: 100000, name: jaEn('タンクローリー爆破!!', 'Tanker blown!!'), w: 1.18, l: 4.5, ht: 2.95, hp: 45 },
+  bus: { banner: jaEn('ゾンビ観光バス!!', 'ZOMBIE TOUR BUS!!'), sub: jaEn('満員でご到着', 'Arriving fully booked'), bonus: 50000, name: jaEn('観光バス爆破!!', 'Tour bus blown!!'), w: 1.25, l: 4.6, ht: 3.1, hp: 40 },
+  heli: { banner: jaEn('取材ヘリ接近!!', 'NEWS CHOPPER INCOMING!!'), sub: jaEn('撃ち落とせ!!', 'Shoot it down!!'), bonus: 100000, name: jaEn('ヘリ撃墜!!', 'Chopper down!!') },
+  pipe: { banner: jaEn('ガス管が破裂寸前!!', 'GAS MAIN ABOUT TO BLOW!!'), sub: jaEn('マンホールを撃て!!', 'Shoot the manholes!!'), bonus: 100000, name: jaEn('ガス管大爆発!!', 'Gas main blown!!') },
+  ship: { banner: jaEn('ゾンビ飛行船襲来!!', 'ZOMBIE AIRSHIP!!'), sub: jaEn('撃ち落とせ!!', 'Shoot it down!!'), bonus: 150000, name: jaEn('飛行船撃墜!!', 'Airship down!!') },
 };
 const BUS_LOAD = 24;
 let hapKind = '', hapAt = 99, lastHap = '', forceHap = '', hapDone = [], heli = null, hapMesh = {};
@@ -10962,7 +11025,7 @@ function lightOver(ch, fast, hx = 0) {
   rumble(); clang();
   if (running && ch) {
     score += OVER_BONUS;
-    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: '高架崩落!!', sub: `+${OVER_BONUS.toLocaleString()}`, life: 1.8, big: true });
+    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: jaEn('高架崩落!!', 'OVERPASS COLLAPSE!!'), sub: `+${OVER_BONUS.toLocaleString()}`, life: 1.8, big: true });
     say('incredible', 3);
   }
 }
@@ -11078,7 +11141,7 @@ function spanImpact() {
     if (o.state !== 'walk' || o.type === 'boss' || Math.abs(o.z - z) > HWY.hz + 1 || Math.abs(o.x) > HWY.pier) continue;
     killZombie(o, { dx: rand(-0.5, 0.5), dz: -0.4, d: 0.7, f: 0.45, power: 0.75, ch }); k++;
   }
-  if (k && running) registerKills(k, 0, z - HWY.hz, '高架の下敷き!', true, ch);
+  if (k && running) registerKills(k, 0, z - HWY.hz, jaEn('高架の下敷き!', 'CRUSHED!'), true, ch);
 }
 // ===== zombie cars =====
 // one down the middle of the road; from under the overpass, or out of its smoke once it is down
@@ -11095,7 +11158,7 @@ function spawnZcar() {
   seatRiders(c);
   cars.push(c);
   hornSnd();
-  if (!zcSeen) { zcSeen = true; showBanner('ゾンビカー突撃!!', '撃てば乗ってるゾンビごと!!', C.flare, 1.3); }
+  if (!zcSeen) { zcSeen = true; showBanner(jaEn('ゾンビカー突撃!!', 'ZOMBIE CARS INCOMING!!'), jaEn('撃てば乗ってるゾンビごと!!', 'Shoot them, riders and all!!'), C.flare, 1.3); }
 }
 // the plan for the round: three, unless a lorry or a bus is on the road (they would run into it)
 function updateZcarPlan() {
@@ -11165,8 +11228,8 @@ function zcarBoom(c, delay, ch) {
   if (running && ch) {
     score += ZC_BONUS; zcDown++;
     const f = floaters.find(o => o.zc);
-    if (f) { f.n++; f.life = 1.5; f.text = `ゾンビカー撃破!! ×${f.n}`; f.sub = `+${(ZC_BONUS * f.n).toLocaleString()}`; }
-    else floaters.push({ zc: true, n: 1, x: c.x, z: Math.max(c.z, 12), h: 3.2, text: 'ゾンビカー撃破!!', sub: `+${ZC_BONUS.toLocaleString()}`, life: 1.5, big: true });
+    if (f) { f.n++; f.life = 1.5; f.text = jaEn(`ゾンビカー撃破!! ×${f.n}`, `ZOMBIE CAR DOWN!! ×${f.n}`); f.sub = `+${(ZC_BONUS * f.n).toLocaleString()}`; }
+    else floaters.push({ zc: true, n: 1, x: c.x, z: Math.max(c.z, 12), h: 3.2, text: jaEn('ゾンビカー撃破!!', 'ZOMBIE CAR DOWN!!'), sub: `+${ZC_BONUS.toLocaleString()}`, life: 1.5, big: true });
     say('kaboom', 3);
   }
 }
@@ -11323,7 +11386,7 @@ function toppleWheel(ch) {
   for (let i = 0; i < 10; i++) addPart({ k: 'dust', x: rand(-5.5, 5.5), z: WHEEL.z + rand(-2.5, 1.5), h: 0.4, vx: rand(-1.5, 1.5), vz: rand(-1, 1), vh: rand(0.5, 2), r: rand(1, 1.6), grow: 1.2, drag: 1.2, life: rand(1.6, 2.4), a: 0.45, f: 4 });
   if (running && ch) {
     score += PARK_BONUS.wheel;
-    floaters.push({ screen: true, x: W / 2, y: H * 0.34, text: '観覧車倒壊!!', sub: `+${PARK_BONUS.wheel.toLocaleString()}`, life: 1.8, big: true });
+    floaters.push({ screen: true, x: W / 2, y: H * 0.34, text: jaEn('観覧車倒壊!!', 'FERRIS WHEEL DOWN!!'), sub: `+${PARK_BONUS.wheel.toLocaleString()}`, life: 1.8, big: true });
     say('incredible', 3);
   }
 }
@@ -11401,7 +11464,7 @@ function derailTrain(ch) {
   clang(); whoosh();
   if (running && ch) {
     score += PARK_BONUS.train;
-    floaters.push({ x: halfX * 0.6, z: clamp(c0.z, 12, 40), h: 3.6, text: 'コースター脱線!!', sub: `+${PARK_BONUS.train.toLocaleString()}`, life: 1.7, big: true });
+    floaters.push({ x: halfX * 0.6, z: clamp(c0.z, 12, 40), h: 3.6, text: jaEn('コースター脱線!!', 'COASTER DERAILED!!'), sub: `+${PARK_BONUS.train.toLocaleString()}`, life: 1.7, big: true });
     say('incredible', 3);
   }
 }
@@ -11727,7 +11790,7 @@ function updatePipe(dt) {
     if ((P.sfxT -= dt) <= 0 && running) {
       P.sfxT = rand(0.7, 1.0) - heat * 0.3;
       const o = pick(P.holes), s = toScreen(o.x, o.z, 0.8);
-      if (!s.behind) floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 60, W - 60), y: clamp(s.Y - rand(10, 40), hudH + 30, H - 40), text: 'ゴゴゴ', rot: rand(-0.25, 0.25), life: 0.6, max: 0.6, size: 26 + heat * 10 });
+      if (!s.behind) floaters.push({ sfx: true, x: clamp(s.X + rand(-30, 30), 60, W - 60), y: clamp(s.Y - rand(10, 40), hudH + 30, H - 40), text: jaEn('ゴゴゴ', 'RUMBLE'), rot: rand(-0.25, 0.25), life: 0.6, max: 0.6, size: 26 + heat * 10 });
       shake = Math.max(shake, 1 + heat * 2);
     }
   }
@@ -11780,7 +11843,7 @@ function updatePipe(dt) {
         if (zb.state !== 'walk' || zb.type === 'boss' || Math.hypot(zb.x - c.x, zb.z - c.z) > 0.5 || c.h > 1.9 * zb.size) continue;
         c.hit = true; c.vh = 4; c.vx *= -0.5; c.vz *= -0.5;
         killZombie(zb, { dx: 0, dz: 0.3, d: 0.3, f: 0.3, power: 0.6, ch: P.ch, head: true });
-        if (running && P.ch) registerKills(1, zb.x, zb.z, 'ゴン!!', false, P.ch);
+        if (running && P.ch) registerKills(1, zb.x, zb.z, jaEn('ゴン!!', 'BONK!!'), false, P.ch);
         clang(); break;
       }
       if (c.h < 0.035 && c.vh < 0) {
@@ -12194,33 +12257,33 @@ const MISSIONS = [
   // [id, tier, line, done]: lines short enough for one line on a phone. The bars come from bot rounds (2026-10-25, redrawn
   // for the bigger horde): bronze most rounds get, silver about half, gold one round in three or rarer. (2026-10-31: the
   // headshots and the juggles in the air went with the machine gun, whose bullets made nearly all of them)
-  ['chain40', 1, '1発で40体倒す', () => bestChain >= 40],
-  ['chain80', 2, '1発で80体倒す', () => bestChain >= 80],
-  ['chain150', 3, '1発で150体倒す', () => bestChain >= 150],
-  ['bld1', 1, 'ビルを倒す', () => bldDown >= 1],
-  ['bld2', 2, 'ビルを2棟倒す', () => bldDown >= 2],
-  ['bld3', 3, 'ビルを3棟倒す', () => bldDown >= 3],
-  ['car6', 1, '車を6台爆破', () => carsBlown >= 6],
-  ['gold1', 1, '金ピカを倒す', () => goldKills >= 1],
-  ['gold2', 2, '金ピカを2体とも倒す', () => goldKills >= 2],
-  ['boss', 1, '巨大ゾンビを倒す', () => bossKilled],
-  ['boss2', 2, '巨大ゾンビを着地から2秒で倒す', () => bossKilled && bossKillT <= 2],
-  ['moon12', 2, '月に12回当てる', () => moonHits >= 12],
-  ['hap', 2, 'ハプニングをぶっ壊す', () => hapDone.length > 0],
-  ['strike300', 2, '空爆で300体', () => strikeKills >= 300],
-  ['strike400', 3, '空爆で400体', () => strikeKills >= 400],
-  ['kill500', 1, '500体倒す', () => kills >= 500],
-  ['kill900', 3, '900体倒す', () => kills >= 900],
-  ['combo400', 1, '400コンボ', () => maxCombo >= 400],
-  ['combo900', 3, '900コンボ', () => maxCombo >= 900],
-  ['fly80', 2, '80m吹っ飛ばす', () => longestFlight >= 80],
-  ['fat10', 1, 'デブを10体破裂させる', () => fatPops >= 10],
-  ['fat25', 2, 'デブを25体破裂させる', () => fatPops >= 25],
-  ['gas12', 1, 'ボンベを12本飛ばす', () => bombesShot >= 12],
-  ['score850', 3, '850万点を出す', () => score >= 8500000],
+  ['chain40', 1, jaEn('1発で40体倒す', 'Kill 40 with one shot'), () => bestChain >= 40],
+  ['chain80', 2, jaEn('1発で80体倒す', 'Kill 80 with one shot'), () => bestChain >= 80],
+  ['chain150', 3, jaEn('1発で150体倒す', 'Kill 150 with one shot'), () => bestChain >= 150],
+  ['bld1', 1, jaEn('ビルを倒す', 'Bring down a building'), () => bldDown >= 1],
+  ['bld2', 2, jaEn('ビルを2棟倒す', 'Bring down 2 buildings'), () => bldDown >= 2],
+  ['bld3', 3, jaEn('ビルを3棟倒す', 'Bring down 3 buildings'), () => bldDown >= 3],
+  ['car6', 1, jaEn('車を6台爆破', 'Blow up 6 cars'), () => carsBlown >= 6],
+  ['gold1', 1, jaEn('金ピカを倒す', 'Kill a gold zombie'), () => goldKills >= 1],
+  ['gold2', 2, jaEn('金ピカを2体とも倒す', 'Kill both gold zombies'), () => goldKills >= 2],
+  ['boss', 1, jaEn('巨大ゾンビを倒す', 'Kill the giant'), () => bossKilled],
+  ['boss2', 2, jaEn('巨大ゾンビを着地から2秒で倒す', 'Kill the giant within 2 s of landing'), () => bossKilled && bossKillT <= 2],
+  ['moon12', 2, jaEn('月に12回当てる', 'Hit the moon 12 times'), () => moonHits >= 12],
+  ['hap', 2, jaEn('ハプニングをぶっ壊す', "Wreck this round's surprise"), () => hapDone.length > 0],
+  ['strike300', 2, jaEn('空爆で300体', '300 kills in an air strike'), () => strikeKills >= 300],
+  ['strike400', 3, jaEn('空爆で400体', '400 kills in air strikes'), () => strikeKills >= 400],
+  ['kill500', 1, jaEn('500体倒す', 'Kill 500'), () => kills >= 500],
+  ['kill900', 3, jaEn('900体倒す', 'Kill 900'), () => kills >= 900],
+  ['combo400', 1, jaEn('400コンボ', '400 combo'), () => maxCombo >= 400],
+  ['combo900', 3, jaEn('900コンボ', '900 combo'), () => maxCombo >= 900],
+  ['fly80', 2, jaEn('80m吹っ飛ばす', 'Blast one 80 m'), () => longestFlight >= 80],
+  ['fat10', 1, jaEn('デブを10体破裂させる', 'Pop 10 bloaters'), () => fatPops >= 10],
+  ['fat25', 2, jaEn('デブを25体破裂させる', 'Pop 25 bloaters'), () => fatPops >= 25],
+  ['gas12', 1, jaEn('ボンベを12本飛ばす', 'Launch 12 gas tanks'), () => bombesShot >= 12],
+  ['score850', 3, jaEn('850万点を出す', 'Score 8,500,000'), () => score >= 8500000],
 ].map(([id, tier, text, done]) => ({ id, tier, text, done }));
 const MISSION_BY = Object.fromEntries(MISSIONS.map(m => [m.id, m]));
-const MEDAL_C = ['', '#d08a4e', '#d6dde4', '#ffd25e'], MEDAL_NAME = ['', '銅', '銀', '金'];
+const MEDAL_C = ['', '#d08a4e', '#d6dde4', '#ffd25e'], MEDAL_NAME = jaEn(['', '銅', '銀', '金'], ['', 'Bronze', 'Silver', 'Gold']);
 const MKEY = 'zb3d-missions';
 // act: the three standing, slot i holding the one of tier i + 1; seen: ids already done, which come round again only
 // once their colour has run out
@@ -12229,13 +12292,13 @@ let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT
 // the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
 // missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam)
 const UNLOCKS = [
-  { w: 'hole', medals: 10, sub: '吸い込んで大爆発' },
-  { w: 'rail', medals: 20, sub: '一瞬で貫くビーム' },
-  { w: 'wave', medals: 30, sub: '極太ビームで一掃' },
-  { w: 'flame', medals: 40, sub: '燃え広がる炎' },
-  { w: 'shock', medals: 50, sub: '飛び移る稲妻' },
-  { w: 'missile', medals: 60, sub: '10発の追尾ミサイル' },
-  { w: 'bits', medals: 70, sub: '浮遊ビーム砲台' },
+  { w: 'hole', medals: 10, sub: jaEn('吸い込んで大爆発', 'Sucks in, then boom') },
+  { w: 'rail', medals: 20, sub: jaEn('一瞬で貫くビーム', 'Instant piercing beam') },
+  { w: 'wave', medals: 30, sub: jaEn('極太ビームで一掃', 'Huge sweeping beam') },
+  { w: 'flame', medals: 40, sub: jaEn('燃え広がる炎', 'Spreading flames') },
+  { w: 'shock', medals: 50, sub: jaEn('飛び移る稲妻', 'Chain lightning') },
+  { w: 'missile', medals: 60, sub: jaEn('10発の追尾ミサイル', '10 homing missiles') },
+  { w: 'bits', medals: 70, sub: jaEn('浮遊ビーム砲台', 'Floating beam turrets') },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
 function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射'; }
@@ -12254,7 +12317,7 @@ function loadMissions() {
   for (let t = 1; t <= 3; t++) { const m = MISSION_BY[mis.act[t - 1]]; if (!m || m.tier !== t) mis.act[t - 1] = drawMission(t, mis.act); }
   saveMissions();
   showMissions('misTitle', mis.act);
-  $('misMedalsT').textContent = `メダル ${mis.medals}枚`;
+  $('misMedalsT').textContent = jaEn(`メダル ${mis.medals}枚`, `${mis.medals} medals`);
   weaponButtons();
 }
 // the buttons of the weapons the medals open: on the title the open ones and the next one, locked with the medals still to
@@ -12267,7 +12330,7 @@ function weaponButtons() {
       b.classList.toggle('locked', !open); b.setAttribute('aria-disabled', String(!open));
       b.hidden = b.closest('.small') ? !open : !open && u !== next;
       const d = b.querySelector('.d');
-      if (d) d.textContent = open ? u.sub : `メダルあと${u.medals - mis.medals}枚で解放`;
+      if (d) d.textContent = open ? u.sub : jaEn(`メダルあと${u.medals - mis.medals}枚で解放`, `${u.medals - mis.medals} medals to unlock`);
     }
   }
   const shown = [...document.querySelectorAll('.pick:not(.small) .pk')].filter(b => !b.hidden);
@@ -12283,9 +12346,9 @@ function checkMissions() {
     if (misNow.includes(id) || !m.done()) continue;
     const was = mis.medals;
     misNow.push(id); mis.medals += m.tier;
-    misToast.push({ head: 'お題達成!', text: m.text, tier: m.tier, life: 2.4, max: 2.4 });
+    misToast.push({ head: jaEn('お題達成!', 'CHALLENGE DONE!'), text: m.text, tier: m.tier, life: 2.4, max: 2.4 });
     medalSnd(m.tier);
-    for (const u of UNLOCKS) if (was < u.medals && mis.medals >= u.medals) misToast.push({ head: '新武器解放!', text: WEAPON_NAME[u.w], tier: 3, life: 2.8, max: 2.8 });
+    for (const u of UNLOCKS) if (was < u.medals && mis.medals >= u.medals) misToast.push({ head: jaEn('新武器解放!', 'NEW WEAPON!'), text: WEAPON_NAME[u.w], tier: 3, life: 2.8, max: 2.8 });
   }
 }
 // the result screen: what this round did; a moment later the done ones flip to new ones and the medal count climbs
@@ -12293,7 +12356,7 @@ function settleMissions() {
   checkMissions(); misToast = [];   // the card says it all now
   const before = mis.act.slice(), done = misNow.slice(), gained = done.reduce((a, id) => a + MISSION_BY[id].tier, 0);
   showMissions('misRes', before, done);
-  $('misMedalsR').textContent = `メダル ${mis.medals - gained}枚`;
+  $('misMedalsR').textContent = jaEn(`メダル ${mis.medals - gained}枚`, `${mis.medals - gained} medals`);
   if (!done.length) return;
   mis.seen.push(...done);
   mis.act = before.map(id => done.includes(id) ? drawMission(MISSION_BY[id].tier, before) : id);
@@ -12302,9 +12365,9 @@ function settleMissions() {
   const unlocked = UNLOCKS.filter(u => mis.medals - gained < u.medals && mis.medals >= u.medals).map(u => WEAPON_NAME[u.w]);
   misFlipT = setTimeout(() => {
     showMissions('misRes', mis.act, [], mis.act.filter(id => !before.includes(id)));
-    $('misMedalsR').textContent = `メダル ${mis.medals}枚 (+${gained})`;
+    $('misMedalsR').textContent = jaEn(`メダル ${mis.medals}枚 (+${gained})`, `${mis.medals} medals (+${gained})`);
     if (unlocked.length) {
-      $('misRes').insertAdjacentHTML('beforeend', `<p class="unlock">新武器解放! ${unlocked.join('と')}が使えます</p>`);
+      $('misRes').insertAdjacentHTML('beforeend', jaEn(`<p class="unlock">新武器解放! ${unlocked.join('と')}が使えます</p>`, `<p class="unlock">New weapon! ${unlocked.join(' and ')} unlocked</p>`));
       weaponButtons(); medalSnd(3);
     }
   }, 1900);
@@ -12313,8 +12376,8 @@ function showMissions(box, ids, done = [], fresh = []) {
   const el = $(box), u = el.querySelector('.unlock');
   if (u) u.remove();
   el.querySelector('ol').innerHTML = ids.map(id => {
-    const m = MISSION_BY[id], st = done.includes(id) ? `<b class="ok">達成! +${m.tier}</b>` : fresh.includes(id) ? '<b class="new">NEW</b>' : '';
-    return `<li${done.includes(id) ? ' class="done"' : fresh.includes(id) ? ' class="fresh"' : ''}><i class="md t${m.tier}" role="img" aria-label="${MEDAL_NAME[m.tier]}メダル"></i><span>${m.text}</span>${st}</li>`;
+    const m = MISSION_BY[id], st = done.includes(id) ? jaEn(`<b class="ok">達成! +${m.tier}</b>`, `<b class="ok">Done! +${m.tier}</b>`) : fresh.includes(id) ? '<b class="new">NEW</b>' : '';
+    return `<li${done.includes(id) ? ' class="done"' : fresh.includes(id) ? ' class="fresh"' : ''}><i class="md t${m.tier}" role="img" aria-label="${jaEn(MEDAL_NAME[m.tier] + 'メダル', MEDAL_NAME[m.tier] + ' medal')}"></i><span>${m.text}</span>${st}</li>`;
   }).join('');
 }
 // the note under the HUD: a medal, お題達成!, and the line; one at a time
@@ -12367,9 +12430,17 @@ function resetShare() {
   shotT = -1; shotHave = false; cardBlob = null; cardJob++; shareInfo = null;
   $('shareImg').disabled = true; $('shareMsg').hidden = true;
 }
-// X and the share sheet (on a phone mostly used to post to X) carry the extra tags kazu asked for; LINE keeps the game's own
-const TAGS = '#ゾンビ爆散', TAGS_X = '#ゾンビ爆散 #ストレス解消 #ゾンビ';
+// X and the share sheet (on a phone mostly used to post to X) carry the extra tags kazu asked for; LINE keeps the game's own.
+// In English the same three in English (2026-11-01), and every weapon but the rocket is named
+const TAGS = jaEn('#ゾンビ爆散', '#ZombieBakusan'), TAGS_X = jaEn('#ゾンビ爆散 #ストレス解消 #ゾンビ', '#ZombieBakusan #StressRelief #zombies');
+const SHARE_WEAPON_EN = { tank: 'Tank', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits' };
 function shareText(o, tags = TAGS) {
+  if (EN) {
+    const bits = [`${o.kills} kills`, `max combo ${o.combo}`];
+    if (o.moon) bits.push('Smashed the moon'); else if (o.boss) bits.push(o.boss);
+    const w = SHARE_WEAPON_EN[o.weapon];
+    return `ZOMBIE BAKUSAN${w ? ` (${w})` : ''}: ${o.score.toLocaleString('en-US')} pts, rank ${o.rank}!\n${bits.join(' / ')}\n${tags}`;
+  }
   const bits = [`撃破${o.kills}体`, `最大${o.combo}コンボ`];
   if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push(o.boss);
   return `ゾンビ爆散${{ tank: '（戦車）', hole: '（ブラックホール）', rail: '（レールガン）', wave: '（波動砲）' }[o.weapon] || ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n${tags}`;
@@ -12380,7 +12451,7 @@ function setupShare(o) {
   shareInfo = o;
   $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText(o, TAGS_X)) + '&url=' + encodeURIComponent(SITE_URL);
   $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText(o) + '\n' + SITE_URL);
-  $('shareImg').textContent = !dlNS && canShareFiles() ? '画像で共有' : '画像を保存';
+  $('shareImg').textContent = !dlNS && canShareFiles() ? jaEn('画像で共有', 'Share image') : jaEn('画像を保存', 'Save image');
   if (!shotHave) requestShot(0);   // no finale frame (it can happen): the street as it is now
   buildCard(o);
 }
@@ -12388,11 +12459,12 @@ function setupShare(o) {
 async function buildCard(o) {
   const job = ++cardJob;
   const D = '"Dela Gothic One", sans-serif', B = '"Zen Kaku Gothic New", sans-serif';
-  const stats = `撃破 ${o.kills}体 ・ 最大 ${o.combo}コンボ ・ 最長 ${o.flight}m`;
+  const stats = jaEn(`撃破 ${o.kills}体 ・ 最大 ${o.combo}コンボ ・ 最長 ${o.flight}m`, `${o.kills} kills  ·  max combo ${o.combo}  ·  ${o.flight} m flight`);
+  const foot = jaEn('#ゾンビ爆散   zombie-bakusan.pages.dev', '#ZombieBakusan   zombie-bakusan.pages.dev');
   try {
     if (document.fonts && document.fonts.load) await Promise.race([Promise.all([
-      document.fonts.load(`80px ${D}`, 'ゾンビ爆散SCORE0123456789,' + o.rank + o.badges.join('')),
-      document.fonts.load(`700 30px ${B}`, stats + '#ゾンビ爆散 zombie-bakusan.pages.dev'),
+      document.fonts.load(`80px ${D}`, 'ゾンビ爆散ZOMBIEBAKUSN SCORE0123456789,' + o.rank + o.badges.join('')),
+      document.fonts.load(`700 30px ${B}`, stats + foot),
     ]), new Promise(r => setTimeout(r, 1500))]);
   } catch (e) {}
   // the frame is taken on the next draw if it was not there yet
@@ -12420,6 +12492,7 @@ async function buildCard(o) {
   };
   g.textBaseline = 'alphabetic'; g.textAlign = 'left';
   text('ゾンビ爆散', 60, 122, 78, D, '#ffd25e', '#120c17', '#ff7a2f');
+  if (EN) { g.letterSpacing = '6px'; text('ZOMBIE BAKUSAN', 62, 176, 34, D, '#f3e9dc', '#120c17', '#ff7a2f'); g.letterSpacing = '0px'; }   // the name spelled out, as on the title
   g.font = `250px ${D}`;
   const rs = Math.min(250, 250 * 430 / g.measureText(o.rank).width);   // SS and SSS shrink into the same room
   text(o.rank, 60, 420 - (250 - rs) * 0.3, rs, D, '#ffd25e', '#120c17', '#ff7a2f');
@@ -12442,7 +12515,7 @@ async function buildCard(o) {
     g.fillStyle = '#120c17'; g.fillText(b, x + 16, y + 9);
     x += w + 10;
   }
-  text('#ゾンビ爆散   zombie-bakusan.pages.dev', 60, 600, 26, B, 'rgba(243,233,220,.85)', null, null, 700);
+  text(foot, 60, 600, 26, B, 'rgba(243,233,220,.85)', null, null, 700);
   const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
   if (job !== cardJob || !blob) return;
   cardBlob = blob;
@@ -12457,20 +12530,20 @@ $('shareImg').addEventListener('click', async () => {
   const msg = t => { $('shareMsg').textContent = t; $('shareMsg').hidden = !t; };
   msg('');
   if (dlNS) {
-    try { await dlNS.save({ filename: 'zombie-bakusan.jpg', data: cardBlob }); msg('画像を保存しました。Xに貼ってポストできます'); }
-    catch (e) { if (!e || e.code !== 'declined') msg('ここでは保存できませんでした。XかLINEのボタンを使ってください'); }
+    try { await dlNS.save({ filename: 'zombie-bakusan.jpg', data: cardBlob }); msg(jaEn('画像を保存しました。Xに貼ってポストできます', 'Image saved. Attach it to a post on X.')); }
+    catch (e) { if (!e || e.code !== 'declined') msg(jaEn('ここでは保存できませんでした。XかLINEのボタンを使ってください', "Couldn't save it here. Use the X or LINE button.")); }
     return;
   }
   if (canShareFiles()) {
     try { await navigator.share({ files: [file], text: shareText(shareInfo, TAGS_X) + '\n' + SITE_URL }); }
-    catch (e) { if (!e || e.name !== 'AbortError') msg('ここでは共有できませんでした。XかLINEのボタンを使ってください'); }
+    catch (e) { if (!e || e.name !== 'AbortError') msg(jaEn('ここでは共有できませんでした。XかLINEのボタンを使ってください', "Couldn't share it here. Use the X or LINE button.")); }
     return;
   }
   // no share sheet (most PCs): save the picture instead
   const a = document.createElement('a'), url = URL.createObjectURL(cardBlob);
   a.href = url; a.download = 'zombie-bakusan.jpg'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  msg('画像を保存しました。Xに貼ってポストできます');
+  msg(jaEn('画像を保存しました。Xに貼ってポストできます', 'Image saved. Attach it to a post on X.'));
 });
 
 // ===== 79-replay.js
@@ -12533,7 +12606,7 @@ function keepBest() {
 function startReplay() {
   if (rpBest && !rpBest.kept) keepBest();
   if (!rpClip) { stopReplay(); return; }
-  $('bestN').textContent = `1発で${rpClip.n}体!!`;
+  $('bestN').textContent = jaEn(`1発で${rpClip.n}体!!`, `${rpClip.n} IN ONE SHOT!!`);
   $('resHero').classList.add('on');
   rpPlay = { t: 0, i: 0 };
 }
@@ -12576,9 +12649,9 @@ function stageForRound() {
   return ids.length ? pick(ids) : stageId;
 }
 function stageButtons() {
-  const opts = [['auto', 'おまかせ'], ...stageIds().map(k => [k, STAGES[k].name])];
+  const opts = [['auto', jaEn('おまかせ', 'Random')], ...stageIds().map(k => [k, STAGES[k].name])];
   for (const box of document.querySelectorAll('.stg')) {
-    box.innerHTML = '<span class="k">ステージ</span><span class="sgs">' + opts.map(([k, t]) => `<button class="sg" type="button" data-s="${k}" aria-pressed="${k === stagePick}">${t}</button>`).join('') + '</span>';
+    box.innerHTML = '<span class="k">' + jaEn('ステージ', 'Stage') + '</span><span class="sgs">' + opts.map(([k, t]) => `<button class="sg" type="button" data-s="${k}" aria-pressed="${k === stagePick}">${t}</button>`).join('') + '</span>';
     for (const b of box.querySelectorAll('.sg')) b.addEventListener('click', () => setStagePick(b.dataset.s));
   }
 }
