@@ -31,6 +31,7 @@
 - 結果画面では、その回いちばん大きな連鎖をスローで再生します
 - 結果はXやLINEでシェアできます。スマホではフィナーレの写真に点数を載せた画像で共有、PCではその画像を保存できます
 - Androidのスマホでは、空爆や波動砲、巨大ゾンビなど大きな場面で短く振動します
+- 表示は日本語と英語です。ブラウザの言語が日本語なら日本語、それ以外なら英語で始まり、タイトル画面右上のボタンで切り替えられます（URLに `?lang=ja` か `?lang=en` を付けても選べます）。2D版は日本語だけです
 
 最初に作った2D版も遊べます: https://zombie-bakusan.pages.dev/2d/
 
@@ -42,4 +43,12 @@
 - 効果音は Web Audio でその場で合成しています
 - 実況とうめき声は [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M)（Apache-2.0）で生成し、ファイルに埋め込んでいます
 - フォントは Google Fonts の [Dela Gothic One](https://fonts.google.com/specimen/Dela+Gothic+One) と [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License）です
-- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数）、空爆、シェアのボタンをイベントとして送ります
+- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数・表示言語）、空爆、シェアのボタンをイベントとして送ります
+
+## English
+
+ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 15-second 3D browser game. Blow the oncoming horde away with a rocket launcher or a tank, and with the medals you earn unlock a black hole, a railgun, a wave cannon, a flamethrower, a shock gun, homing missiles and floating beam bits. There is no losing: keep the chain reactions going, bring the buildings down and send the giant zombie to the moon.
+
+**Play: https://zombie-bakusan.pages.dev/?lang=en**
+
+The game is in English unless your browser is set to Japanese; the button at the top right of the title screen switches languages.
