@@ -79,6 +79,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo { display: flex; gap: 4px; padding-top: 4px; }
 .ammo i { width: 9px; height: 20px; border-radius: 5px 5px 2px 2px; background: var(--ink); border: 2px solid var(--bone); opacity: .3; }
 .ammo i.on { background: var(--ember); border-color: var(--flare); opacity: 1; }
+.ammo .inf { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 20px; color: var(--flare); text-shadow: 0 2px 0 var(--ember); }
 .ammo i.bh { width: 18px; height: 18px; border-radius: 50%; margin-top: 1px; }
 .ammo i.bh.on { background: radial-gradient(circle, #000 34%, #c8a8ff 41%, #7a44e0 74%); border-color: #e2d4ff; }
 .ammo i.rl { width: 7px; border-radius: 3px; }
@@ -4298,7 +4299,8 @@ function raySphere(O, D, cx, cy, cz, r) {
 function rayZombies(O, D, assistPx) {
   let best = null, bt = Infinity, near = null, nScore = Infinity;
   for (const z of zombies) {
-    if ((z.state !== 'walk' && z.state !== 'fly' && z.state !== 'hang') || z.z < 1.8) continue;
+    // (not one whirling round a black hole: dead already, and in the way of the horde behind it, 2026-11-02)
+    if ((z.state !== 'walk' && z.state !== 'fly' && z.state !== 'hang') || z.z < 1.8 || z.held) continue;
     const s = z.size, cx = z.x, cz = -z.z;
     if (z.dog) {
       // the giant dog: a string of spheres down its body from the pose last drawn, its head counting as a head
@@ -4422,6 +4424,14 @@ function aimHit(px, py, assist) {
   if (z && (zc ? z.t < solid.t + 1.5 && z.z.ride : z.inside ? z.t < solid.t : z.t < solid.t + 1.5 && solid.park !== 'rack' && solid.park !== 'over')) return { kind: 'zombie', hit: z, p: z.p, solid };
   return { kind: solid.kind, p: solid.p, car: solid.car, side: solid.side, block: solid.block, solid };
 }
+// two at once (2026-11-02, kazu: no limit on firing, and about twice as many at a time; it's fiction, so never mind how a
+// tube fires two): the spot about m metres to one side of the reticle at the distance A is (m < 0: to the left), as aimHit
+// sees it there with a smaller pull towards a zombie, so that the two go to two places
+function sideAim(A, m) {
+  const d = Math.max(2, camera.position.distanceTo(A.p)), dx = clamp(Math.abs(m) * pxPerM(d), 14, W * 0.25) * Math.sign(m);
+  return aimHit(aim.x + dx, aim.y, aim.touch ? 30 : 20);
+}
+function twinAims(m) { const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40); return [sideAim(A, -m), sideAim(A, m)]; }
 
 // held down, the weapon keeps firing (2026-10-31: the machine gun that the hold fired is gone, kazu: with this many weapons it
 // was no longer needed). holdShot: a shot the hold fires, which clicks no "empty" at us while the weapon reloads
@@ -4449,15 +4459,16 @@ function rocketMesh() {
   scene.add(m); rocketPool.push(m);
   return m;
 }
-const MAX_ROCKETS = 5, ROCKET_REFILL = 0.45;
-let rocketsLeft = MAX_ROCKETS, rocketTimer = 0;
+// no limit on firing (2026-11-02, kazu): no stock of five to run out of (the count stays, for the warhead in the tube), only
+// ROCKET_CD between taps; two side by side a tap, six through FEVER, as one chain
+const MAX_ROCKETS = 5, ROCKET_REFILL = 0.45, ROCKET_CD = 0.1;
+const ROCKET_OFF = [-1.1, 1.1], ROCKET_OFF_FEVER = [-2.75, -1.65, -0.55, 0.55, 1.65, 2.75];
+let rocketsLeft = MAX_ROCKETS, rocketTimer = 0, rocketCD = 0;
 function tryRocket() {
-  if (!running) return;
-  const fev = feverT > 0;
-  if (!fev && rocketsLeft <= 0) { softClick(); return; }
-  if (!fev) rocketsLeft--;
-  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40), ch = newChain();   // FEVER's three rockets make one chain
-  for (const off of fev ? [-2.2, 0, 2.2] : [0]) fireRocket(A, off, ch);
+  if (!running || rocketCD > 0) return;
+  rocketCD = ROCKET_CD;
+  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40), ch = newChain();
+  for (const off of feverT > 0 ? ROCKET_OFF_FEVER : ROCKET_OFF) fireRocket(A, off, ch);
   rocketSnd(); tubeRecoil = 1;
   tubeTip.getWorldPosition(_wp);
   for (let i = 0; i < 10; i++) addPart({ k: 'smoke', x: _wp.x + rand(-0.1, 0.1), z: -_wp.z, h: _wp.y, vx: rand(-1.5, 1.5), vz: rand(-1, 2), vh: rand(-0.5, 1), r: 0.12, grow: 0.9, drag: 2.5, life: rand(0.5, 0.9), a: 0.35, warm: 0.6 });
@@ -4473,7 +4484,7 @@ function fireRocket(A, offX, ch) {
     // nothing there: come down on the road at the far end instead
     const k = (Z_FAR + 8) / Math.max(1, tz); tx *= k; tz = Z_FAR + 8; th = Math.max(0.5, th * k * 0.3);
   }
-  // fever fires three: side by side down the road, or along a wall
+  // two (six through FEVER): side by side down the road, or along a wall
   if (A.kind === 'facade') tz += offX * 1.4; else tx += offX;
   if (offX) th = Math.max(0.4, th - 0.3);
   const x0 = _wp.x, h0 = _wp.y, z0 = -_wp.z;
@@ -4532,7 +4543,7 @@ function poseGun(dt) {
   const q1 = gunAim.quaternion.clone();
   gunAim.quaternion.copy(q0).slerp(q1, 1 - Math.exp(-dt * 28));
   gunKick.position.set(0, 0, -tubeRecoil * 0.05);
-  if (rocketHead) rocketHead.visible = weapon === 'rocket' && (feverT > 0 || rocketsLeft > 0) && tubeRecoil < 0.4;
+  if (rocketHead) rocketHead.visible = weapon === 'rocket' && tubeRecoil < 0.4;
   poseArms(dt); poseHoleOrb(); poseBeamOrb();
   muzzleLight.intensity *= Math.exp(-dt * 40);
 }
@@ -4785,7 +4796,7 @@ function poseArms(dt) {
   if (!A) return;
   if (weapon === 'hole') A.rings.forEach((r, i) => { r.rotation.z += dt * (fev ? 9 : 3.2) * (1 + 0.45 * i) * (i % 2 ? -1 : 1); });
   else if (weapon === 'rail') {
-    const k = (fev || railsLeft > 0 ? 1 : 0.18) * (0.75 + 0.25 * Math.sin(T * 24));
+    const k = (railCD <= 0 ? 1 : 0.18) * (0.75 + 0.25 * Math.sin(T * 24));
     A.lit.color.setRGB(0.42 * 2.2 * k, 0.86 * 2.2 * k, 2.2 * k);
   } else if (weapon === 'wave') {
     // the charge lights fill as it charges back up, all of them flicker while it fires
@@ -4794,9 +4805,9 @@ function poseArms(dt) {
     const b = 0.35 + 0.65 * k + (wave ? 0.5 * Math.abs(Math.sin(T * 30)) : 0);
     A.back.color.setRGB(0.42 * 1.6 * b, 0.82 * 1.6 * b, 1.6 * b);
     A.halo.color.setRGB(0.42 * 1.2 * b, 0.82 * 1.2 * b, 1.2 * b);
-  } else if (weapon === 'missile') A.noses.visible = (fev || salvosLeft > 0) && tubeRecoil < 0.4;
+  } else if (weapon === 'missile') A.noses.visible = salvoCD <= 0 && tubeRecoil < 0.4;
   else if (weapon === 'bits') {
-    const n = fev ? (squadCD <= 0 ? 6 : 0) : Math.min(2, squadsLeft) * 3;
+    const n = squadCD <= 0 ? 6 : 0;
     for (const o of A.pods) o.count = tubeRecoil > 0.4 ? Math.max(0, n - 3) : n;
   }
 }
@@ -4813,7 +4824,8 @@ const WEAPON_NAME = EN ? { rocket: 'Rocket', tank: 'Cannon', hole: 'Black Hole',
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25; the reload
 // went from 0.95 to 0.75 s when the machine gun went, 2026-10-31: firing blind, the main gun alone scored about a fifth less)
-const CANNON_RELOAD = 0.75, CANNON_RELOAD_FEVER = 0.25, SHELL_SPEED = 150, SHELL_POWER = 2.1;
+const CANNON_RELOAD = 0.25, CANNON_RELOAD_FEVER = 0.15,   // (0.75 and 0.25 until the limit went, 2026-11-02)
+  SHELL_SPEED = 150, SHELL_POWER = 2.1;
 const tankRoot = new THREE.Group(), tankAim = new THREE.Group(), tankKick = new THREE.Group();
 camera.add(tankRoot); tankRoot.add(tankAim); tankAim.add(tankKick);
 const cannonTip = new THREE.Object3D();
@@ -4891,21 +4903,30 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
 // a tap (a click, a right click, the space bar) fires the weapon; held down, it fires again every HOLD_GAP while it can
 const HOLD_GAP = { rocket: 0.2, tank: 0.1, hole: 0.3, rail: 0.22, wave: 0.1, flame: 0.1, shock: 0.25, missile: 0.4, bits: 0.45 };
 const HOLD_SAYS = { flame: jaEn('出しっぱなし', 'Keep burning') };
+// how long until the weapon in hand can fire again (0: now, or it is held back by something other than its cooldown)
+function weaponCD() {
+  switch (weapon) {
+    case 'rocket': return rocketCD; case 'tank': return cannonT; case 'hole': return holeCD; case 'rail': return railCD;
+    case 'shock': return shockCD; case 'missile': return salvoCD; case 'bits': return squadCD; default: return 0;
+  }
+}
 function tapFire() { ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits }[weapon] || tryRocket)(); }
 function tryCannon() {
-  if (!running) return;
-  if (cannonT > 0) { softClick(); return; }
+  if (!running || cannonT > 0) return;   // no "empty" click: there is no limit, only the moment the breech takes
   cannonT = feverT > 0 ? CANNON_RELOAD_FEVER : CANNON_RELOAD;
-  fireCannon(aimHit(aim.x, aim.y, aim.touch ? 60 : 40));
+  // two shells a shot (2026-11-02), a metre either side of the reticle, as one chain
+  const [L, R] = twinAims(1.0), ch = newChain();
+  fireCannon(L, ch, -1); fireCannon(R, ch, 1);
 }
-function fireCannon(A) {
+function fireCannon(A, ch = newChain(), side = 0) {
   cannonTip.getWorldPosition(_wp);
   const M = _wp.clone(), S = A.solid;
+  if (side) M.x += side * 0.16;   // the pair leave the muzzle side by side
   // it flies from the muzzle to the first solid thing behind the reticle (the ground, a car, a wall; far off in the air if nothing)
   const dir = S.p.clone().sub(M), L = dir.length();
   dir.divideScalar(L || 1);
-  shells.push({ p: M.clone(), dir, left: L, kind: S.kind, block: S.block, hit: new Set(), n: 0, ch: newChain() });
-  muzzleBlast(M, dir);
+  shells.push({ p: M.clone(), dir, left: L, kind: S.kind, block: S.block, hit: new Set(), n: 0, ch });
+  if (side <= 0) muzzleBlast(_wp.clone(), dir);   // one blast for the pair
 }
 function muzzleBlast(M, dir) {
   const x = M.x, z = -M.z, h = M.y, fx = feverT > 0 ? 0.5 : 1;
@@ -5013,7 +5034,9 @@ function shellBlast(s) {
 // everything it held back out. One shell is
 // one chain, so a hole in a thick bunch is a big 「1発で◯体」. Two shells, one back every HOLE_REFILL; through FEVER, one
 // every HOLE_FEVER_CD. It opens at 10 medals (UNLOCKS, 77-mission.js).
-const MAX_HOLES = 2, HOLE_REFILL = 1.5, HOLE_FEVER_CD = 0.55, HOLE_SPEED = 36;
+// no limit since 2026-11-02: HOLE_CD between taps (what FEVER had), shorter through FEVER, two holes a tap, HOLE_CAP open or
+// on the way at most (each throws a lot round)
+const MAX_HOLES = 2, HOLE_REFILL = 1.5, HOLE_CD = 0.55, HOLE_FEVER_CD = 0.35, HOLE_CAP = 8, HOLE_SPEED = 36;
 const SUCK_T = 1.3, SHUT_T = 0.3, PULL_R = 5.2, CORE_R = 0.95, HOLE_H = 1.8, HOLE_NEAR = Z_WALL + 5;
 const HOLE_C = [2.2, 0.9, 4.2];   // its violet, in linear HDR
 const SWIRL_C = [[2.4, 1.0, 4.5], [3, 3, 4.6], [4.2, 1.7, 0.45]];
@@ -5060,7 +5083,7 @@ function buildHoleOrb() {
 }
 function poseHoleOrb() {
   if (!holeOrb) return;
-  holeOrb.visible = weapon === 'hole' && (feverT > 0 || holesLeft > 0) && tubeRecoil < 0.4;
+  holeOrb.visible = weapon === 'hole' && holeCD <= 0 && tubeRecoil < 0.4;
   holeOrb.scale.setScalar(1 + 0.12 * Math.sin(performance.now() / 90));
 }
 function resetHoles() {
@@ -5069,11 +5092,13 @@ function resetHoles() {
   holes = [];
 }
 function tryHole() {
-  if (!running) return;
-  const fev = feverT > 0;
-  if (fev ? holeCD > 0 : holesLeft <= 0) { softClick(); return; }
-  if (fev) holeCD = HOLE_FEVER_CD; else holesLeft--;
-  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40);
+  if (!running || holeCD > 0 || holes.length + holeShells.length > HOLE_CAP - 2) return;
+  holeCD = feverT > 0 ? HOLE_FEVER_CD : HOLE_CD;
+  const ch = newChain();
+  for (const A of twinAims(1.6)) shootHole(A, ch);   // two shells, a metre and a half either side of the reticle, one chain
+  holeShotSnd(); tubeRecoil = 1;
+}
+function shootHole(A, ch) {
   tubeTip.getWorldPosition(_wp);
   let tx = A.p.x, th = A.p.y, tz = -A.p.z;
   if (A.kind === 'zombie') { const zb = A.hit.z; tx = zb.x; tz = zb.z - (zb.state === 'walk' ? zb.speed * 0.35 : 0); th = HOLE_H; }
@@ -5083,8 +5108,7 @@ function tryHole() {
   // and still reaches them
   if (tz < HOLE_NEAR) { tz = HOLE_NEAR; th = HOLE_H; }
   const x0 = _wp.x, h0 = _wp.y, z0 = -_wp.z, dx = tx - x0, dz = tz - z0, dh = Math.max(th, 0.4) - h0, T = Math.max(0.08, Math.hypot(dx, dz, dh) / HOLE_SPEED);
-  holeShells.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, ch: newChain(), park: atPark });
-  holeShotSnd(); tubeRecoil = 1;
+  holeShells.push({ x: x0, z: z0, h: h0, vx: dx / T, vz: dz / T, vh: dh / T, t: 0, T, ch, park: atPark });
   addPart({ k: 'glow', x: x0, z: z0, h: h0, vx: 0, vz: 0, vh: 0, r: 0.6, life: 0.16, c: HOLE_C, a: 1 });
 }
 function updateHoles(dt) {
@@ -5364,7 +5388,7 @@ function poseBeamOrb() {
   if (!beamOrb) return;
   const T = performance.now() / 1000;
   let on = false, s = 1, h = 0, c = RAIL_ORB;
-  if (weapon === 'rail') { on = (feverT > 0 || railsLeft > 0) && tubeRecoil < 0.4; s = 0.85 + 0.15 * Math.sin(T * 40); h = 0.13; }
+  if (weapon === 'rail') { on = railCD <= 0 && tubeRecoil < 0.4; s = 0.85 + 0.15 * Math.sin(T * 40); h = 0.13; }
   else if (weapon === 'wave') {
     c = WAVE_ORB;
     const k = wave && wave.phase === 'charge' ? Math.min(1, wave.t / wave.T) : 0, fire = wave && wave.phase === 'fire';
@@ -5373,19 +5397,19 @@ function poseBeamOrb() {
     h = fire ? 0.26 : 0.1 + 0.16 * k;
   } else if (weapon === 'flame') {
     // a small flame flickering in the nozzle, roaring up while the jet is on
-    c = FLAME_ORB; on = feverT > 0 || flamesLeft > 0 || !!flame;
+    c = FLAME_ORB; on = true;
     s = flame ? 1.0 + 0.2 * Math.sin(T * 61) : 0.55 + 0.12 * Math.sin(T * 37) + 0.08 * Math.sin(T * 23);
     h = flame ? 0.1 : 0.07 + 0.015 * Math.sin(T * 29);
   } else if (weapon === 'shock') {
-    c = ZAP_ORB; on = (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4;
+    c = ZAP_ORB; on = shockCD <= 0 && tubeRecoil < 0.4;
     s = 0.8 + 0.3 * Math.abs(Math.sin(T * 47) * Math.sin(T * 31)); h = 0.11 + 0.05 * Math.abs(Math.sin(T * 53));
   } else if (weapon === 'missile') {
     // the pod's red light, blinking while it has a salvo in it
-    c = MS_ORB; on = (feverT > 0 || salvosLeft > 0) && Math.floor(T * 4) % 2 === 0;
+    c = MS_ORB; on = salvoCD <= 0 && Math.floor(T * 4) % 2 === 0;
     s = 0.45; h = 0.06;
   } else if (weapon === 'bits') {
     // the next squad's eye in the mouth of the tube, pulsing slowly while one is in
-    c = BIT_ORB; on = (feverT > 0 ? squadCD <= 0 : squadsLeft > 0) && tubeRecoil < 0.4;
+    c = BIT_ORB; on = squadCD <= 0 && tubeRecoil < 0.4;
     s = 0.4 + 0.06 * Math.sin(T * 9); h = 0.05 + 0.01 * Math.sin(T * 9);
   }
   beamOrb.visible = beamHalo.visible = on;
@@ -5403,27 +5427,29 @@ function poseBeamOrb() {
 // (the horde walks a lane only two metres wide on a phone: a beam down the middle of it reaching much more than the bodies it
 // touches ran through nearly all of them. Bot rounds, 2026-10-25: with three shots and one back every 1.25 s it scored a
 // little under the rocket launcher, so four and one every 0.95 s)
-const MAX_RAILS = 4, RAIL_REFILL = 0.95, RAIL_FEVER_CD = 0.3, RAIL_R = 0.38, RAIL_LEN = 70, RAIL_BOSS = 70, RAIL_LIFE = 0.45;
+// (no limit since 2026-11-02: RAIL_CD between shots, what FEVER had)
+const MAX_RAILS = 4, RAIL_REFILL = 0.95, RAIL_CD = 0.3, RAIL_FEVER_CD = 0.2, RAIL_TWIN = 1.1, RAIL_R = 0.38, RAIL_LEN = 70, RAIL_BOSS = 70, RAIL_LIFE = 0.45;
 const RAIL_CORE = [3.4, 4.8, 6.4], RAIL_GLOW = [0.3, 1.0, 3.2], RAIL_SPIRAL = [[0.8, 2.6, 6], [2.4, 3.6, 6]], RAIL_ORB = [1.6, 4.2, 6];
-let railsLeft = MAX_RAILS, railTimer = 0, railCD = 0, rails = [];
+let railsLeft = MAX_RAILS, railTimer = 0, railCD = 0, rails = [], railSide = 1;
 function resetRails() {
   railsLeft = MAX_RAILS; railTimer = 0; railCD = 0;
   for (const R of rails) freeBeam(R.beam);
   rails = [];
 }
 function tryRail() {
-  if (!running) return;
-  const fev = feverT > 0;
-  if (fev ? railCD > 0 : railsLeft <= 0) { softClick(); return; }
-  if (fev) railCD = RAIL_FEVER_CD; else railsLeft--;
-  fireRail(aimHit(aim.x, aim.y, aim.touch ? 60 : 40));
+  if (!running || railCD > 0) return;
+  railCD = feverT > 0 ? RAIL_FEVER_CD : RAIL_CD;
+  // two beams a shot (2026-11-02): one where we aim, one a metre to the side (left and right in turn), as one chain
+  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40), ch = newChain();
+  railSide = -railSide;
+  fireRail(A, ch); fireRail(sideAim(A, railSide * RAIL_TWIN), ch, true);
 }
 const _rv = new THREE.Vector3(), _ru = new THREE.Vector3();
-function fireRail(A) {
+function fireRail(A, ch = newChain(), quiet = false) {
   tubeTip.getWorldPosition(_wp);
   const M = _wp.clone(), D = A.p.clone().sub(M).normalize();
   // on through whatever we aimed at, to the road or a wall behind it
-  const S = rayStatic(M, D), L = Math.min(S.t, RAIL_LEN), E = M.clone().addScaledVector(D, L), ch = newChain();
+  const S = rayStatic(M, D), L = Math.min(S.t, RAIL_LEN), E = M.clone().addScaledVector(D, L);
   const x0 = M.x, h0 = M.y, z0 = -M.z, dx = E.x - x0, dh = E.y - h0, dz = -E.z - z0, L2 = Math.max(1e-6, dx * dx + dz * dz), Lh = Math.sqrt(L2);
   const ux = dx / Lh, uz = dz / Lh;
   // everyone on the line, nearest first
@@ -5511,6 +5537,7 @@ function fireRail(A) {
   for (let d = 3; d < L; d += 3.5) addPart({ k: 'ring', x: M.x + D.x * d, z: -(M.z + D.z * d), h: M.y + D.y * d, vx: 0, vz: 0, vh: 0, r: 0.15, grow: 2.4, life: 0.26, c: [1.2, 2.6, 6], a: 1 });
   // and at the gun: the kick, a flash, the crack
   rails.push({ M, E, t: 0, beam: takeBeam() });
+  if (quiet) return;   // the pair's second: one kick, one crack
   railSnd(); buzz(30); tubeRecoil = 1;
   shake = Math.min(shake + 7, 24);
   if (!reduceMotion) zoom = Math.min(1.12, zoom + 0.035);
@@ -5548,21 +5575,23 @@ function drawRails(raw) {
 // FEVER it fills faster and comes back after WAVE_FEVER_CD. It opens at 30 medals (UNLOCKS, 77-mission.js).
 // (bot rounds, 2026-10-25: a shot clears the street, but with 3.4 s to fill again a round fired three and scored no more
 // than the rocket launcher)
-const WAVE_CHARGE = 0.85, WAVE_CHARGE_FEVER = 0.5, WAVE_FIRE = 0.8, WAVE_FADE = 0.3, WAVE_GROW = 0.12, WAVE_REFILL = 2.3, WAVE_FEVER_CD = 0.7;
+// (no limit since 2026-11-02: no wait to fill again after a shot, which was WAVE_REFILL 2.3 s and 0.7 through FEVER; and two
+// beams, WAVE_TWIN metres either side of where the reticle sends the one)
+const WAVE_CHARGE = 0.85, WAVE_CHARGE_FEVER = 0.5, WAVE_FIRE = 0.8, WAVE_FADE = 0.3, WAVE_GROW = 0.12, WAVE_REFILL = 0.05, WAVE_FEVER_CD = 0.05, WAVE_TWIN = 2.6;
 const WAVE_R = 2.3, WAVE_LEN = 80, WAVE_DOWN = 42, WAVE_BOSS = 320;
 // (bright enough to bloom, not so bright that the bloom off a beam this big washes the screen out)
 const WAVE_CORE = [3.3, 3.9, 4.9], WAVE_GLOW = [0.32, 0.85, 2.6], WAVE_ORB = [2.6, 4.4, 6.4], WAVE_SPARK = [[1.2, 2.8, 6.4], [3, 4, 6.4]];
 let waveLoad = 1, wave = null;
 function resetWave() {
   waveLoad = 1;
-  if (wave && wave.beam) freeBeam(wave.beam);
+  if (wave && wave.beams) for (const B of wave.beams) freeBeam(B.beam);
   wave = null;
 }
 function tryWave() {
   if (!running) return;
-  if (wave || waveLoad < 1) { softClick(); return; }
+  if (wave || waveLoad < 1) return;   // (a shot still going: no limit, nothing to click empty)
   waveLoad = 0;
-  wave = { phase: 'charge', t: 0, T: feverT > 0 ? WAVE_CHARGE_FEVER : WAVE_CHARGE, ch: newChain(), beam: null, M: new THREE.Vector3(), E: new THREE.Vector3(), dir: null, head: 0, blastT: 0, blasts: 0, rode: new Set(), downed: new Set(), sw: 0 };
+  wave = { phase: 'charge', t: 0, T: feverT > 0 ? WAVE_CHARGE_FEVER : WAVE_CHARGE, ch: newChain(), beams: null, M: new THREE.Vector3(), head: 0, rode: new Set(), downed: new Set() };
   // over the gun, clear of the words the blasts throw up round the horde
   wave.f = { sfx: true, x: W / 2, y: H * 0.66, text: jaEn('エネルギー充填 0%', 'CHARGING 0%'), rot: -0.04, life: wave.T + 0.25, max: wave.T + 0.25, size: 28 };
   floaters.push(wave.f);
@@ -5601,24 +5630,28 @@ function updateWave(dt) {
     rayAt(aim.x, aim.y);
     const G = rayStatic(_O, _D), gp = _wc.copy(_O).addScaledVector(_D, Math.min(G.t, WAVE_LEN));
     if (G.kind !== 'facade' && -gp.z < WAVE_DOWN) { const k = WAVE_DOWN / Math.max(1, -gp.z); gp.set(gp.x * k, 0, -WAVE_DOWN); }
-    _wd.copy(gp).sub(Wv.M).normalize();
-    if (!Wv.dir) Wv.dir = _wd.clone(); else Wv.dir.lerp(_wd, 1 - Math.exp(-dt * 14)).normalize();
-    _wd.copy(Wv.dir);
-    const S = rayStatic(Wv.M, _wd), L = Math.min(S.t, WAVE_LEN);
-    Wv.E.copy(Wv.M).addScaledVector(_wd, L);
-    waveHit(Wv, dt, S, L);
+    const gx = gp.x, gy = gp.y, gz = gp.z;
+    for (const B of Wv.beams) {
+      _wd.set(gx + B.s * WAVE_TWIN, gy, gz).sub(Wv.M).normalize();
+      if (!B.dir) B.dir = _wd.clone(); else B.dir.lerp(_wd, 1 - Math.exp(-dt * 14)).normalize();
+      _wd.copy(B.dir);
+      const S = rayStatic(Wv.M, _wd), L = Math.min(S.t, WAVE_LEN);
+      B.E.copy(Wv.M).addScaledVector(_wd, L);
+      waveHit(Wv, B, dt, S, L);
+    }
     if (Wv.t >= WAVE_FIRE) { Wv.phase = 'fade'; Wv.t = 0; }
     return;
   }
   if (Wv.t >= WAVE_FADE) endWave();
 }
 function endWave() {
-  if (wave.beam) freeBeam(wave.beam);
+  if (wave.beams) for (const B of wave.beams) freeBeam(B.beam);
   if (wave.f) wave.f.life = Math.min(wave.f.life, 0.2);
   wave = null;
 }
 function fireWave(Wv) {
-  Wv.phase = 'fire'; Wv.t = 0; Wv.beam = takeBeam();
+  Wv.phase = 'fire'; Wv.t = 0;
+  Wv.beams = [-1, 1].map(s => ({ s, dir: null, E: new THREE.Vector3(), beam: takeBeam(), blastT: 0, blasts: 0, sw: 0 }));
   Wv.f.life = Math.min(Wv.f.life, 0.25);
   if (running) floaters.push({ sfx: true, x: W / 2, y: H * 0.64, text: jaEn('波動砲発射!!', 'WAVE CANNON, FIRE!!'), rot: rand(-0.1, 0.1), life: 1.0, max: 1.0, size: 44 });
   waveFireSnd(); buzz([240, 40, 200, 40, 160], 3);
@@ -5628,7 +5661,7 @@ function fireWave(Wv) {
   muzzleLight.position.copy(Wv.M); muzzleLight.intensity = 60;
 }
 // one frame of the beam: everything it reaches
-function waveHit(Wv, dt, S, L) {
+function waveHit(Wv, B, dt, S, L) {
   const M = Wv.M, ch = Wv.ch, Lr = L * Wv.head, E = _wc.copy(M).addScaledVector(_wd, Lr);
   const x0 = M.x, h0 = M.y, z0 = -M.z, dx = E.x - x0, dh = E.y - h0, dz = -E.z - z0, L2 = Math.max(1e-6, dx * dx + dz * dz), Lh = Math.sqrt(L2);
   const ux = dx / Lh, uz = dz / Lh;
@@ -5689,11 +5722,11 @@ function waveHit(Wv, dt, S, L) {
       Wv.downed.add(S.block);
       facadeBlast(S.block, ez, E.y, 2.0, ch); damageBlock(S.block, S.block.hp, ez, E.y, false, ch);
     }
-    if ((Wv.blastT -= dt) <= 0) {
-      Wv.blastT = 0.13;
+    if ((B.blastT -= dt) <= 0) {
+      B.blastT = 0.13;
       fxSoft = ez < 12;
-      explode(E.x + (Wv.blasts ? rand(-0.8, 0.8) : 0), ez + (Wv.blasts ? rand(-0.6, 0.6) : 0), Wv.blasts ? 1.15 : 2.4, Math.max(0.2, E.y), null, ch);
-      fxSoft = false; Wv.blasts++;
+      explode(E.x + (B.blasts ? rand(-0.8, 0.8) : 0), ez + (B.blasts ? rand(-0.6, 0.6) : 0), B.blasts ? 1.15 : 2.4, Math.max(0.2, E.y), null, ch);
+      fxSoft = false; B.blasts++;
     }
   }
   // the beam tears at the air and the road along it
@@ -5710,8 +5743,8 @@ function waveHit(Wv, dt, S, L) {
       if (Math.random() < 0.4) addChunk({ x: px + rand(-R, R) * 0.5, z: pz, h: 0.1, vx: rand(-3, 3), vz: uz * rand(3, 8), vh: rand(4, 9), sx: 0.1, sy: 0.05, sz: 0.1, c: Math.random() < 0.5 ? CH.asphalt : CH.asphalt2, life: 1.8, hot: Math.random() < 0.4 ? 0.8 : 0 });
     }
   }
-  if ((Wv.sw -= dt) <= 0 && h0 + dh * 0.5 < 1.8) {   // a scorched track along the road under it
-    Wv.sw = 0.06;
+  if ((B.sw -= dt) <= 0 && h0 + dh * 0.5 < 1.8) {   // a scorched track along the road under it
+    B.sw = 0.06;
     const t = rand(0.3, 1), px = x0 + dx * t, pz = z0 + dz * t;
     if (pz > Z_WALL + 0.5 && Math.abs(px) < WALK) addDecal(px, pz, rand(0.5, 0.9), 'scorch', 18);
   }
@@ -5720,11 +5753,13 @@ function waveHit(Wv, dt, S, L) {
 // the beam: it shoots out to its end in WAVE_GROW, holds, then thins and fades
 function drawWave(raw) {
   const Wv = wave;
-  if (!Wv || !Wv.beam) return;
+  if (!Wv || !Wv.beams) return;
   const fire = Wv.phase === 'fire', k = fire ? 1 : Math.max(0, 1 - Wv.t / WAVE_FADE), T = performance.now() / 1000;
   const pulse = 1 + 0.06 * Math.sin(T * 47) + 0.04 * Math.sin(T * 83);
-  setBeam(Wv.beam, Wv.M, Wv.E, { uK: 0.07 * pulse * (0.4 + 0.6 * k), uW: 2.2 * (0.4 + 0.6 * k), uHead: Wv.head, uNeck: 3, uI: (fire && Wv.t < 0.06 ? 1.3 : 1) * k, uRing: 0.7, uFlow: 46, uHelix: 0.5, uTip: fire && Wv.head < 1 ? 2 : 0.5, uFlat: 1, core: WAVE_CORE, glow: WAVE_GLOW });
-  Wv.beam.u.uTime.value += raw;
+  for (const B of Wv.beams) {
+    setBeam(B.beam, Wv.M, B.E, { uK: 0.07 * pulse * (0.4 + 0.6 * k), uW: 2.2 * (0.4 + 0.6 * k), uHead: Wv.head, uNeck: 3, uI: (fire && Wv.t < 0.06 ? 1.3 : 1) * k, uRing: 0.7, uFlow: 46, uHelix: 0.5, uTip: fire && Wv.head < 1 ? 2 : 0.5, uFlat: 1, core: WAVE_CORE, glow: WAVE_GLOW });
+    B.beam.u.uTime.value += raw;
+  }
 }
 
 // ===== 56-flame.js
@@ -5737,7 +5772,9 @@ function drawWave(raw) {
 // road burns on for PATCH_T and lights whoever walks into it. One jet is one chain, with everything it sets alight. Three
 // jets, one back every FLAME_REFILL; through FEVER a tap while it burns keeps it going. It opens at 40 medals (UNLOCKS,
 // 77-mission.js).
-const MAX_FLAMES = 3, FLAME_REFILL = 1.3, FLAME_T = 0.9, FLAME_FEVER_T = 0.6;
+// (no limit since 2026-11-02: held down it burns on, a fresh burst and chain as each runs out; two jets, FLAME_TWIN metres apart
+// either side of the reticle where they come down, four through FEVER)
+const MAX_FLAMES = 3, FLAME_REFILL = 1.3, FLAME_T = 0.9, FLAME_FEVER_T = 0.6, FLAME_TWIN = 1.5;
 const FLAME_V = 62, FLAME_DRAG = 2.4, FLAME_G = 4, FLAME_LIFE = 0.8, FLAME_R0 = 0.3, FLAME_R1 = 1.2, FLAME_EMIT = 1 / 40;
 const BURN_T = 1.1, SPREAD_R = 0.8, SPREAD_RATE = 2.2, PATCH_T = 2.4, PATCH_R = 0.85, PATCH_MAX = 36, FLAME_BOSS = 130, CAR_BURN = 0.6;
 // one burnt out pays FIRE_PAY of a kill: the fire takes whole streets as one chain, nearly every kill paying double, and
@@ -5749,7 +5786,7 @@ let flamesLeft = MAX_FLAMES, flameTimer = 0, flame = null, blobs = [], patches =
 const _fp = new THREE.Vector3(), _fd = new THREE.Vector3();
 function resetFlame() {
   flamesLeft = MAX_FLAMES; flameTimer = 0; blobs = []; patches = [];
-  if (flame) { flameSnd(false); freeBeam(flame.beam); }
+  if (flame) { flameSnd(false); for (const J of flame.jets) freeBeam(J.beam); }
   flame = null;
 }
 function tryFlame() {
@@ -5758,13 +5795,11 @@ function tryFlame() {
   // held down, it keeps going: as one burst runs out, the next is lit in its place
   if (flame) {
     if (fev) flame.T = Math.max(flame.T, flame.t + FLAME_FEVER_T);
-    else if (holdShot && flamesLeft > 0 && flame.T - flame.t < 0.12) { flamesLeft--; flame.T += FLAME_T; flame.ch = newChain(); }   // a chain of its own, as a fresh tap's
-    else softClick();
+    else if (flame.T - flame.t < 0.12) { flame.T += FLAME_T; flame.ch = newChain(); }   // a chain of its own, as a fresh tap's
     return;
   }
-  if (!fev && flamesLeft <= 0) { softClick(); return; }
-  if (!fev) flamesLeft--;
-  flame = { t: 0, T: fev ? FLAME_T + FLAME_FEVER_T : FLAME_T, ch: newChain(), emit: 0, dir: null, lightT: 0, M: new THREE.Vector3(), E: new THREE.Vector3(), beam: takeBeam(), boss: 0, ship: 0, park: 0 };
+  const S = fev ? [-1.5, -0.5, 0.5, 1.5] : [-1, 1];
+  flame = { t: 0, T: fev ? FLAME_T + FLAME_FEVER_T : FLAME_T, ch: newChain(), emit: 0, jets: S.map(s => ({ s, dir: null, E: new THREE.Vector3(), beam: takeBeam() })), lightT: 0, M: new THREE.Vector3(), boss: 0, ship: 0, park: 0 };
   flameSnd(true); buzz([60, 30, 60, 30, 60], 2);
   tubeRecoil = 1; shake = Math.min(shake + 5, 24);
   if (running) {
@@ -5836,20 +5871,24 @@ function updateFlame(dt) {
   const F = flame;
   if (F) {
     F.t += dt;
-    if (!running || F.t >= F.T) { freeBeam(F.beam); flame = null; flameSnd(false); }
+    if (!running || F.t >= F.T) { for (const J of F.jets) freeBeam(J.beam); flame = null; flameSnd(false); }
     else {
       tubeTip.getWorldPosition(F.M);
       // where the reticle is: the road or a wall behind it, or far out over the street; the jet swings round to it
       rayAt(aim.x, aim.y);
       const S = rayStatic(_O, _D);
       _fp.copy(_O).addScaledVector(_D, Math.min(S.t, 40));
-      _fd.copy(_fp).sub(F.M).normalize();
-      if (!F.dir) F.dir = _fd.clone(); else F.dir.lerp(_fd, 1 - Math.exp(-dt * 16)).normalize();
-      for (F.emit -= dt; F.emit <= 0; F.emit += FLAME_EMIT) {
-        const sp = FLAME_V * rand(0.9, 1.04);
-        blobs.push({ x: F.M.x, h: F.M.y, z: -F.M.z, vx: F.dir.x * sp + rand(-1.2, 1.2), vh: F.dir.y * sp + rand(-0.8, 0.8), vz: -F.dir.z * sp + rand(-1.2, 1.2), t: 0, r: FLAME_R0, ch: F.ch, down: false });
+      for (const J of F.jets) {
+        _fd.set(_fp.x + J.s * FLAME_TWIN, _fp.y, _fp.z).sub(F.M).normalize();
+        if (!J.dir) J.dir = _fd.clone(); else J.dir.lerp(_fd, 1 - Math.exp(-dt * 16)).normalize();
       }
-      jetFx(F, dt);
+      for (F.emit -= dt; F.emit <= 0; F.emit += FLAME_EMIT) {
+        for (const J of F.jets) {
+          const sp = FLAME_V * rand(0.9, 1.04);
+          blobs.push({ x: F.M.x, h: F.M.y, z: -F.M.z, vx: J.dir.x * sp + rand(-1.2, 1.2), vh: J.dir.y * sp + rand(-0.8, 0.8), vz: -J.dir.z * sp + rand(-1.2, 1.2), t: 0, r: FLAME_R0, ch: F.ch, down: false });
+        }
+      }
+      for (const J of F.jets) jetFx(F, J, dt);
     }
   }
   // the fuel in flight: what it touches burns; where it comes down it keeps burning
@@ -5908,8 +5947,8 @@ function updateFlame(dt) {
   if (patches.length && patches[0].t <= 0) patches = patches.filter(p => p.t > 0);
 }
 // the jet itself: fire pouring out of the nozzle, sinking and spreading as it slows, splashing where it hits the road
-function jetFx(F, dt) {
-  const M = F.M, D = F.dir;
+function jetFx(F, J, dt) {
+  const M = F.M, D = J.dir;
   for (let i = 0, N = Math.round((coarse ? 5 : 7) * dt * 60); i < N; i++) {
     // (from a metre or two out: closer, one puff would fill the bottom of the screen; the stream out of the nozzle is drawn)
     const sp = FLAME_V * rand(0.85, 1.04), o = rand(1.4, 2.2);
@@ -5920,6 +5959,7 @@ function jetFx(F, dt) {
     const b = blobs[Math.max(0, blobs.length - 18)];
     if (b) addPart({ k: 'smoke', x: b.x, z: b.z, h: b.h + 0.8, vx: rand(-0.5, 0.5), vz: rand(-0.3, 0.6), vh: rand(1.2, 2.4), r: 0.5, grow: 1.1, drag: 0.6, life: rand(1.4, 2.2), a: 0.45, warm: 0.6 });
   }
+  if (J !== F.jets[0]) return;   // the light, the glow at the nozzle and the shake once for them all
   // the nozzle and the street round the front of the jet light up
   addPart({ k: 'glow', x: M.x + D.x * 0.25, z: -(M.z + D.z * 0.25), h: M.y + D.y * 0.25, vx: 0, vz: 0, vh: 0, r: 0.05, life: 0.05, c: [4, 1.8, 0.4], a: 1 });
   muzzleLight.position.copy(M); muzzleLight.intensity = Math.max(muzzleLight.intensity, 12);
@@ -5934,10 +5974,11 @@ function jetFx(F, dt) {
 const FLAME_CORE = [3.2, 1.6, 0.4], FLAME_GLOW = [1.6, 0.5, 0.08];
 function drawFlame(raw) {
   const F = flame;
-  if (F && F.dir) {
-    F.E.copy(F.M).addScaledVector(F.dir, 3.2);
-    setBeam(F.beam, F.M, F.E, { uK: 0.018, uW: 0.2, uHead: Math.min(1, F.t / 0.05), uNeck: 0.5, uI: 1, uRing: 3, uFlow: 70, uHelix: 0, uTip: 0, uFlat: 0, core: FLAME_CORE, glow: FLAME_GLOW });
-    F.beam.u.uTime.value += raw;
+  if (F) for (const J of F.jets) {
+    if (!J.dir) continue;
+    J.E.copy(F.M).addScaledVector(J.dir, 3.2);
+    setBeam(J.beam, F.M, J.E, { uK: 0.018, uW: 0.2, uHead: Math.min(1, F.t / 0.05), uNeck: 0.5, uI: 1, uRing: 3, uFlow: 70, uHelix: 0, uTip: 0, uFlat: 0, core: FLAME_CORE, glow: FLAME_GLOW });
+    J.beam.u.uTime.value += raw;
   }
   for (const z of zombies) {
     if (!z.burn || z.state !== 'walk') continue;
@@ -5955,7 +5996,8 @@ function drawFlame(raw) {
 // go up, cars near a body it strikes blow up, so do the helicopter, the airship and the park's rides it can reach, and the
 // giant takes SHOCK_BOSS and passes it on. One shot, one chain. Three shots, one back every SHOCK_REFILL; through FEVER, one
 // every SHOCK_FEVER_CD and further through the horde. It opens at 50 medals (UNLOCKS, 77-mission.js).
-const MAX_SHOCKS = 3, SHOCK_REFILL = 1.0, SHOCK_FEVER_CD = 0.3;
+// (no limit since 2026-11-02: SHOCK_CD between shots, what FEVER had, and two bolts a shot either side of the reticle)
+const MAX_SHOCKS = 3, SHOCK_REFILL = 1.0, SHOCK_CD = 0.3, SHOCK_FEVER_CD = 0.2;
 const ZAP_MAX = 24, ZAP_MAX_FEVER = 34, ZAP_JUMP = 2.6, ZAP_FORK = 2, ZAP_STEP = 0.035, ZAP_T = 0.5, ZAP_FIND = 3.5, SHOCK_BOSS = 60;
 // (the thread bright enough to bloom; the glow round it wide and dim, and like the bodies and the bones only just over the
 // bloom's threshold: a bunch fried close to the fence washed the whole screen out white)
@@ -5965,11 +6007,10 @@ const ZAP_TXT = jaEn(['ビリビリ!!', 'バリバリ!!', 'ズバババ!!'], ['B
 let shocksLeft = MAX_SHOCKS, shockTimer = 0, shockCD = 0, arcs = [], zapQ = [];
 function resetShock() { shocksLeft = MAX_SHOCKS; shockTimer = 0; shockCD = 0; arcs = []; zapQ = []; }
 function tryShock() {
-  if (!running) return;
-  const fev = feverT > 0;
-  if (fev ? shockCD > 0 : shocksLeft <= 0) { softClick(); return; }
-  if (fev) shockCD = SHOCK_FEVER_CD; else shocksLeft--;
-  fireShock(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev);
+  if (!running || shockCD > 0) return;
+  const fev = feverT > 0, ch = newChain(), hit = new Set(), [L, R] = twinAims(1.4);
+  shockCD = fev ? SHOCK_FEVER_CD : SHOCK_CD;
+  fireShock(L, fev, ch, hit); fireShock(R, fev, ch, hit, true);   // one chain; what one strikes the other leaves alone
 }
 // where the bolt strikes a body: the chest, or the giant's middle
 const zapAt = zb => new THREE.Vector3(zb.x, zb.h + (zb.type === 'boss' ? 1.2 : 1.1) * zb.size, -zb.z);
@@ -5984,11 +6025,11 @@ function zapNear(x, z, r, S, k) {
   out.sort((a, b) => a.d - b.d);
   return out.slice(0, k).map(e => e.o);
 }
-function fireShock(A, fev) {
+function fireShock(A, fev, ch = newChain(), hit = new Set(), quiet = false) {
   tubeTip.getWorldPosition(_wp);
-  const M = _wp.clone(), ch = newChain();
-  const S = { ch, n: 0, max: fev ? ZAP_MAX_FEVER : ZAP_MAX, hit: new Set(), cars: new Set(), heli: false, ship: false, park: false };
-  let first = A.kind === 'zombie' ? A.hit.z : null, P = A.p.clone();
+  const M = _wp.clone();
+  const S = { ch, n: 0, max: fev ? ZAP_MAX_FEVER : ZAP_MAX, hit, cars: new Set(), heli: false, ship: false, park: false };
+  let first = A.kind === 'zombie' && !hit.has(A.hit.z) ? A.hit.z : null, P = A.p.clone();
   if (!first) [first] = zapNear(P.x, -P.z, ZAP_FIND, S, 1);
   const end = first ? zapAt(first) : P;
   arcs.push({ A: M, B: end, t: 0, life: 0.22, w: 1.5, fork: 3, seed: rand(1, 9999) });
@@ -6005,6 +6046,7 @@ function fireShock(A, fev) {
   addPart({ k: 'glow', x: end.x, z: -end.z, h: end.y, vx: 0, vz: 0, vh: 0, r: 0.7, life: 0.16, c: [0.7, 1.1, 2.4], a: 1 });
   addPart({ k: 'muzzle', x: M.x, z: -M.z, h: M.y, vx: 0, vz: 0, vh: 0, r: 0.16, life: 0.07, c: [1.6, 2.4, 4.8] });
   blastLight(end.x, -end.z, end.y, 0.45, true);   // (at 0.9 it lit a bunch by the fence up white)
+  if (quiet) return;   // the pair's second: one crack, one kick
   muzzleLight.position.copy(M); muzzleLight.intensity = 16;
   shockSnd(); buzz([25, 20, 25, 20, 40], 2); tubeRecoil = 1;
   shake = Math.min(shake + 6, 24); flashScreen = Math.max(flashScreen, 0.03);
@@ -6134,7 +6176,7 @@ function drawShock() {
     bolt(a.A.x, a.A.y, a.A.z, a.B.x, a.B.y, a.B.z, Math.min(0.8, 0.06 * len + 0.04), a.w, k, a.fork);
   }
   // the gun crackles while it has a shot in it: sparks jumping from its prongs to the ball (51-arms.js)
-  if (weapon === 'shock' && running && (feverT > 0 || shocksLeft > 0) && tubeRecoil < 0.4 && Math.floor(now / 60) % 3 !== 1) {
+  if (weapon === 'shock' && running && shockCD <= 0 && tubeRecoil < 0.4 && Math.floor(now / 60) % 3 !== 1) {
     const [P0, P1, B] = ARM.shock.ends;
     B.getWorldPosition(_wp2); _bs = Math.floor(now / 60) % 2147483646 + 7;
     for (const P of Math.floor(now / 60) % 3 === 0 ? [P0, P1] : [Math.floor(now / 180) % 2 ? P0 : P1]) {
@@ -6203,8 +6245,9 @@ function putBones(z, R) {
 // arrives (drawLocks, on the 2D canvas). One salvo is one chain; every missile hitting a body pays 全弾命中. MAX_SALVOS
 // salvos, one back every MS_REFILL; through FEVER, MS_N_FEVER of them every MS_FEVER_CD. It opens at 60 medals (UNLOCKS,
 // 77-mission.js).
-const MAX_SALVOS = 3, MS_REFILL = 1.5, MS_FEVER_CD = 0.45, MS_N = 10, MS_N_FEVER = 14, MS_GAP = 0.035;
-const MS_POWER = 0.75, MS_SPREAD = 1.3, MS_ON_BOSS = 4, MS_ON_THING = 3, MS_BOSS = 9, MS_REACH = 46, MS_TRAIL = 0.75, MS_ALL = 5000;
+// (no limit since 2026-11-02: MS_CD between salvos, what FEVER had; twice as many a salvo, out of the tube faster)
+const MAX_SALVOS = 3, MS_REFILL = 1.5, MS_CD = 0.45, MS_FEVER_CD = 0.3, MS_N = 20, MS_N_FEVER = 28, MS_GAP = 0.02, MS_DRAW = 96;
+const MS_POWER = 0.75, MS_SPREAD = 1.3, MS_ON_BOSS = 8, MS_ON_THING = 6, MS_BOSS = 9, MS_REACH = 46, MS_TRAIL = 0.75, MS_ALL = 5000;
 // a salvo's chain pays MS_PAY a kill: ten blasts across the bunch make nearly every kill in it a double one, and at a full
 // kill the pod scored 5 to 10% over the rocket in bot rounds (2026-10-30)
 const MS_PAY = 0.9;
@@ -6217,10 +6260,9 @@ function resetMissiles() {
   if (msBody) msBody.count = msRed.count = 0;
 }
 function tryMissile() {
-  if (!running) return;
+  if (!running || salvoCD > 0) return;
   const fev = feverT > 0;
-  if (fev ? salvoCD > 0 : salvosLeft <= 0) { softClick(); return; }
-  if (fev) salvoCD = MS_FEVER_CD; else salvosLeft--;
+  salvoCD = fev ? MS_FEVER_CD : MS_CD;
   fireSalvo(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev ? MS_N_FEVER : MS_N);
 }
 // the ones on their feet a missile can go for
@@ -6356,9 +6398,9 @@ function updateMissiles(dt) {
 const _mq = new THREE.Quaternion(), _mv = new THREE.Vector3(), _mS = new THREE.Vector3(0.55, 0.55, 0.55), _mm = new THREE.Matrix4(), _mZ = new THREE.Vector3(0, 0, 1), _mp = new THREE.Vector3();
 function initMissileMeshes() {
   const M = rocketMaterials();
-  msBody = new THREE.InstancedMesh(ROCKET_GEO.body, M.body, 48); msRed = new THREE.InstancedMesh(ROCKET_GEO.red, M.red, 48);
+  msBody = new THREE.InstancedMesh(ROCKET_GEO.body, M.body, MS_DRAW); msRed = new THREE.InstancedMesh(ROCKET_GEO.red, M.red, MS_DRAW);
   for (const o of [msBody, msRed]) { o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); o.frustumCulled = false; o.count = 0; scene.add(o); }
-  TRAIL = new PBuf(1200, false, 6);
+  TRAIL = new PBuf(2400, false, 6);
 }
 function drawMissiles() {
   if (!msBody) return;
@@ -6374,7 +6416,7 @@ function drawMissiles() {
     ADD.push(bx, by, bz, 0.22 * k, 0, 0, 0, MS_FIRE[0] * k, MS_FIRE[1] * k, MS_FIRE[2] * k, 1);
     ADD.push(bx, by, bz, 0.07 * k, 0, 5, 0, 3, 2.8, 2.4, 1);
     // the body only once it is out a little way: just out of the tube it crossed the middle of the screen as big as a log
-    if (d < 2.5 || n >= 48) continue;
+    if (d < 2.5 || n >= MS_DRAW) continue;
     _mq.setFromUnitVectors(_mZ, _mv);
     _mm.compose(_mp.set(m.x, m.h, -m.z), _mq, _mS.setScalar(0.55 * clamp(d / 7, 0.4, 1)));
     msBody.setMatrixAt(n, _mm); msRed.setMatrixAt(n, _mm); n++;
@@ -6447,7 +6489,8 @@ function lockSnd() {
 // under the reticle (the helicopter, the airship, a ride, the festival's stand, a car, a wall), and every other bit's at a
 // giant near the spot. One squad is one chain. Two squads, one back every BIT_REFILL; through FEVER one every BIT_FEVER_CD,
 // four out at most. It opens at 70 medals (UNLOCKS, 77-mission.js).
-const MAX_SQUADS = 2, BIT_REFILL = 2.2, BIT_FEVER_CD = 0.7, BIT_N = 6, BIT_N_FEVER = 8, BIT_GAP = 0.06, BIT_MAX = 40;
+// (no limit since 2026-11-02: BIT_CD between squads, what FEVER had, BIT_SQUADS out at most; twice as many a squad)
+const MAX_SQUADS = 2, BIT_REFILL = 2.2, BIT_CD = 0.7, BIT_FEVER_CD = 0.45, BIT_SQUADS = 4, BIT_N = 12, BIT_N_FEVER = 16, BIT_GAP = 0.035, BIT_MAX = 64;
 const BIT_FLY = 0.5, BIT_T = 2.4, BIT_ROF = 0.26, BIT_DART = 0.2, BIT_AIM = 0.32, BIT_HOME = 0.45, BIT_LIFE = 0.11, BIT_BIG_LIFE = 0.3;
 const BIT_R = 0.3, BIT_PIERCE = 3, BIT_REACH = 7, BIT_PAST = 8, BIT_BOSS = 7, BIT_DMG = 5, BIT_WALL = 0.12, BIT_VOLLEY = 1.3;
 // a squad's chain pays BIT_PAY a kill: at a full one the bits scored 3 to 4% over the rocket in bot rounds (2026-10-31, good
@@ -6462,10 +6505,9 @@ function resetBits() {
   bitBeams = [];
 }
 function tryBits() {
-  if (!running) return;
+  if (!running || squadCD > 0 || squads.length >= BIT_SQUADS) return;
   const fev = feverT > 0;
-  if (fev ? squadCD > 0 || squads.length >= 4 : squadsLeft <= 0) { softClick(); return; }
-  if (fev) squadCD = BIT_FEVER_CD; else squadsLeft--;
+  squadCD = fev ? BIT_FEVER_CD : BIT_CD;
   launchSquad(aimHit(aim.x, aim.y, aim.touch ? 60 : 40), fev ? BIT_N_FEVER : BIT_N);
 }
 // a place for a bit round its squad's spot: just over the horde's heads, mostly in front of the spot, and out to its own side
@@ -7556,8 +7598,9 @@ function addFever(v) {
   if (fever >= 100) strikeReady();
 }
 // what FEVER does to the tap
-const FEVER_TAP = EN ? { rocket: 'Unlimited rockets', tank: 'Rapid cannon', hole: 'Rapid black holes', rail: 'Rapid railgun', wave: 'Rapid wave cannon', flame: 'Unlimited fire', shock: 'Rapid shock gun', missile: 'Unlimited missiles', bits: 'Unlimited bits' }
-  : { rocket: 'ロケット撃ち放題', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎放射し放題', shock: '電撃砲連射', missile: 'ミサイル撃ち放題', bits: 'ビット撃ち放題' };
+// (every weapon fires without a limit since 2026-11-02: FEVER makes them faster, or more at once)
+const FEVER_TAP = EN ? { rocket: 'Six rockets a shot', tank: 'Rapid cannon', hole: 'Rapid black holes', rail: 'Rapid railgun', wave: 'Rapid wave cannon', flame: 'Four flames', shock: 'Rapid shock gun', missile: '28 missiles a salvo', bits: '16 bits a squad' }
+  : { rocket: 'ロケット6連', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎4連', shock: '電撃砲連射', missile: 'ミサイル28連', bits: 'ビット16機' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', FEVER_TAP[weapon], C.flare, 1.4);
@@ -8185,14 +8228,19 @@ function update(dt, raw) {
         moanAt(zb, pick(MOANS), rand(0.82, 1.12) * (zb.type === 'runner' ? 1.15 : zb.type === 'tank' ? 0.8 : 1), zb.z < Z_WALL + 1 ? 1.25 : 1);
       }
     }
-    if (rocketsLeft < MAX_ROCKETS) { rocketTimer += dt; if (rocketTimer >= ROCKET_REFILL) { rocketTimer = 0; rocketsLeft++; } } else rocketTimer = 0;
-    if (cannonT > 0 && (cannonT -= dt) <= 0) { cannonT = 0; if (weapon === 'tank' && feverT <= 0) clank(); }
+    rocketCD = Math.max(0, rocketCD - dt);
+    if (cannonT > 0 && (cannonT -= dt) <= 0) cannonT = 0;
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
     if (feverT > 0) { feverT -= dt; fever = Math.max(0, feverT / FEVER_TIME * 100); if (feverT <= 0) { feverT = 0; fever = 0; } }
     firing = spaceHeld;
     for (const p of pointers.values()) if (p.fire) firing = true;
     fireCD -= dt;
-    if (firing && fireCD <= 0) { fireCD = HOLD_GAP[weapon] || 0.2; holdShot = true; tapFire(); holdShot = false; }
+    if (firing && fireCD <= 0) {
+      // (no limit since 2026-11-02: a weapon still cooling is tried again the moment it is ready, so the hold fires as fast as it
+      // can; HOLD_GAP is the least time between two of the hold's shots)
+      const cd = weaponCD();
+      if (cd > 0) fireCD = cd; else { fireCD = HOLD_GAP[weapon] || 0.2; holdShot = true; tapFire(); holdShot = false; }
+    }
     if (!bossSpawned && elapsed >= bossAt) spawnBoss();
     if (hapKind && elapsed >= hapAt) { startHappening(hapKind); hapKind = ''; }
     checkMissions();
@@ -8375,23 +8423,16 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', bt = weapon === 'bits', load = feverT > 0 ? 1 : 1 - cannonT / CANNON_RELOAD;
-  const ammoKey = tank ? 'T' + Math.round(load * 24) : hole ? 'H' + holesLeft : rail ? 'L' + railsLeft : wv ? 'W' + Math.round(waveLoad * 24) + (wave ? wave.phase : '') : fl ? 'F' + flamesLeft + (flame ? 'on' : '') : zp ? 'Z' + shocksLeft : ms ? 'M' + salvosLeft : bt ? 'B' + squadsLeft : rocketsLeft;
+  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', bt = weapon === 'bits';
+  const ammoKey = weapon;
   const key = [tv.toFixed(1), score, ammoKey, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0].join('|');
   if (key === hudKey) return;
   hudKey = key;
   $('time').textContent = tv.toFixed(1);
   $('time').classList.toggle('warn', tv < 5);
   $('score').textContent = score.toLocaleString();
-  $('ammo').innerHTML = tank ? `<span class="gauge reload${load >= 1 ? ' ready' : ''}"><b style="width:${(load * 100).toFixed(0)}%"></b></span>`
-    : hole ? Array.from({ length: MAX_HOLES }, (_, i) => `<i class="bh${feverT > 0 || i < holesLeft ? ' on' : ''}"></i>`).join('')
-    : rail ? Array.from({ length: MAX_RAILS }, (_, i) => `<i class="rl${feverT > 0 || i < railsLeft ? ' on' : ''}"></i>`).join('')
-    : wv ? `<span class="gauge wv${wave ? ' fire' : waveLoad >= 1 ? ' ready' : ''}"><b style="width:${(wave ? 100 : waveLoad * 100).toFixed(0)}%"></b></span>`
-    : fl ? Array.from({ length: MAX_FLAMES }, (_, i) => `<i class="fl${feverT > 0 || i < flamesLeft ? ' on' : ''}${flame && i === flamesLeft ? ' burn' : ''}"></i>`).join('')
-    : zp ? Array.from({ length: MAX_SHOCKS }, (_, i) => `<i class="zp${feverT > 0 || i < shocksLeft ? ' on' : ''}"></i>`).join('')
-    : ms ? Array.from({ length: MAX_SALVOS }, (_, i) => `<i class="ms${feverT > 0 || i < salvosLeft ? ' on' : ''}"></i>`).join('')
-    : bt ? Array.from({ length: MAX_SQUADS }, (_, i) => `<i class="bt${feverT > 0 || i < squadsLeft ? ' on' : ''}"></i>`).join('')
-    : Array.from({ length: MAX_ROCKETS }, (_, i) => `<i class="${feverT > 0 || i < rocketsLeft ? 'on' : ''}"></i>`).join('');
+  // no limit on any of them (2026-11-02, kazu): the weapon's mark and ∞ where the rounds left were
+  $('ammo').innerHTML = (tank || wv ? '' : `<i class="${hole ? 'bh' : rail ? 'rl' : fl ? 'fl' : zp ? 'zp' : ms ? 'ms' : bt ? 'bt' : ''} on"></i>`) + '<b class="inf">∞</b>';
   // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
   const sp = $('spMeter');
   sp.style.setProperty('--p', fever.toFixed(1));
@@ -8553,7 +8594,7 @@ async function bootInner() {
     window.__aimHit = (x, y) => { const A = aimHit(x, y, 40); return { kind: A.kind, p: A.p && A.p.toArray().map(v => +v.toFixed(2)), z: A.hit && A.hit.z.state }; };
     window.__pipeLight = i => lightPipe(i, newChain());
     window.__hole = (x, z) => openHole(x, z, newChain());
-    window.__wave = () => wave && { phase: wave.phase, t: +wave.t.toFixed(2), head: wave.head, blasts: wave.blasts, M: wave.M.toArray().map(v => +v.toFixed(2)), E: wave.E.toArray().map(v => +v.toFixed(2)) };
+    window.__wave = () => wave && { phase: wave.phase, t: +wave.t.toFixed(2), head: wave.head, blasts: wave.beams ? wave.beams.map(B => B.blasts) : [], M: wave.M.toArray().map(v => +v.toFixed(2)), E: wave.beams ? wave.beams.map(B => B.E.toArray().map(v => +v.toFixed(2))) : [] };
     // whole frames, drawn and copied for the replay as the real loop does, for tests that need the picture each frame
     window.__frame = (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) { demoTick(dt); update(slowmo > 0 ? dt * 0.35 : dt, dt); render(dt); renderPicture(dt); replayTick(dt); } };
     // what whole frames cost, split: the simulation, getting the scene ready to draw, and drawing it
@@ -12298,7 +12339,7 @@ const UNLOCKS = [
   { w: 'wave', medals: 30, sub: jaEn('極太ビームで一掃', 'Huge sweeping beam') },
   { w: 'flame', medals: 40, sub: jaEn('燃え広がる炎', 'Spreading flames') },
   { w: 'shock', medals: 50, sub: jaEn('飛び移る稲妻', 'Chain lightning') },
-  { w: 'missile', medals: 60, sub: jaEn('10発の追尾ミサイル', '10 homing missiles') },
+  { w: 'missile', medals: 60, sub: jaEn('20発の追尾ミサイル', '20 homing missiles') },
   { w: 'bits', medals: 70, sub: jaEn('浮遊ビーム砲台', 'Floating beam turrets') },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
