@@ -8497,6 +8497,7 @@ function tick(now) {
   perf.calls = renderer.info.render.calls; perf.tris = renderer.info.render.triangles;
   drawOverlay(raw);
   hud();
+  videoTick(raw);   // the finale's video (78-video.js): needs both canvases as just drawn
   if (rpPlay) drawReplay(raw);
   const t3 = performance.now();
   perf.n++; perf.js += t1 - t0 + t3 - t2; perf.gl += t2 - t1; perf.worst = Math.max(perf.worst, t1 - t0 + t3 - t2);
@@ -12428,6 +12429,7 @@ function shotTick(raw) {
 }
 function resetShare() {
   shotT = -1; shotHave = false; cardBlob = null; cardJob++; shareInfo = null;
+  resetVideo();
   $('shareImg').disabled = true; $('shareMsg').hidden = true;
 }
 // X and the share sheet (on a phone mostly used to post to X) carry the extra tags kazu asked for; LINE keeps the game's own.
@@ -12445,14 +12447,26 @@ function shareText(o, tags = TAGS) {
   if (o.moon) bits.push('月を破壊'); else if (o.boss) bits.push(o.boss);
   return `ゾンビ爆散${{ tank: '（戦車）', hole: '（ブラックホール）', rail: '（レールガン）', wave: '（波動砲）' }[o.weapon] || ''}で${o.score.toLocaleString()}点、ランク${o.rank}!\n${bits.join(' / ')}\n${tags}`;
 }
-const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'z.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; } };
+const canShareFiles = (name = 'z.jpg', type = 'image/jpeg') => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], name, { type })] })); } catch (e) { return false; } };
+// the button under the result: the finale's video once it is made (78-video.js), else the picture
+function shareBtn() {
+  const b = $('shareImg');
+  if (vid) { b.textContent = jaEn('動画を作成中…', 'Making video…'); b.disabled = true; }
+  else if (vidBlob) { b.textContent = !dlNS && canShareFiles('z.mp4', vidBlob.type) ? jaEn('動画で共有', 'Share video') : jaEn('動画を保存', 'Save video'); b.disabled = false; }
+  else { b.textContent = !dlNS && canShareFiles() ? jaEn('画像で共有', 'Share image') : jaEn('画像を保存', 'Save image'); b.disabled = !cardBlob; }
+  // the preview only (mkpreview.py): what became of the video, to see on a real phone
+  if (window.ZB_VIDEO_DIAG && shareInfo && !vid) {
+    $('shareMsg').textContent = '（試作版だけの表示）' + (vidBlob ? `動画OK: ${vidBlob.kind}${/mp4a|opus/.test(vidBlob.kind) || !/codecs/.test(vidBlob.kind) ? '' : '（音なし）'}、${(vidBlob.size / 1e6).toFixed(1)}MB` : '動画なし: ' + (vidWhy || '録画が始まりませんでした'));
+    $('shareMsg').hidden = false;
+  }
+}
 // called when the result comes up
 function setupShare(o) {
   shareInfo = o;
   $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText(o, TAGS_X)) + '&url=' + encodeURIComponent(SITE_URL);
   $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText(o) + '\n' + SITE_URL);
-  $('shareImg').textContent = !dlNS && canShareFiles() ? jaEn('画像で共有', 'Share image') : jaEn('画像を保存', 'Save image');
   if (!shotHave) requestShot(0);   // no finale frame (it can happen): the street as it is now
+  videoEnd(o); shareBtn();
   buildCard(o);
 }
 // the picture: 1200x630, the finale on the right, the score on a dark panel on the left
@@ -12519,32 +12533,282 @@ async function buildCard(o) {
   const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
   if (job !== cardJob || !blob) return;
   cardBlob = blob;
-  $('shareImg').disabled = false;
+  shareBtn();
 }
 $('shareX').addEventListener('click', () => track('share', { method: 'x' }));
 $('shareLine').addEventListener('click', () => track('share', { method: 'line' }));
 $('shareImg').addEventListener('click', async () => {
-  if (!cardBlob || !shareInfo) return;
-  track('share', { method: canShareFiles() ? 'image' : 'image_save' });
-  const file = new File([cardBlob], 'zombie-bakusan.jpg', { type: 'image/jpeg' });
+  const video = !!vidBlob, blob = video ? vidBlob : cardBlob;
+  if (!blob || !shareInfo) return;
+  const type = video ? vidBlob.type : 'image/jpeg', name = 'zombie-bakusan.' + (type === 'video/webm' ? 'webm' : video ? 'mp4' : 'jpg');
+  const sheet = !dlNS && canShareFiles(name, type), what = video ? 'video' : 'image';
+  track('share', { method: sheet ? what : what + '_save' });
   const msg = t => { $('shareMsg').textContent = t; $('shareMsg').hidden = !t; };
+  const saved = video ? jaEn('動画を保存しました。Xに貼ってポストできます', 'Video saved. Attach it to a post on X.') : jaEn('画像を保存しました。Xに貼ってポストできます', 'Image saved. Attach it to a post on X.');
   msg('');
   if (dlNS) {
-    try { await dlNS.save({ filename: 'zombie-bakusan.jpg', data: cardBlob }); msg(jaEn('画像を保存しました。Xに貼ってポストできます', 'Image saved. Attach it to a post on X.')); }
+    try { await dlNS.save({ filename: name, data: blob }); msg(saved); }
     catch (e) { if (!e || e.code !== 'declined') msg(jaEn('ここでは保存できませんでした。XかLINEのボタンを使ってください', "Couldn't save it here. Use the X or LINE button.")); }
     return;
   }
-  if (canShareFiles()) {
-    try { await navigator.share({ files: [file], text: shareText(shareInfo, TAGS_X) + '\n' + SITE_URL }); }
+  if (sheet) {
+    try { await navigator.share({ files: [new File([blob], name, { type })], text: shareText(shareInfo, TAGS_X) + '\n' + SITE_URL }); }
     catch (e) { if (!e || e.name !== 'AbortError') msg(jaEn('ここでは共有できませんでした。XかLINEのボタンを使ってください', "Couldn't share it here. Use the X or LINE button.")); }
     return;
   }
-  // no share sheet (most PCs): save the picture instead
-  const a = document.createElement('a'), url = URL.createObjectURL(cardBlob);
-  a.href = url; a.download = 'zombie-bakusan.jpg'; document.body.appendChild(a); a.click(); a.remove();
+  // no share sheet (most PCs): save it instead
+  const a = document.createElement('a'), url = URL.createObjectURL(blob);
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  msg(jaEn('画像を保存しました。Xに貼ってポストできます', 'Image saved. Attach it to a post on X.'));
+  msg(saved);
 });
+
+// ===== 78-video.js
+// ---------- the finale as a video (2026-11-02, kazu picked it on the card 「次にどの改良を作りますか」) ----------
+// From a moment before the whistle until the result comes up, the 3D view and the overlay (the banners and the shouted words;
+// the HUD is the page's, not a canvas) go, cut to 9:16, into a canvas the browser records with the game's own sound; then a
+// short card with the rank and the score, and the recording stops. The share button (78-share.js) then shares or saves the
+// video in place of the picture. Only H.264 in MP4 is kept, the kind X takes: a browser that can't record it (Firefox, a
+// Chromium without H.264) keeps the picture, and so does a round whose recording costs the machine too much, or whose tab was
+// hidden on the way.
+const VID_W = 540, VID_H = 960, VID_FPS = 30, VID_LEAD = 1.5, VID_CARD = 2.4, VID_MAX = 20;
+// plain mp4 last: Safari's is H.264 with AAC; Chrome's is VP9, found out once it is made and thrown away (vidDone)
+const VID_TYPES = ['video/mp4;codecs=avc1.42E01F,mp4a.40.2', 'video/mp4;codecs=avc1.4D401F,mp4a.40.2', 'video/mp4;codecs=avc1.640028,mp4a.40.2',
+  'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1.42E01F', 'video/mp4;codecs=avc1', 'video/mp4'];
+const vidCv = document.createElement('canvas'), vidBg = document.createElement('canvas'), vidVig = document.createElement('canvas');
+vidCv.width = vidBg.width = vidVig.width = VID_W; vidCv.height = vidBg.height = vidVig.height = VID_H;
+// in the page (a browser may only capture a canvas that is) but out of sight
+vidCv.setAttribute('aria-hidden', 'true');
+vidCv.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1';
+document.body.appendChild(vidCv);
+const vg = vidCv.getContext('2d', { alpha: false });
+let vid = null, vidBlob = null, vidOff = false, vidTried = false, vidJob = 0, vidWhy = '', vidCost = 0;
+// tests only: any kind of video the browser makes (the test browser has no H.264), at any drawing cost (it has no GPU)
+const vidTest = () => !!(window.ZB_DEBUG && window.ZB_VIDEO_ANY);
+// the page's vignette (.vig), which is on neither canvas
+{
+  const g = vidVig.getContext('2d'), rx = VID_W * 0.79, ry = VID_H * 0.71;
+  g.translate(VID_W / 2, VID_H * 0.55); g.scale(1, ry / rx);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+  gr.addColorStop(0.4, 'rgba(10,4,12,0)'); gr.addColorStop(1, 'rgba(10,4,12,.5)');
+  g.fillStyle = gr; g.fillRect(-rx * 2, -rx * 2, rx * 4, rx * 4);
+}
+const VD = '"Dela Gothic One", sans-serif', VB = '"Zen Kaku Gothic New", sans-serif';
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const easeBack = x => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2);
+function vidType() {
+  if (typeof MediaRecorder !== 'function' || typeof vidCv.captureStream !== 'function') return '';
+  for (const t of vidTest() ? VID_TYPES.concat('video/webm;codecs=vp9,opus', 'video/webm') : VID_TYPES) {
+    try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (e) {}
+  }
+  return '';
+}
+function vidFonts(o) {
+  try {
+    if (!document.fonts || !document.fonts.load) return;
+    document.fonts.load(`80px ${VD}`, 'ゾンビ爆散ZOMBIEBAKUSN SCORE0123456789,.' + (o ? o.rank + o.badges.join('') : 'SABC')).catch(() => {});
+    document.fonts.load(`700 26px ${VB}`, 'zombie-bakusan.pages.dev#ゾンビ爆散撃破体最大コンボ・killsmaxcombo0123456789').catch(() => {});
+  } catch (e) {}
+}
+// every frame, once the overlay is drawn (tick): starts it a moment before the whistle, draws one frame of it 30 times a second
+function videoTick(raw) {
+  const v = vid;
+  if (!v) {
+    if (running && !vidTried && elapsed >= DURATION - VID_LEAD) { vidTried = true; startVideo(); }
+    return;
+  }
+  if ((v.t += raw) > VID_MAX) { dropVideo('録画が長すぎました'); return; }   // the result never came: something is wrong
+  if (v.stopping) return;
+  if (v.card) v.card.t += raw;
+  if ((v.acc += raw) < 1 / VID_FPS - 0.004) return;
+  v.acc = Math.min(v.acc - 1 / VID_FPS, 1 / VID_FPS);
+  const t0 = performance.now();
+  try { if (v.card) drawVidCard(v.card); else drawVidFrame(); }
+  catch (e) { dropVideo('描画エラー: ' + (e && e.message || e)); return; }
+  // copying the 3D view is cheap where the canvas is on the GPU; a phone where it is not would stutter through the finale
+  if (!v.card && v.costN < 15) {
+    v.cost += performance.now() - t0;
+    if (++v.costN === 15) {
+      vidCost = v.cost / 15;
+      if (vidCost > (vidTest() && window.ZB_VIDEO_COST || 8)) { vidOff = true; dropVideo(`描画が重いので録画を止めました（1枚${vidCost.toFixed(1)}ms）`); return; }
+    }
+  }
+  if (v.card && v.card.t >= VID_CARD) { v.stopping = true; try { v.rec.stop(); } catch (e) { dropVideo('録画を止められませんでした'); } }
+}
+function startVideo() {
+  if (vidOff) return;
+  if (rpOff && !vidTest()) { vidWhy = 'この端末では録画を省きました（ベストショットのコピーが重いため）'; return; }
+  const type = vidType();
+  if (!type) { vidOff = true; vidWhy = 'このブラウザはMP4（H.264）で録画できません'; return; }
+  let stream = null, dest = null;
+  try {
+    stream = vidCv.captureStream(VID_FPS);
+    // the sound as it comes out of the speakers (silent when muted); a kind without a sound codec named takes it too
+    if (actx && mainOut && (/mp4a|opus/.test(type) || !/codecs/.test(type))) {
+      dest = actx.createMediaStreamDestination();
+      mainOut.connect(dest);
+      for (const tr of dest.stream.getAudioTracks()) stream.addTrack(tr);
+    }
+    const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 4e6, audioBitsPerSecond: 128e3 });
+    const v = { rec, stream, dest, type, chunks: [], t: 0, acc: 0, cost: 0, costN: 0, card: null, stopping: false, dropped: false, cleaned: false, job: vidJob };
+    rec.ondataavailable = e => { if (e.data && e.data.size) v.chunks.push(e.data); };
+    rec.onstop = () => vidDone(v);
+    rec.onerror = e => { if (vid === v) dropVideo('録画中にエラー: ' + (e && e.error && e.error.message || '?')); };
+    drawVidFrame();   // a first frame there before it starts
+    rec.start();
+    vid = v;
+    vidFonts();
+  } catch (e) {
+    vidOff = true; vidWhy = '録画を始められませんでした: ' + (e && e.message || e);
+    if (dest) try { mainOut.disconnect(dest); } catch (e2) {}
+    if (stream) for (const tr of stream.getTracks()) try { tr.stop(); } catch (e2) {}
+  }
+}
+// the result is up (setupShare): the card, then it stops
+function videoEnd(o) {
+  if (!vid || vid.card) return;
+  vid.card = { t: 0, o, bg: false };
+  vidFonts(o);
+}
+function vidClean(v) {
+  if (v.cleaned) return;
+  v.cleaned = true;
+  if (v.dest) try { mainOut.disconnect(v.dest); } catch (e) {}
+  for (const tr of v.stream.getTracks()) try { tr.stop(); } catch (e) {}
+}
+function vidDone(v) {
+  vidClean(v);
+  if (vid === v) vid = null;
+  if (v.dropped || v.job !== vidJob) return;
+  const type = String(v.rec.mimeType || v.type).toLowerCase();
+  if (!vidTest() && /vp0?8|vp0?9|av01|webm/.test(type)) { vidOff = true; vidWhy = `録画はできましたがH.264ではありませんでした（${type}）`; shareBtn(); return; }
+  const blob = new Blob(v.chunks, { type: /webm/.test(type) ? 'video/webm' : 'video/mp4' });
+  if (blob.size < 10000) { vidWhy = '録画が空でした'; shareBtn(); return; }
+  vidBlob = blob; vidBlob.kind = type; vidWhy = '';
+  shareBtn();
+}
+function dropVideo(why) {
+  const v = vid;
+  if (!v) return;
+  vid = null; v.dropped = true; vidWhy = why;
+  try { if (v.rec.state !== 'inactive') v.rec.stop(); } catch (e) {}
+  vidClean(v);
+  shareBtn();
+}
+// a new round (resetShare)
+function resetVideo() {
+  vidJob++;
+  dropVideo('');
+  vidBlob = null; vidTried = false; vidWhy = '';
+}
+// a recording with the tab hidden would hold one frame for as long: keep the picture
+document.addEventListener('visibilitychange', () => { if (document.hidden && vid) dropVideo('途中で画面が隠れました'); });
+
+// the 9:16 part of the screen, in CSS pixels: a phone taller than that loses a strip of sky and more of the gun at the bottom;
+// a window wider than that (a short PC window), its sides
+function vidCrop() {
+  const a = VID_W / VID_H;
+  if (W / H < a) { const h = W / a; return { x: 0, y: (H - h) * 0.3, w: W, h }; }
+  const w = H * a;
+  return { x: (W - w) / 2, y: 0, w, h: H };
+}
+function vidText(t, x, y, size, font, fill, stroke, weight = '', shadow) {
+  vg.font = `${weight} ${size}px ${font}`;
+  if (shadow) { vg.fillStyle = shadow; vg.fillText(t, x, y + size * 0.07); }
+  if (stroke) { vg.lineWidth = size * 0.16; vg.strokeStyle = stroke; vg.strokeText(t, x, y); }
+  vg.fillStyle = fill; vg.fillText(t, x, y);
+}
+// one frame of the game: the 3D view, the overlay over it, the vignette, and the name in the corner
+function drawVidFrame() {
+  const c = vidCrop(), gx = glCv.width / W, gy = glCv.height / H, ox = cv.width / W, oy = cv.height / H;
+  vg.globalAlpha = 1;
+  vg.drawImage(glCv, c.x * gx, c.y * gy, c.w * gx, c.h * gy, 0, 0, VID_W, VID_H);
+  vg.drawImage(cv, c.x * ox, c.y * oy, c.w * ox, c.h * oy, 0, 0, VID_W, VID_H);
+  vg.drawImage(vidVig, 0, 0);
+  vg.textAlign = 'left'; vg.textBaseline = 'alphabetic'; vg.lineJoin = 'round';
+  if (EN) { vg.letterSpacing = '1px'; vidText('ZOMBIE BAKUSAN', 20, 44, 24, VD, '#ffd25e', '#120c17'); vg.letterSpacing = '0px'; }
+  else vidText('ゾンビ爆散', 20, 46, 30, VD, '#ffd25e', '#120c17');
+  vidText('zombie-bakusan.pages.dev', 21, 70, 15, VB, 'rgba(243,233,220,.92)', 'rgba(18,12,23,.85)', 700);
+}
+// the card's picture: the fireball the share picture uses, else the last frame
+function vidCardBg() {
+  const g = vidBg.getContext('2d');
+  if (shotHave) {
+    const c = vidCrop(), sx = shotCv.width / W, sy = shotCv.height / H;
+    g.drawImage(shotCv, c.x * sx, c.y * sy, c.w * sx, c.h * sy, 0, 0, VID_W, VID_H);
+  } else g.drawImage(vidCv, 0, 0);
+}
+// the last seconds: the name, the rank slamming down, the score counting up, the badges, the address
+function drawVidCard(k) {
+  const o = k.o, t = k.t, cx = VID_W / 2;
+  if (!k.bg) { k.bg = true; vidCardBg(); }
+  const z = 1 + t * 0.03;
+  vg.globalAlpha = 1;
+  vg.drawImage(vidBg, cx - VID_W * z / 2, VID_H / 2 - VID_H * z / 2, VID_W * z, VID_H * z);
+  vg.fillStyle = `rgba(18,12,23,${(0.62 * easeOut(clamp(t / 0.35, 0, 1))).toFixed(3)})`;
+  vg.fillRect(0, 0, VID_W, VID_H);
+  vg.textAlign = 'center'; vg.textBaseline = 'alphabetic'; vg.lineJoin = 'round';
+  const a0 = clamp(t / 0.25, 0, 1);
+  vg.globalAlpha = a0;
+  if (EN) {
+    vidText('ゾンビ爆散', cx, 150, 64, VD, '#ffd25e', '#120c17', '', '#ff7a2f');
+    vg.letterSpacing = '5px'; vidText('ZOMBIE BAKUSAN', cx, 198, 28, VD, '#f3e9dc', '#120c17', '', '#ff7a2f'); vg.letterSpacing = '0px';
+  } else vidText('ゾンビ爆散', cx, 170, 80, VD, '#ffd25e', '#120c17', '', '#ff7a2f');
+  // the rank comes down hard, with a ring where it lands
+  const p = clamp((t - 0.15) / 0.3, 0, 1), ry = 545;
+  if (p > 0) {
+    vg.font = `300px ${VD}`;
+    const rs = Math.min(300, 300 * 440 / vg.measureText(o.rank).width), s = lerp(2.6, 1, easeBack(p)), mid = ry - rs * 0.36;
+    vg.save(); vg.globalAlpha = clamp(p * 2.5, 0, 1); vg.translate(cx, mid); vg.scale(s, s);
+    vidText(o.rank, 0, rs * 0.36, rs, VD, '#ffd25e', '#120c17', '', '#ff7a2f');
+    vg.restore();
+    const u = (t - 0.45) / 0.5;
+    if (u > 0 && u < 1) {
+      vg.globalAlpha = 0.7 * (1 - u); vg.strokeStyle = '#ff7a2f'; vg.lineWidth = 2 + 16 * (1 - u);
+      vg.beginPath(); vg.arc(cx, mid, 130 + 260 * easeOut(u), 0, Math.PI * 2); vg.stroke();
+    }
+  }
+  if (t > 0.35) {
+    vg.globalAlpha = clamp((t - 0.35) / 0.2, 0, 1);
+    vidText('SCORE', cx, 650, 26, VB, 'rgba(243,233,220,.8)', null, 700);
+    vg.font = `80px ${VD}`;
+    const sz = Math.min(80, 80 * 480 / vg.measureText(o.score.toLocaleString()).width);
+    vidText(Math.round(o.score * easeOut(clamp((t - 0.4) / 0.6, 0, 1))).toLocaleString(), cx, 735, sz, VD, '#f3e9dc', '#120c17');
+    const stats = jaEn(`撃破 ${o.kills}体 ・ 最大 ${o.combo}コンボ`, `${o.kills} kills · max combo ${o.combo}`);
+    vg.font = `700 26px ${VB}`;
+    vidText(stats, cx, 790, Math.min(26, 26 * 480 / vg.measureText(stats).width), VB, '#f3e9dc', 'rgba(18,12,23,.8)', 700);
+  }
+  // up to three badges that fit on one line
+  if (t > 0.7 && o.badges.length) {
+    vg.globalAlpha = clamp((t - 0.7) / 0.2, 0, 1);
+    vg.font = `22px ${VD}`;
+    const row = [];
+    let total = -10;
+    for (const b of o.badges) {
+      const w = vg.measureText(b).width + 28;
+      if (row.length === 3 || total + 10 + w > 500) break;
+      row.push([b, w]); total += 10 + w;
+    }
+    let x = cx - total / 2;
+    vg.textAlign = 'left';
+    for (const [b, w] of row) {
+      vg.fillStyle = '#ffd25e'; vg.beginPath(); vg.arc(x + 20, 850, 20, Math.PI / 2, Math.PI * 1.5); vg.arc(x + w - 20, 850, 20, -Math.PI / 2, Math.PI / 2); vg.closePath(); vg.fill();
+      vg.fillStyle = '#120c17'; vg.fillText(b, x + 14, 858);
+      x += w + 10;
+    }
+    vg.textAlign = 'center';
+  }
+  vg.globalAlpha = a0;
+  vidText(jaEn('#ゾンビ爆散', '#ZombieBakusan') + '   zombie-bakusan.pages.dev', cx, 925, 22, VB, 'rgba(243,233,220,.9)', 'rgba(18,12,23,.8)', 700);
+  vg.globalAlpha = 1;
+}
+if (window.ZB_DEBUG) {
+  window.__video = async withData => {
+    const o = { state: vid ? (vid.stopping ? 'stopping' : vid.card ? 'card' : 'rec') : vidBlob ? 'ready' : 'none', off: vidOff, why: vidWhy, type: vid ? vid.type : vidBlob ? vidBlob.kind : '', size: vidBlob ? vidBlob.size : 0, cost: +vidCost.toFixed(2), label: $('shareImg').textContent, disabled: $('shareImg').disabled, msg: $('shareMsg').hidden ? '' : $('shareMsg').textContent };
+    if (withData && vidBlob) o.data = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(vidBlob); });
+    return o;
+  };
+}
 
 // ===== 79-replay.js
 // ---------- ベストショット再生 (2026-10-25): the round's biggest chain, replayed slowed down on the result card ----------
