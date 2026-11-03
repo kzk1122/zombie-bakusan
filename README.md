@@ -1,6 +1,6 @@
 # ゾンビ爆散
 
-迫り来るゾンビの大群を、ロケットランチャーや戦車、メダルで手に入るブラックホール・レールガン・波動砲・火炎放射器・電撃砲・ミサイル・ビットで吹き飛ばす15秒1本勝負の3Dブラウザゲームです。舞台は夜の大通り、夜の遊園地、夏祭りの参道、夜の高速道路で、トゲ付き鉄線フェンスが最終防衛ラインです。
+迫り来るゾンビの大群を、ロケットランチャーや戦車、メダルで手に入るブラックホール・レールガン・波動砲・火炎放射器・電撃砲・ミサイル・ビットで吹き飛ばす10秒1本勝負の3Dブラウザゲームです。舞台は夜の大通り、夜の遊園地、夏祭りの参道、夜の高速道路で、トゲ付き鉄線フェンスが最終防衛ラインです。
 
 **遊ぶ: https://zombie-bakusan.pages.dev/**
 
@@ -27,8 +27,8 @@
 - 夜の高速道路では、奥のジャンクションの高架を撃つと、渋滞の車が1台ずつ燃えながら群れに降ってきて爆発し、最後にタンクローリーが落ちてきて大爆発、橋桁がV字に崩れ落ちます。屋根やボンネットにゾンビを乗せたゾンビカーも3台、群れを跳ね飛ばしながら突っ込んできます。撃てば乗っているゾンビごと吹き飛びます
 - 毎回3つのお題（銅・銀・金）が出ます。達成するとメダルがもらえ、集めたメダルで新しい武器が解放されます。お題とメダルはそのブラウザに保存されます
 - 途中で巨大ゾンビが来ます。空から1体降ってくるか、2体同時に降ってくるか、燃えながら霧の奥から駆けてくる巨大ゾンビ犬のどれかです。倒すと月まで飛んでいき、2体同時なら2体目は星になって「キラーン」と消えます。遠くまで吹き飛んだゾンビが月に当たることも
-- 15秒たつと、残ったゾンビも車も巨大ゾンビもまとめて大爆発します
-- 負けはありません。点になるのは、自分の弾から始まった爆発や誘爆、吹き飛んだ体のストライク、崩したビルや動かした仕掛けで倒したゾンビだけです。1発で11体目からは2倍。15秒で稼いだ点数でランク（C / B / A / S / SS / SSS）が決まります
+- 10秒たつと、残ったゾンビも車も巨大ゾンビもまとめて大爆発します
+- 負けはありません。点になるのは、自分の弾から始まった爆発や誘爆、吹き飛んだ体のストライク、崩したビルや動かした仕掛けで倒したゾンビだけです。1発で11体目からは2倍。10秒で稼いだ点数でランク（C / B / A / S / SS / SSS）が決まります
 - 結果画面では、その回いちばん大きな連鎖をスローで再生します
 - 結果はXやLINEでシェアできます。終了直前からフィナーレの大爆発までを録った7秒ほどの縦長動画（最後にランクと点数）を、スマホでは共有、PCでは保存できます。動画を作れないブラウザ（Firefox など）では、フィナーレの写真に点数を載せた画像になります
 - 世界ランキングがあります。毎回の結果画面に世界何位と今日何位が出ます。タイトル画面左上の「🏆 ランキング」（結果画面の順位をタップしても開きます）で、上位100人を「今日」と「全期間」で国旗つきで見られます。名前は最初「ゾンビハンター1234」のように自動で付き、ランキング画面の「名前を変える」で16文字まで変えられます（失礼な名前やURLは使えません）。今日のランキングは毎日9時（日本時間）にリセットされます
@@ -51,7 +51,7 @@
 
 ## English
 
-ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 15-second 3D browser game. Blow the oncoming horde away with a rocket launcher or a tank, and with the medals you earn unlock a black hole, a railgun, a wave cannon, a flamethrower, a shock gun, homing missiles and floating beam bits. There is no losing: keep the chain reactions going, bring the buildings down, cut loose the wrecking ball, drop the power lines on the horde, blow up the gas holder and send the giant zombie to the moon.
+ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 10-second 3D browser game. Blow the oncoming horde away with a rocket launcher or a tank, and with the medals you earn unlock a black hole, a railgun, a wave cannon, a flamethrower, a shock gun, homing missiles and floating beam bits. There is no losing: keep the chain reactions going, bring the buildings down, cut loose the wrecking ball, drop the power lines on the horde, blow up the gas holder and send the giant zombie to the moon.
 
 **Play: https://zombie-bakusan.pages.dev/?lang=en**
 
