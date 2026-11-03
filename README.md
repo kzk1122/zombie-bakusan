@@ -31,6 +31,7 @@
 - 負けはありません。点になるのは、自分の弾から始まった爆発や誘爆、吹き飛んだ体のストライク、崩したビルや動かした仕掛けで倒したゾンビだけです。1発で11体目からは2倍。15秒で稼いだ点数でランク（C / B / A / S / SS / SSS）が決まります
 - 結果画面では、その回いちばん大きな連鎖をスローで再生します
 - 結果はXやLINEでシェアできます。終了直前からフィナーレの大爆発までを録った7秒ほどの縦長動画（最後にランクと点数）を、スマホでは共有、PCでは保存できます。動画を作れないブラウザ（Firefox など）では、フィナーレの写真に点数を載せた画像になります
+- 世界ランキングがあります。毎回の結果画面に世界何位と今日何位が出ます。タイトル画面左上の「🏆 ランキング」（結果画面の順位をタップしても開きます）で、上位100人を「今日」と「全期間」で国旗つきで見られます。名前は最初「ゾンビハンター1234」のように自動で付き、ランキング画面の「名前を変える」で16文字まで変えられます（失礼な名前やURLは使えません）。今日のランキングは毎日9時（日本時間）にリセットされます
 - Androidのスマホでは、空爆や波動砲、巨大ゾンビなど大きな場面で短く振動します
 - 表示は日本語と英語です。ブラウザの言語が日本語なら日本語、それ以外なら英語で始まり、タイトル画面右上のボタンで切り替えられます（URLに `?lang=ja` か `?lang=en` を付けても選べます）。2D版は日本語だけです
 
@@ -44,7 +45,9 @@
 - 効果音は Web Audio でその場で合成しています
 - 実況とうめき声は [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M)（Apache-2.0）で生成し、ファイルに埋め込んでいます
 - フォントは Google Fonts の [Dela Gothic One](https://fonts.google.com/specimen/Dela+Gothic+One) と [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License）です
-- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数・表示言語）、空爆、シェアのボタンをイベントとして送ります
+- 世界ランキングは Cloudflare Pages Functions（`functions/api/[[path]].js`、`_routes.json` で `/api/` だけに動かしています）と Cloudflare D1 で動いています。送るのは点数・撃破数・武器・ステージ・名前・表示言語と、ブラウザごとに作るランダムなID（`localStorage` に保存、ランキングには出ません）です。国旗の国はアクセス元から判定します。github.io の写しからも pages.dev のランキングを使い、ファイルを直接開いたときはランキングは出ません
+- ランキングを動かすには、Cloudflare の D1 でデータベースを作り、Pages プロジェクトの Settings → Bindings に変数名 `DB` で足します（Production と Preview の両方）。表は最初のアクセスで自動で作られます。プレビューのURLでは名前に `t_` の付いた別の表を使うので、試しても本番のランキングには載りません
+- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数・表示言語）、空爆、シェアのボタン、ランキング画面を開いたことをイベントとして送ります
 
 ## English
 
@@ -53,3 +56,5 @@ ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 15-second 3D brow
 **Play: https://zombie-bakusan.pages.dev/?lang=en**
 
 The game is in English unless your browser is set to Japanese; the button at the top right of the title screen switches languages.
+
+There is a world ranking: after every round the result screen shows where you stand in the world, today and of all time. The 🏆 Ranking button at the top left of the title screen lists the top 100 with their flags, and you can change your name there (up to 16 characters). The daily board resets at 00:00 UTC.

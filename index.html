@@ -299,6 +299,50 @@ canvas { display: block; width: 100%; height: 100%; }
 .sbtn.img { background: var(--flare); color: var(--ink); }
 .sbtn:disabled { opacity: .55; cursor: wait; transform: none; }
 .share-msg { margin: -4px 0 0; font-size: 12px; opacity: .8; }
+/* 世界ランキング (2026-11-03, 81-rank.js): a button in the title's other corner, a line under the result's score, and the board,
+   over everything else; hidden wherever the site's server is not (the Artifact, a file) */
+.rk { left: max(12px, env(safe-area-inset-left, 0px)); right: auto; }
+.wr { display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%; margin: -6px 0 0; padding: 6px 14px; cursor: pointer;
+  font: 700 14px var(--body); color: var(--bone); font-variant-numeric: tabular-nums; white-space: nowrap;
+  background: color-mix(in srgb, var(--bone) 9%, transparent); border: 1.5px solid color-mix(in srgb, var(--flare) 60%, transparent); border-radius: 999px; }
+.wr b { font-family: var(--display); font-weight: 400; font-size: 17px; color: var(--flare); }
+.wr small { font-size: 11px; opacity: .7; }
+.wr .sep { opacity: .5; margin: 0 2px; }
+.wr .wr-go { opacity: .7; }
+.wr.wait { opacity: .75; border-color: color-mix(in srgb, var(--bone) 30%, transparent); cursor: default; }
+.wr:hover:not(.wait) { border-color: var(--flare); }
+.wr:focus-visible, .bd-tab:focus-visible, .bd-btn:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+#board { z-index: 6; background: color-mix(in srgb, var(--night) 95%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.bd { gap: 10px; }
+.bd-h { margin: 4px 0 0; font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--flare); text-shadow: 0 3px 0 var(--ember); }
+.bd-tabs { display: flex; gap: 6px; }
+.bd-tab, .bd-btn { font: 700 13px var(--body); color: var(--bone); background: transparent; cursor: pointer;
+  border: 1.5px solid color-mix(in srgb, var(--bone) 40%, transparent); border-radius: 999px; padding: 5px 14px; }
+.bd-tab[aria-pressed="true"] { background: var(--bone); color: var(--ink); border-color: var(--bone); }
+.bd-sub { margin: -2px 0 0; font-size: 12px; opacity: .75; }
+.bd-list { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 420px; display: grid; gap: 3px; text-align: left; }
+.bd-list li { display: grid; grid-template-columns: 30px 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 5px 10px 5px 6px; border-radius: 8px;
+  background: color-mix(in srgb, var(--bone) 6%, transparent); }
+.bd-list li.msg { display: block; text-align: center; padding: 14px 8px; font-size: 14px; opacity: .8; }
+.bd-list li.top .n { color: var(--flare); }
+.bd-list li.me { background: color-mix(in srgb, var(--flare) 20%, transparent); box-shadow: inset 0 0 0 1.5px var(--flare); }
+.bd-list .n { font-family: var(--display); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+.bd-list .f { font-size: 16px; line-height: 1; text-align: center; }
+.bd-list .nm span { display: block; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-list .nm small { display: block; font-size: 11px; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-list .s { font-family: var(--display); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.bd-list .s i { display: block; font-style: normal; font-size: 11px; color: var(--flare); }
+.bd-me { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 420px; padding: 8px 10px; border-radius: 10px; text-align: left;
+  background: color-mix(in srgb, var(--bone) 9%, transparent); }
+.bd-me-t { min-width: 0; }
+.bd-me-t .k { font-size: 11px; font-weight: 700; letter-spacing: .1em; opacity: .7; }
+.bd-me-t b { font-size: 15px; overflow-wrap: anywhere; }
+.bd-me-t small { display: block; font-size: 12px; opacity: .8; font-variant-numeric: tabular-nums; }
+.bd-btn { flex: none; }
+.bd-edit { display: flex; gap: 6px; }
+.bd-edit input { width: 11.5em; font: 700 16px var(--body); color: var(--bone); background: var(--ink); border: 1.5px solid var(--bone); border-radius: 8px; padding: 6px 10px; }
+.bd-edit input:focus { outline: 2px solid var(--flare); outline-offset: 1px; }
+.bd-msg { margin: -4px 0 0; font-size: 13px; color: var(--flare); }
 /* お題: the three standing challenges, each with its medal's colour, on the title and result cards */
 .mis { width: 100%; max-width: 360px; background: color-mix(in srgb, var(--bone) 9%, transparent); border-radius: 10px; padding: 8px 12px 7px; text-align: left; }
 .mis-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--display); font-size: 15px; }
@@ -356,6 +400,7 @@ canvas { display: block; width: 100%; height: 100%; }
 
   <div class="overlay" id="title">
     <button class="lang" id="langBtn" type="button" lang="en" data-en="日本語">English</button>
+    <button class="lang rk" id="rankBtn" type="button" hidden data-en="🏆 Ranking">🏆 ランキング</button>
     <div class="card">
       <h1 class="logo">ゾンビ<br>爆散</h1>
       <p class="roman" lang="en">ZOMBIE BAKUSAN</p>
@@ -399,6 +444,7 @@ canvas { display: block; width: 100%; height: 100%; }
       </div>
       <p class="rank-note" id="resNote"></p>
       <p class="score-big"><small>SCORE</small><span id="resScore">0</span></p>
+      <button class="wr" id="resWorld" type="button" hidden><span aria-hidden="true">🌍</span><span id="resWorldT"></span><span class="wr-go" aria-hidden="true">›</span></button>
       <div class="result-grid">
         <div><div class="k" data-en="Kills">撃破</div><div class="v" id="resKills">0</div></div>
         <div><div class="k" data-en="Max combo">最大コンボ</div><div class="v" id="resCombo">0</div></div>
@@ -432,6 +478,24 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="sbtn img" id="shareImg" type="button" disabled data-en="Share image">画像で共有</button>
       </div>
       <p class="share-msg" id="shareMsg" hidden></p>
+    </div>
+  </div>
+  <div class="overlay" id="board" hidden role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+    <div class="card bd">
+      <h2 class="bd-h" id="bdTitle" data-en="WORLD RANKING">世界ランキング</h2>
+      <div class="bd-tabs" role="group" aria-label="期間" data-en-label="Period">
+        <button class="bd-tab" type="button" data-b="day" aria-pressed="true" data-en="Today">今日</button>
+        <button class="bd-tab" type="button" data-b="all" aria-pressed="false" data-en="All time">全期間</button>
+      </div>
+      <p class="bd-sub" id="bdSub"></p>
+      <ol class="bd-list" id="bdList"></ol>
+      <div class="bd-me">
+        <div class="bd-me-t"><span class="k" data-en="YOU">あなた</span> <b id="bdMeName"></b><small id="bdMeRank"></small></div>
+        <button class="bd-btn" id="bdNameBtn" type="button" data-en="Change name">名前を変える</button>
+      </div>
+      <form class="bd-edit" id="bdEdit" hidden><input id="bdInput" type="text" maxlength="20" autocomplete="nickname" enterkeyhint="done" aria-label="名前" data-en-label="Name"><button class="sbtn img" type="submit">OK</button></form>
+      <p class="bd-msg" id="bdMsg" hidden></p>
+      <button class="btn small" id="bdClose" type="button"><span class="t" data-en="CLOSE">とじる</span></button>
     </div>
   </div>
   <p class="diag" id="diag" hidden></p>
@@ -8142,6 +8206,7 @@ function start() {
   initAudio();
   reset(); resetShare(); running = true;
   track('game_start', { weapon, stage: stageId, lang: LANG });
+  rankStart();
   for (const z of [10.5, 13, 16, 19.5, 23]) spawnWave(z);   // a street already full of them
   spawnTimer = 0.5;
   $('title').hidden = true; $('result').hidden = true; $('hud').hidden = false; $('spMeter').hidden = false;
@@ -8185,6 +8250,7 @@ function finish() {
   settleMissions();
   setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled ? bossLabel() : '', badges, weapon });
   track('game_end', { weapon, rank: RANKS[i].r, score, stage: stageId, lang: LANG });
+  rankSubmit(score, kills);
   let best = '';
   try {
     const bestKey = weapon === 'tank' ? 'zb3d-best-tank' : 'zb3d-best', prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
@@ -13706,6 +13772,200 @@ function prebuildLater() {
   }, 2500);
 }
 stageButtons();
+
+// ===== 81-rank.js
+// ---------- the world ranking (2026-11-03, kazu: 世界ランキングいきましょう) ----------
+// Each round's score goes to the site's own server (functions/api in the repo: a Cloudflare Pages Function with a D1
+// database bound as DB), and the result card says where the player stands in the world, of all time and today (a UTC day,
+// 9:00 in Japan). The board (#board) shows the top 100 with their flags; the name, made up at first (ゾンビハンター1234), can
+// be changed there. The server is only where the site is: zombie-bakusan.pages.dev and its previews (which keep to test
+// tables), and the github.io copy calls it there; in the Artifact or from a file the ranking stays hidden. Nothing here may
+// throw or reject: no server, no database bound yet ('nodb') or a slow line only hide it.
+const RANK_API = (() => {
+  if (window.ZB_RANK_API) return String(window.ZB_RANK_API);   // tests: a local `wrangler pages dev`
+  const h = location.hostname;
+  if (h === 'zombie-bakusan.pages.dev' || h.endsWith('.zombie-bakusan.pages.dev')) return '/api';
+  if (h === 'kzk1122.github.io') return 'https://zombie-bakusan.pages.dev/api';
+  return '';
+})();
+let rankOn = !!RANK_API, rankReady = false, rankTok = null, rankSeq = 0, rankLast = null, rankTab = 'day', rankMine = '', rankPidV = '';
+const rankBoards = {};   // the boards as last fetched: { day: {at, data}, all: {...} }
+const RANK_TOP = 100;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const rand36 = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+// the player: a random id kept in this browser (never shown), and the name on the board
+function rankPid() {
+  if (rankPidV) return rankPidV;
+  let p = lsGet('zb3d-pid');
+  if (!p || !/^[A-Za-z0-9_-]{12,40}$/.test(p)) { p = rand36(20); lsSet('zb3d-pid', p); }
+  return rankPidV = p;
+}
+function rankName() {
+  let n = lsGet('zb3d-name');
+  if (!n) { n = jaEn('ゾンビハンター', 'Hunter') + String(crypto.getRandomValues(new Uint16Array(1))[0] % 10000).padStart(4, '0'); lsSet('zb3d-name', n); }
+  return n;
+}
+// the short hash the boards carry for each row (the server's shortHash), to find our own
+async function rankHash() {
+  if (rankMine) return rankMine;
+  try { const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rankPid()))); rankMine = [...d.slice(0, 5)].map(b => b.toString(16).padStart(2, '0')).join(''); } catch (e) {}
+  return rankMine;
+}
+// 起動中は描画の準備で手が止まるので、待ち時間は返事の頭が届くまでだけ数え、届かなければ呼んだ側でやり直す
+async function rankCall(path, body) {
+  if (!rankOn) return null;
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null, tm = setTimeout(() => ctl && ctl.abort(), 15000);
+  try {
+    const r = await fetch(RANK_API + path, body ? { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body), signal: ctl && ctl.signal } : { signal: ctl && ctl.signal });
+    clearTimeout(tm);
+    const o = await r.json().catch(() => null);
+    if (o && o.err === 'nodb') rankOff();
+    else if (o && o.ok && !rankReady) { rankReady = true; $('rankBtn').hidden = false; }
+    return o;
+  } catch (e) { return null; } finally { clearTimeout(tm); }
+}
+function rankOff() { rankOn = false; $('rankBtn').hidden = true; $('resWorld').hidden = true; $('board').hidden = true; }
+// the title's button shows once the server has answered (today's board, fetched now so that it opens at once)
+function rankInit() {
+  if (!rankOn) return;
+  try { const o = JSON.parse(lsGet('zb3d-wr') || 'null'); if (o && o.all) rankLast = o; } catch (e) {}
+  rankHash();
+  let tries = 0;
+  const pre = () => rankCall('/board?b=day').then(o => {
+    if (o && o.ok) { if (!rankBoards.day) rankBoards.day = { at: Date.now(), data: o }; }
+    else if (!o && rankOn && !rankReady && ++tries < 4) setTimeout(pre, 4000 * tries);
+  });
+  pre();
+}
+// a round starts: the server signs the moment, and the score goes back with it
+function rankStart() {
+  rankTok = null;
+  if (!rankOn) return;
+  const seq = ++rankSeq;
+  const go = (n) => rankCall('/start', { pid: rankPid() }).then(o => {
+    if (seq !== rankSeq) return;
+    if (o && o.ok) rankTok = o.t;
+    else if (!o && n < 2 && running) setTimeout(() => go(n + 1), 1500);
+  });
+  go(0);
+}
+const rankFmt = s => !s ? '' : EN ? `#${s.approx ? '~' : ''}${s.rank.toLocaleString('en')}` : `${s.approx ? '約' : ''}${s.rank.toLocaleString('ja')}位`;
+const rankOf = s => !s ? '' : EN ? `/${s.of.toLocaleString('en')}` : `/${s.of.toLocaleString('ja')}人`;
+const todayUTC = () => new Date().toISOString().slice(0, 10);
+function rankLine(fresh) {
+  const L = rankLast, el = $('resWorldT');
+  if (!L) { el.textContent = jaEn('世界ランキングを見る', 'See the world ranking'); return; }
+  const td = fresh || L.day === todayUTC() ? L.today : null;
+  el.innerHTML = `${jaEn('世界', 'World')} <b>${rankFmt(L.all)}</b><small>${rankOf(L.all)}</small>` + (td ? `<span class="sep">·</span>${jaEn('今日', 'Today')} <b>${rankFmt(td)}</b><small>${rankOf(td)}</small>` : '');
+}
+// the round is over (finish(), the score final): send it, then show where we stand
+function rankSubmit(sc, k) {
+  const el = $('resWorld'), t = rankTok;
+  rankTok = null;
+  el.hidden = !rankOn || (!t && !rankReady);
+  if (el.hidden) return;
+  if (!t) { el.classList.remove('wait'); rankLine(); return; }
+  el.classList.add('wait'); $('resWorldT').textContent = jaEn('世界ランキングに送信中…', 'Sending to the world ranking…');
+  const seq = rankSeq;
+  rankCall('/score', { pid: rankPid(), name: rankName(), score: sc, kills: k, weapon, stage: stageId, lang: LANG, t }).then(o => {
+    if (seq !== rankSeq) return;   // the next round has begun
+    el.classList.remove('wait');
+    if (o && o.ok) {
+      rankLast = { all: o.all, today: o.today, day: o.day, name: o.name, weapon, stage: stageId, grade: RANKS.find(r => sc >= r.min).r };
+      if (o.h) rankMine = o.h;
+      if (!o.nameOk) lsSet('zb3d-name', o.name);   // a name the board would not take: the one it gave instead
+      lsSet('zb3d-wr', JSON.stringify(rankLast));
+      if (!$('board').hidden) boardDraw();
+    }
+    rankLine(o && o.ok);
+  });
+}
+
+// ---------- the board ----------
+const flagOf = cc => /^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map(c => 0x1f1e6 + c.charCodeAt(0) - 65)) : '·';
+const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const BOARD_W = () => ({ ...WEAPON_NAME, rocket: jaEn('ロケラン', 'Rockets'), tank: jaEn('戦車', 'Tank') });
+async function openBoard(from) {
+  if (!rankOn) return;
+  $('board').hidden = false;
+  $('bdEdit').hidden = true;
+  track('ranking_open', { from });
+  try { $('bdClose').focus({ preventScroll: true }); } catch (e) {}
+  await rankHash();
+  boardLoad(rankTab);
+}
+async function boardLoad(which) {
+  rankTab = which;
+  const B = rankBoards[which];
+  boardDraw();
+  if (B && Date.now() - B.at < 10000) return;
+  const o = await rankCall('/board?b=' + which);
+  if (o && o.ok) rankBoards[which] = { at: Date.now(), data: o };
+  else if (!rankBoards[which]) rankBoards[which] = { at: 0, data: null, fail: true };
+  if (rankTab === which && !$('board').hidden) boardDraw();
+}
+function closeBoard() { $('board').hidden = true; const r = $('result'); try { (r.hidden ? $('rankBtn') : $('resWorld')).focus({ preventScroll: true }); } catch (e) {} }
+// our own row as we last sent it, in case the board came from the edge's cache a moment before
+function withMine(list, which, day) {
+  const L = rankLast;
+  if (!L || !rankMine) return list;
+  const s = which === 'all' ? L.all : L.day === day ? L.today : null;
+  if (!s || !s.up) return list;
+  const old = list.find(e => e.h === rankMine);
+  if (old && old.score >= s.best) return list;
+  const me = { h: rankMine, name: rankName(), cc: old ? old.cc : '', score: s.best, weapon: L.weapon, stage: L.stage, grade: L.grade };
+  const out = list.filter(e => e.h !== rankMine);
+  let i = out.findIndex(e => e.score < me.score);
+  if (i < 0) i = out.length;
+  out.splice(i, 0, me);
+  return out.slice(0, RANK_TOP);
+}
+function boardDraw() {
+  const which = rankTab, B = rankBoards[which], list = $('bdList'), sub = $('bdSub'), day = B && B.data ? B.data.day : todayUTC();
+  for (const b of document.querySelectorAll('.bd-tab[data-b]')) b.setAttribute('aria-pressed', String(b.dataset.b === which));
+  const W = BOARD_W();
+  if (!B || (!B.data && !B.fail)) { list.innerHTML = `<li class="msg">${jaEn('読み込み中…', 'Loading…')}</li>`; sub.textContent = ''; }
+  else if (!B.data) { list.innerHTML = `<li class="msg">${jaEn('ランキングを読み込めませんでした', 'Could not load the ranking')}</li>`; sub.textContent = ''; }
+  else {
+    const rows = withMine(B.data.list, which, day), n = Math.max(B.data.players, rows.length);
+    sub.textContent = (EN ? `${n.toLocaleString('en')} player${n === 1 ? '' : 's'}` : `${n.toLocaleString('ja')}人が参加`) + (which === 'day' ? jaEn('・毎日9時（日本時間）にリセット', ' · resets daily at 00:00 UTC') : '');
+    let rk = 0, prev = -1;
+    list.innerHTML = rows.length ? rows.map((e, i) => {
+      if (e.score !== prev) { rk = i + 1; prev = e.score; }
+      const st = STAGES[e.stage] ? STAGES[e.stage].name : '';
+      return `<li class="${e.h === rankMine ? 'me' : ''}${rk <= 3 ? ' top' : ''}"><b class="n">${rk}</b><span class="f">${flagOf(e.cc)}</span><span class="nm"><span>${escHtml(e.name)}</span><small>${escHtml(W[e.weapon] || '')}${st ? ' · ' + escHtml(st) : ''}</small></span><span class="s">${Number(e.score).toLocaleString(EN ? 'en' : 'ja')}<i>${escHtml(e.grade || '')}</i></span></li>`;
+    }).join('') : `<li class="msg">${jaEn('まだだれもいません。最初の1人になろう!', 'No one yet. Be the first!')}</li>`;
+  }
+  // us: the name, and where our best stands
+  const L = rankLast, s = !L ? null : which === 'all' ? L.all : L.day === day ? L.today : null;
+  $('bdMeName').textContent = rankName();
+  $('bdMeRank').textContent = s ? `${jaEn('ベスト', 'Best')} ${s.best.toLocaleString(EN ? 'en' : 'ja')}${jaEn('・', ' · ')}${rankFmt(s)}` : which === 'day' && L ? jaEn('今日はまだ記録なし', 'Not on today’s board yet') : jaEn('1回遊ぶと載ります', 'Play a round to get on the board');
+}
+function boardRename(ev) {
+  ev.preventDefault();
+  const inp = $('bdInput'), v = inp.value.normalize('NFKC').replace(/\s+/g, ' ').trim(), msg = $('bdMsg');
+  if (!v) { inp.focus(); return; }
+  const was = rankName(), name = [...v].slice(0, 16).join('');
+  lsSet('zb3d-name', name);
+  $('bdEdit').hidden = true; msg.hidden = true;
+  rankCall('/name', { pid: rankPid(), name }).then(o => {
+    if (o && o.ok && !o.nameOk) { lsSet('zb3d-name', was); msg.textContent = jaEn('その名前は使えません', 'That name can’t be used'); msg.hidden = false; }
+    else if (o && o.ok) for (const k in rankBoards) { const d = rankBoards[k].data; if (d) for (const e of d.list) if (e.h === rankMine) e.name = o.name; }
+    if (rankLast) rankLast.name = rankName();
+    boardDraw();
+  });
+  boardDraw();
+}
+$('rankBtn').addEventListener('click', () => openBoard('title'));
+$('resWorld').addEventListener('click', () => openBoard('result'));
+$('bdClose').addEventListener('click', closeBoard);
+$('board').addEventListener('keydown', e => { if (e.key === 'Escape') closeBoard(); });
+for (const b of document.querySelectorAll('.bd-tab[data-b]')) b.addEventListener('click', () => boardLoad(b.dataset.b));
+$('bdNameBtn').addEventListener('click', () => { const f = $('bdEdit'); f.hidden = !f.hidden; $('bdMsg').hidden = true; if (!f.hidden) { const i = $('bdInput'); i.value = rankName(); try { i.focus(); i.select(); } catch (e) {} } });
+$('bdEdit').addEventListener('submit', boardRename);
+if (window.ZB_DEBUG) { window.__rankTok = () => rankTok; window.__rank = () => ({ rankOn, rankReady, api: RANK_API, boards: Object.keys(rankBoards), last: rankLast }); }   // tests
+rankInit();
 
 boot();
 </script>
