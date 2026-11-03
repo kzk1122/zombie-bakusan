@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ゾンビ爆散</title>
-<meta name="description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
+<meta name="description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
 <meta name="theme-color" content="#1d1426">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
 <link rel="canonical" href="https://zombie-bakusan.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="ゾンビ爆散">
-<meta property="og:description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、15秒1本勝負の3Dブラウザゲーム。巨大ゾンビは月まで飛ばせ。">
+<meta property="og:description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
 <meta property="og:url" content="https://zombie-bakusan.pages.dev/">
 <meta property="og:image" content="https://zombie-bakusan.pages.dev/screenshot.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -389,7 +389,7 @@ canvas { display: block; width: 100%; height: 100%; }
   <canvas id="cv"></canvas>
 
   <div class="hud" id="hud" hidden>
-    <div class="stat time"><span class="k" data-en="TIME">残り</span><span class="v" id="time">15.0</span></div>
+    <div class="stat time"><span class="k" data-en="TIME">残り</span><span class="v" id="time">10.0</span></div>
     <div class="stat"><span class="k" data-en="SCORE">スコア</span><span class="v" id="score">0</span></div>
     <div class="stat"><span class="k" id="ammoLabel">ロケット</span><span class="ammo" id="ammo"></span></div>
     <span class="spacer"></span>
@@ -405,7 +405,7 @@ canvas { display: block; width: 100%; height: 100%; }
       <h1 class="logo">ゾンビ<br>爆散</h1>
       <p class="roman" lang="en">ZOMBIE BAKUSAN</p>
       <p class="tag"><span class="badge3d" data-en="3D">3D版</span></p>
-      <p class="tag" data-en-html="<span>This is the last line of defense.</span> <span>Blow them all away in 15 seconds.</span>"><span>ここが最終防衛ライン。</span><span>15秒で全部ぶっ飛ばせ。</span></p>
+      <p class="tag" data-en-html="<span>This is the last line of defense.</span> <span>Blow them all away in 10 seconds.</span>"><span>ここが最終防衛ライン。</span><span>10秒で全部ぶっ飛ばせ。</span></p>
       <div class="pick" role="group" aria-label="武器を選ぶ" data-en-label="Choose a weapon">
         <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t" data-en="Rockets">ロケラン</span><span class="d" data-en="Explosive rockets">爆発するロケット弾</span></button>
         <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t" data-en="Tank">戦車</span><span class="d" data-en="Skewering cannon">串刺しにする主砲</span></button>
@@ -7562,7 +7562,7 @@ function buzz(p, lv = 1) {
 // ===== 70-game.js
 
 // ---------- state ----------
-const DURATION = 15, FEVER_TIME = 4.5;
+const DURATION = 10, FEVER_TIME = 4.5;   // 10 s since 2026-11-03 (kazu: with the world ranking); 15 before, 30 at first
 // what the set pieces pay on top of the kills they take with them (2026-10-25: a block coming down paid what three zombies
 // did, so nobody aimed at one)
 const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000, gold: 50000, twin: 100000, star: 100000 };
@@ -7572,7 +7572,9 @@ const PLOUGHED = { walker: 1, runner: 1, tank: 1 };
 // lines drawn from bot rounds (2026-10-25, redrawn for the bigger horde, about three times the kills; 8 rounds a style): the
 // street is so full that blind firing scores as well as clean shooting, both 7.5 to 9.3 million, mostly SS; a person is
 // slower than the bots, so S to SS; SSS for the best rounds only; doing nothing is C
-const RANKS = [{ r: 'SSS', min: 9200000 }, { r: 'SS', min: 7800000 }, { r: 'S', min: 6000000 }, { r: 'A', min: 4000000 }, { r: 'B', min: 1200000 }, { r: 'C', min: 0 }];
+// 10-second rounds (2026-11-03): the 15-second lines (SSS 9.2M, SS 7.8M, S 6.0M, A 4.0M, B 1.2M) times 0.69, the bots' median
+// against the 15-second one; SSS in 28% of the bots' rounds (24% before)
+const RANKS = [{ r: 'SSS', min: 6400000 }, { r: 'SS', min: 5400000 }, { r: 'S', min: 4200000 }, { r: 'A', min: 2800000 }, { r: 'B', min: 800000 }, { r: 'C', min: 0 }];
 let running = false, endT = 0;
 let explosionsQ = [], floaters = [], bannerObj = null;
 let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
@@ -8253,7 +8255,8 @@ function finish() {
   rankSubmit(score, kills);
   let best = '';
   try {
-    const bestKey = weapon === 'tank' ? 'zb3d-best-tank' : 'zb3d-best', prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
+    const bestKey = weapon === 'tank' ? 'zb3d-best10-tank' : 'zb3d-best10',   // 10-second rounds' own (15 s: zb3d-best)
+      prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
     if (!prev || score > prev.score) {
       localStorage.setItem(bestKey, JSON.stringify({ score }));
       best = prev ? jaEn('ベスト更新!', 'New best!') : '';
@@ -8748,7 +8751,7 @@ async function bootInner() {
     const bad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m); bad.position.set(0, 1.5, -12); scene.add(bad);
   }
   booted = true;
-  $('startBtn').disabled = false; $('startSub').textContent = jaEn('15秒アタック', '15-second attack'); zbDiag('load', null);
+  $('startBtn').disabled = false; $('startSub').textContent = jaEn('10秒アタック', '10-second attack'); zbDiag('load', null);
   requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 }
 
@@ -8763,7 +8766,7 @@ const SWELL_T = 0.42, FAT_R = 3.0;
 const COIN_C = new THREE.Color(2.6, 1.75, 0.35), BILL_C = new THREE.Color('#d8caa0'), BILL_C2 = new THREE.Color('#b8c8a8');
 let goldAt = [], goldKills = 0, bombes = [];
 function resetSpecials() {
-  goldAt = [rand(2.2, 4.5), rand(8.5, 11)];
+  goldAt = [rand(1.6, 3.0), rand(5.4, 7.0)];   // 10-second rounds (15 s: 2.2-4.5 and 8.5-11)
   goldKills = 0; bombes = [];
 }
 function spawnGold() {
@@ -11503,9 +11506,11 @@ const BUS_LOAD = 24;
 let hapKind = '', hapAt = 99, lastHap = '', forceHap = '', hapDone = [], heli = null, hapMesh = {};
 // the round's plan: when the giant drops, and which happening comes when
 function resetHappening() {
-  bossAt = rand(5.2, 8.2);
+  bossAt = rand(3.4, 4.8);   // 10-second rounds (15 s: 5.2-8.2, the happening before or after it)
   hapKind = forceHap || pick(Object.keys(HAPS).filter(k => k !== lastHap)); lastHap = hapKind;
-  hapAt = bossAt > 6.8 ? rand(2.6, bossAt - 2.4) : rand(bossAt + 3.4, hapKind === 'heli' ? 11 : hapKind === 'ship' ? 9 : 10.2);   // a lorry or a bus needs time to arrive
+  // before the giant: a lorry, a bus or the gas main needs about 5 s to play out; the airship takes 4 s to come up the
+  // avenue and then wants a couple of rockets, so it comes first thing (in 10 s the bots brought it down far less often)
+  hapAt = hapKind === 'ship' ? rand(1.4, 1.9) : rand(1.5, bossAt - 1.6);
   hapDone = [];
   for (const k of ['tanker', 'bus']) { const M = hapMesh[k]; if (M) { M.g.visible = false; M.restore(); } }
   if (hapMesh.heli) { hapMesh.heli.g.visible = false; hapMesh.heli.beam.visible = false; }
@@ -11836,7 +11841,7 @@ const _hw = new THREE.Vector3(), _hwQ = new THREE.Quaternion(), _hwM = new THREE
 const _hwC = new THREE.Matrix4().makeTranslation(0, -0.72, 0), _hwT = new THREE.Vector3(TK_SCALE, TK_SCALE, TK_SCALE);
 let zcPlan = [], zcSeen = false, zcDown = 0;
 function resetHwy() {
-  zcPlan = [rand(1.5, 2.3), rand(5.9, 6.9), rand(10.1, 10.9)]; zcSeen = false; zcDown = 0;
+  zcPlan = [rand(1.4, 2.0), rand(3.8, 4.4), rand(5.6, 6.2)];   // 10-second rounds: the third reaches the horde at about 9 s zcSeen = false; zcDown = 0;
   if (!hwy) return;
   Object.assign(hwy, { state: 'stand', hp: OVER_HP, t: 0, ft: 0, ch: null, fast: false, th: 0, flash: 0, jolt: 0, aimed: [], tank: null, tankAt: 99, burnT: 0, dust: 0 });
   for (const J of hwy.jam) {
@@ -13094,31 +13099,32 @@ function shipTiltGoal() {
 const MISSIONS = [
   // [id, tier, line, done]: lines short enough for one line on a phone. The bars come from bot rounds (2026-10-25, redrawn
   // for the bigger horde): bronze most rounds get, silver about half, gold one round in three or rarer. (2026-10-31: the
-  // headshots and the juggles in the air went with the machine gun, whose bullets made nearly all of them)
+  // headshots and the juggles in the air went with the machine gun, whose bullets made nearly all of them; 2026-11-03: drawn
+  // again for 10-second rounds so each passes about as often as before, the ids renamed with the bars)
   ['chain40', 1, jaEn('1発で40体倒す', 'Kill 40 with one shot'), () => bestChain >= 40],
   ['chain80', 2, jaEn('1発で80体倒す', 'Kill 80 with one shot'), () => bestChain >= 80],
-  ['chain150', 3, jaEn('1発で150体倒す', 'Kill 150 with one shot'), () => bestChain >= 150],
+  ['chain130', 3, jaEn('1発で130体倒す', 'Kill 130 with one shot'), () => bestChain >= 130],
   ['bld1', 1, jaEn('ビルを倒す', 'Bring down a building'), () => bldDown >= 1],
   ['bld2', 2, jaEn('ビルを2棟倒す', 'Bring down 2 buildings'), () => bldDown >= 2],
   ['bld3', 3, jaEn('ビルを3棟倒す', 'Bring down 3 buildings'), () => bldDown >= 3],
-  ['car6', 1, jaEn('車を6台爆破', 'Blow up 6 cars'), () => carsBlown >= 6],
+  ['car4', 1, jaEn('車を4台爆破', 'Blow up 4 cars'), () => carsBlown >= 4],
   ['gold1', 1, jaEn('金ピカを倒す', 'Kill a gold zombie'), () => goldKills >= 1],
   ['gold2', 2, jaEn('金ピカを2体とも倒す', 'Kill both gold zombies'), () => goldKills >= 2],
   ['boss', 1, jaEn('巨大ゾンビを倒す', 'Kill the giant'), () => bossKilled],
   ['boss2', 2, jaEn('巨大ゾンビを着地から2秒で倒す', 'Kill the giant within 2 s of landing'), () => bossKilled && bossKillT <= 2],
-  ['moon12', 2, jaEn('月に12回当てる', 'Hit the moon 12 times'), () => moonHits >= 12],
+  ['moon10', 2, jaEn('月に10回当てる', 'Hit the moon 10 times'), () => moonHits >= 10],
   ['hap', 2, jaEn('ハプニングをぶっ壊す', "Wreck this round's surprise"), () => hapDone.length > 0],
-  ['strike300', 2, jaEn('空爆で300体', '300 kills in an air strike'), () => strikeKills >= 300],
-  ['strike400', 3, jaEn('空爆で400体', '400 kills in air strikes'), () => strikeKills >= 400],
-  ['kill500', 1, jaEn('500体倒す', 'Kill 500'), () => kills >= 500],
-  ['kill900', 3, jaEn('900体倒す', 'Kill 900'), () => kills >= 900],
-  ['combo400', 1, jaEn('400コンボ', '400 combo'), () => maxCombo >= 400],
-  ['combo900', 3, jaEn('900コンボ', '900 combo'), () => maxCombo >= 900],
+  ['strike200', 2, jaEn('空爆で200体', '200 kills in air strikes'), () => strikeKills >= 200],
+  ['strike270', 3, jaEn('空爆で270体', '270 kills in air strikes'), () => strikeKills >= 270],
+  ['kill350', 1, jaEn('350体倒す', 'Kill 350'), () => kills >= 350],
+  ['kill620', 3, jaEn('620体倒す', 'Kill 620'), () => kills >= 620],
+  ['combo250', 1, jaEn('250コンボ', '250 combo'), () => maxCombo >= 250],
+  ['combo620', 3, jaEn('620コンボ', '620 combo'), () => maxCombo >= 620],
   ['fly80', 2, jaEn('80m吹っ飛ばす', 'Blast one 80 m'), () => longestFlight >= 80],
-  ['fat10', 1, jaEn('デブを10体破裂させる', 'Pop 10 bloaters'), () => fatPops >= 10],
-  ['fat25', 2, jaEn('デブを25体破裂させる', 'Pop 25 bloaters'), () => fatPops >= 25],
-  ['gas12', 1, jaEn('ボンベを12本飛ばす', 'Launch 12 gas tanks'), () => bombesShot >= 12],
-  ['score850', 3, jaEn('850万点を出す', 'Score 8,500,000'), () => score >= 8500000],
+  ['fat7', 1, jaEn('デブを7体破裂させる', 'Pop 7 bloaters'), () => fatPops >= 7],
+  ['fat15', 2, jaEn('デブを15体破裂させる', 'Pop 15 bloaters'), () => fatPops >= 15],
+  ['gas8', 1, jaEn('ボンベを8本飛ばす', 'Launch 8 gas tanks'), () => bombesShot >= 8],
+  ['score580', 3, jaEn('580万点を出す', 'Score 5,800,000'), () => score >= 5800000],
 ].map(([id, tier, text, done]) => ({ id, tier, text, done }));
 const MISSION_BY = Object.fromEntries(MISSIONS.map(m => [m.id, m]));
 const MEDAL_C = ['', '#d08a4e', '#d6dde4', '#ffd25e'], MEDAL_NAME = jaEn(['', '銅', '銀', '金'], ['', 'Bronze', 'Silver', 'Gold']);

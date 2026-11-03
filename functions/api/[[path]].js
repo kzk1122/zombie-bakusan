@@ -13,15 +13,15 @@
 // over the whole board: each board keeps how many players stand in each 100,000-point band (hist), and a rank is the sum of
 // the bands above plus a count within the player's own band (at most 500 rows). A score: about a dozen rows written at most.
 // Cheating can't be stopped in a game that runs in the browser; this keeps out the casual kind: a score needs a round
-// started (and signed here) at least 14 s before, each start counts once, and score, kills and the grade must add up.
+// started (and signed here) at least 9 s before (a 10-second round and its finale take 12.9 s at the least), each start counts once, and score, kills and the grade must add up.
 
 const PROD_HOST = 'zombie-bakusan.pages.dev';
 const ORIGINS = ['https://zombie-bakusan.pages.dev', 'https://kzk1122.github.io'];
 const WEAPONS = ['rocket', 'tank', 'hole', 'rail', 'wave', 'flame', 'shock', 'missile', 'bits'];
 const STAGES = ['avenue', 'park', 'fest', 'hwy'];
 // the rank lines (RANKS in src/70-game.js)
-const GRADES = [['SSS', 9200000], ['SS', 7800000], ['S', 6000000], ['A', 4000000], ['B', 1200000], ['C', 0]];
-const BAND = 100000, TOP = 100, MAX_SCORE = 30000000, MIN_ROUND_MS = 14000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
+const GRADES = [['SSS', 6400000], ['SS', 5400000], ['S', 4200000], ['A', 2800000], ['B', 800000], ['C', 0]];   // the game's RANKS (10-second rounds)
+const BAND = 100000, TOP = 100, MAX_SCORE = 30000000, MIN_ROUND_MS = 9000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
 // a kill is worth at most 100 x 50 (the combo's cap) x 2 (from the 11th of a chain); the bonuses (buildings, the giant,
 // cars, happenings, set pieces, contraptions) come to a couple of million at most
 const PER_KILL = 10000, BONUS_ROOM = 5000000;
