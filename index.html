@@ -13794,7 +13794,7 @@ const RANK_API = (() => {
   if (h === 'kzk1122.github.io') return 'https://zombie-bakusan.pages.dev/api';
   return '';
 })();
-let rankOn = !!RANK_API, rankReady = false, rankTok = null, rankSeq = 0, rankLast = null, rankTab = 'day', rankMine = '', rankPidV = '';
+let rankOn = !!RANK_API, rankReady = false, rankTok = null, rankSeq = 0, rankLast = null, rankRun = null, rankTab = 'day', rankMine = '', rankPidV = '';
 const rankBoards = {};   // the boards as last fetched: { day: {at, data}, all: {...} }
 const RANK_TOP = 100;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -13859,16 +13859,19 @@ function rankStart() {
 const rankFmt = s => !s ? '' : EN ? `#${s.approx ? '~' : ''}${s.rank.toLocaleString('en')}` : `${s.approx ? '約' : ''}${s.rank.toLocaleString('ja')}位`;
 const rankOf = s => !s ? '' : EN ? `/${s.of.toLocaleString('en')}` : `/${s.of.toLocaleString('ja')}人`;
 const todayUTC = () => new Date().toISOString().slice(0, 10);
-function rankLine(fresh) {
-  const L = rankLast, el = $('resWorldT');
-  if (!L) { el.textContent = jaEn('世界ランキングを見る', 'See the world ranking'); return; }
-  const td = fresh || L.day === todayUTC() ? L.today : null;
-  el.innerHTML = `${jaEn('世界', 'World')} <b>${rankFmt(L.all)}</b><small>${rankOf(L.all)}</small>` + (td ? `<span class="sep">·</span>${jaEn('今日', 'Today')} <b>${rankFmt(td)}</b><small>${rankOf(td)}</small>` : '');
+// the result card: where this round's score landed on the boards (the server's `run`: the player's own better best counts
+// above it, so a weaker round never reads as first; kazu 2026-11-03). A round that did not get through shows no old
+// numbers, only the way to the board. The count of players is left out when this round would come last behind them all.
+function rankLine() {
+  const R = rankRun, el = $('resWorldT');
+  if (!R || !R.all) { el.textContent = jaEn('世界ランキングを見る', 'See the world ranking'); return; }
+  const part = (k, s) => `${k} <b>${rankFmt(s)}</b>` + (s.rank <= s.of ? `<small>${rankOf(s)}</small>` : '');
+  el.innerHTML = part(jaEn('世界', 'World'), R.all) + (R.today ? `<span class="sep">·</span>` + part(jaEn('今日', 'Today'), R.today) : '');
 }
 // the round is over (finish(), the score final): send it, then show where we stand
 function rankSubmit(sc, k) {
   const el = $('resWorld'), t = rankTok;
-  rankTok = null;
+  rankTok = null; rankRun = null;
   el.hidden = !rankOn || (!t && !rankReady);
   if (el.hidden) return;
   if (!t) { el.classList.remove('wait'); rankLine(); return; }
@@ -13879,12 +13882,13 @@ function rankSubmit(sc, k) {
     el.classList.remove('wait');
     if (o && o.ok) {
       rankLast = { all: o.all, today: o.today, day: o.day, name: o.name, weapon, stage: stageId, grade: RANKS.find(r => sc >= r.min).r };
+      rankRun = o.run || null;
       if (o.h) rankMine = o.h;
       if (!o.nameOk) lsSet('zb3d-name', o.name);   // a name the board would not take: the one it gave instead
       lsSet('zb3d-wr', JSON.stringify(rankLast));
       if (!$('board').hidden) boardDraw();
     }
-    rankLine(o && o.ok);
+    rankLine();
   });
 }
 
@@ -13970,7 +13974,7 @@ $('board').addEventListener('keydown', e => { if (e.key === 'Escape') closeBoard
 for (const b of document.querySelectorAll('.bd-tab[data-b]')) b.addEventListener('click', () => boardLoad(b.dataset.b));
 $('bdNameBtn').addEventListener('click', () => { const f = $('bdEdit'); f.hidden = !f.hidden; $('bdMsg').hidden = true; if (!f.hidden) { const i = $('bdInput'); i.value = rankName(); try { i.focus(); i.select(); } catch (e) {} } });
 $('bdEdit').addEventListener('submit', boardRename);
-if (window.ZB_DEBUG) { window.__rankTok = () => rankTok; window.__rank = () => ({ rankOn, rankReady, api: RANK_API, boards: Object.keys(rankBoards), last: rankLast }); }   // tests
+if (window.ZB_DEBUG) { window.__rankTok = () => rankTok; window.__rank = () => ({ rankOn, rankReady, api: RANK_API, boards: Object.keys(rankBoards), last: rankLast, run: rankRun }); }   // tests
 rankInit();
 
 boot();

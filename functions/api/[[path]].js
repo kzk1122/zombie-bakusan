@@ -134,7 +134,7 @@ async function standing(R, boardKey, value) {
   const w = boardKey === 'all'
     ? await db.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${P}players WHERE best > ?1 AND best < ?2 LIMIT 500)`).bind(lo, hi).first()
     : await db.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${P}daily WHERE day = ?1 AND score > ?2 AND score < ?3 LIMIT 500)`).bind(boardKey.slice(2), lo, hi).first();
-  return { rank: h.above + w.n + 1, of: Math.max(h.tot, h.above + w.n + 1), approx: w.n >= 500 };
+  return { rank: h.above + w.n + 1, of: Math.max(h.tot, h.above + w.n + 1), tot: h.tot, approx: w.n >= 500 };
 }
 const bump = (R, boardKey, b, d) => R.db.prepare(`INSERT INTO ${R.P}hist (board, b, n) VALUES (?1, ?2, MAX(0, ?3)) ON CONFLICT (board, b) DO UPDATE SET n = MAX(0, n + ?3)`).bind(boardKey, b, d);
 
@@ -183,8 +183,15 @@ async function score(R, body, request, reply) {
   }
   await db.batch(writes);
   const bestAll = upAll ? sc : pRow.best, bestDay = upDay ? sc : dRow.score;
-  const [all, dayS] = await Promise.all([standing(R, 'all', bestAll), standing(R, dKey, bestDay)]);
-  return reply({ ok: true, name, nameOk, h, day, all: { ...all, best: bestAll, up: upAll }, today: { ...dayS, best: bestDay, up: upDay } });
+  // all / today: where the player's best stands (the board keeps one score each). run: where this round's score lands on
+  // the boards as they are, the player's own better best above it, so a weaker round is never shown as first (kazu
+  // 2026-11-03: 点数が低いにもかかわらず世界1位). Its `of` is the players on the board: one fewer than its rank when this
+  // round would come last behind them all, and the game then leaves the count out.
+  const [all, dayS, rAll, rDay] = await Promise.all([standing(R, 'all', bestAll), standing(R, dKey, bestDay),
+    upAll ? null : standing(R, 'all', sc), upDay ? null : standing(R, dKey, sc)]);
+  const pub = s => ({ rank: s.rank, of: s.of, approx: s.approx }), runOf = (s, r) => r ? { rank: r.rank, of: r.tot, approx: r.approx } : pub(s);
+  return reply({ ok: true, name, nameOk, h, day, all: { ...pub(all), best: bestAll, up: upAll }, today: { ...pub(dayS), best: bestDay, up: upDay },
+    run: { all: runOf(all, rAll), today: runOf(dayS, rDay) } });
 }
 
 async function rename(R, body, reply) {
