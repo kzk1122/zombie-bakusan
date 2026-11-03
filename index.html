@@ -13861,11 +13861,14 @@ const rankOf = s => !s ? '' : EN ? `/${s.of.toLocaleString('en')}` : `/${s.of.to
 const todayUTC = () => new Date().toISOString().slice(0, 10);
 // the result card: where this round's score landed on the boards (the server's `run`: the player's own better best counts
 // above it, so a weaker round never reads as first; kazu 2026-11-03). A round that did not get through shows no old
-// numbers, only the way to the board. The count of players is left out when this round would come last behind them all.
-function rankLine() {
+// numbers, only the way to the board. A round that would come last behind everyone, the player's own best too, says
+// 最下位 rather than a small number: with few on a board, 2位 had read as a good place for a score of 0 (kazu, the same
+// day), and a round of 0 is not ranked at all.
+function rankLine(zero) {
   const R = rankRun, el = $('resWorldT');
+  if (zero) { el.textContent = jaEn('0点はランキングに載りません', 'Zero scores aren’t ranked'); return; }
   if (!R || !R.all) { el.textContent = jaEn('世界ランキングを見る', 'See the world ranking'); return; }
-  const part = (k, s) => `${k} <b>${rankFmt(s)}</b>` + (s.rank <= s.of ? `<small>${rankOf(s)}</small>` : '');
+  const part = (k, s) => `${k} <b>` + (s.rank > s.of ? jaEn('最下位', 'last') + '</b>' : `${rankFmt(s)}</b><small>${rankOf(s)}</small>`);
   el.innerHTML = part(jaEn('世界', 'World'), R.all) + (R.today ? `<span class="sep">·</span>` + part(jaEn('今日', 'Today'), R.today) : '');
 }
 // the round is over (finish(), the score final): send it, then show where we stand
@@ -13874,6 +13877,7 @@ function rankSubmit(sc, k) {
   rankTok = null; rankRun = null;
   el.hidden = !rankOn || (!t && !rankReady);
   if (el.hidden) return;
+  if (sc <= 0) { el.classList.remove('wait'); rankLine(true); return; }   // nothing hit: not sent, not ranked
   if (!t) { el.classList.remove('wait'); rankLine(); return; }
   el.classList.add('wait'); $('resWorldT').textContent = jaEn('世界ランキングに送信中…', 'Sending to the world ranking…');
   const seq = rankSeq;

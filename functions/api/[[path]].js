@@ -145,6 +145,8 @@ async function score(R, body, request, reply) {
   if (!Number.isSafeInteger(sc) || sc < 0 || sc > MAX_SCORE || !Number.isSafeInteger(kills) || kills < 0 || kills > 5000 || sc > kills * PER_KILL + BONUS_ROOM)
     return reply({ ok: false, err: 'score' }, 400);
   if (!WEAPONS.includes(body.weapon) || !STAGES.includes(body.stage)) return reply({ ok: false, err: 'meta' }, 400);
+  // a round with nothing hit is not a place on the boards (kazu 2026-11-03: 点数が０点でも2位になります); the game no longer sends one
+  if (sc === 0) return reply({ ok: false, err: 'zero' }, 400);
   // the round's start, as signed here: long enough ago for a round, not too long, and not used before
   const m = /^(\d{13})\.([0-9a-f]{32})$/.exec(typeof t === 'string' ? t : '');
   if (!m) return reply({ ok: false, err: 'token' }, 403);
