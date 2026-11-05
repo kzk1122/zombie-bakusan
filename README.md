@@ -4,6 +4,8 @@
 
 **遊ぶ: https://zombie-bakusan.pages.dev/**
 
+CrazyGames でも遊べます: https://www.crazygames.com/game/zombie-bakusan
+
 ![ゲーム画面](screenshot.jpg)
 
 ## 遊び方
@@ -53,6 +55,8 @@
 ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 10-second 3D browser game. Blow the oncoming horde away with a rocket launcher or a tank, and with the medals you earn unlock a black hole, a railgun, a wave cannon, a flamethrower, a shock gun, homing missiles and floating beam bits. There is no losing: keep the chain reactions going, bring the buildings down, cut loose the wrecking ball, drop the power lines on the horde, blow up the gas holder and send the giant zombie to the moon.
 
 **Play: https://zombie-bakusan.pages.dev/?lang=en**
+
+Also on CrazyGames: https://www.crazygames.com/game/zombie-bakusan
 
 The game is in English unless your browser is set to Japanese; the button at the top right of the title screen switches languages.
 
