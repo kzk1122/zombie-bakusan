@@ -370,6 +370,21 @@ canvas { display: block; width: 100%; height: 100%; }
   .rank { font-size: clamp(64px, 17vh, 120px); }
   .hero.on { aspect-ratio: 3.1; }
 }
+/* the game on CrazyGames (2026-11-05, kazu): a quiet link at the foot of the title and the result; the CrazyGames build hides it */
+.cgl { align-self: center; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--bone); text-decoration: none;
+  border: 1.5px solid color-mix(in srgb, var(--bone) 35%, transparent); border-radius: 999px; padding: 6px 14px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent); }
+.cgl:hover { border-color: var(--flare); }
+.cgl:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+/* a short landscape window (CrazyGames' small 800x450 frame, 2026-11-03): the logo on one line and the extra words dropped, so
+   the start button stays in view */
+@media (max-height: 520px) {
+  .logo { font-size: clamp(34px, 11vh, 52px); }
+  .logo br { display: none; }
+  .roman { margin: -6px 0 -2px; font-size: 14px; }
+  #title .card > .tag { display: none; }
+  #title .pick .pk:not(.locked) .d { display: none; }
+}
 /* problem notes, shown only when something went wrong; selectable so they can be copied into a report */
 .diag {
   position: absolute; left: 0; right: 0; bottom: 0; margin: 0;
@@ -431,6 +446,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <ol></ol>
       </div>
       <p class="how" data-en-html="<span>Drums and cars go up big,</span> <span>buildings fall when you shoot them.</span><br><span>Keep killing and an air strike rolls in.</span> <span>Send the giant to the moon.</span><br>On a PC, click or press Space to fire the <span id=&quot;ctlPc&quot;>Rocket</span>."><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
+      <a class="cgl" href="https://www.crazygames.com/game/zombie-bakusan" target="_blank" rel="noopener" data-en="🎮 Also on CrazyGames">🎮 CrazyGames でも遊べる</a>
     </div>
   </div>
 
@@ -478,6 +494,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="sbtn img" id="shareImg" type="button" disabled data-en="Share image">画像で共有</button>
       </div>
       <p class="share-msg" id="shareMsg" hidden></p>
+      <a class="cgl" href="https://www.crazygames.com/game/zombie-bakusan" target="_blank" rel="noopener" data-en="🎮 Also on CrazyGames">🎮 CrazyGames でも遊べる</a>
     </div>
   </div>
   <div class="overlay" id="board" hidden role="dialog" aria-modal="true" aria-labelledby="bdTitle">
@@ -572,6 +589,9 @@ const $ = id => document.getElementById(id);
 // gives the game's. Switching reloads the page, so every string here is fixed for the page's life
 const LANG = window.ZB_LANG === 'en' ? 'en' : 'ja', EN = LANG === 'en';
 const jaEn = (ja, en) => EN ? en : ja;
+// the CrazyGames build (cg.py sets window.ZB_CG, 2026-11-03): no links or addresses that lead to the site (CrazyGames forbids
+// promoting another playable web version), and the CrazyGames SDK hears game starts and ends instead of Google Analytics
+const CG = !!window.ZB_CG;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = matchMedia('(pointer: coarse)').matches;
 const LOD = coarse ? 0.7 : 1;   // phones get fewer particles
@@ -6901,6 +6921,11 @@ function makeCurve(k) {
   for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); }
   return c;
 }
+// iOS can leave the sound 'interrupted' after a call or a trip to the background; the next tap brings it back (CrazyGames asks
+// for this, 2026-11-03)
+['touchend', 'pointerdown', 'click'].forEach(ev => addEventListener(ev, () => {
+  if (actx && actx.state !== 'running' && actx.state !== 'closed') actx.resume().catch(() => {});
+}, { capture: true, passive: true }));
 function initAudio() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
   try {
@@ -8201,6 +8226,8 @@ setMuted(muted);
 // ---------- game flow ----------
 // Site analytics: the site's page loads Google's tag (page.py adds it), so it has gtag; the Artifact has none and this does nothing there
 function track(name, params) { try { if (typeof window.gtag === 'function') window.gtag('event', name, params); } catch (e) {} }
+// a tap on the CrazyGames link, and from which screen (2026-11-05)
+document.querySelectorAll('.cgl').forEach(a => a.addEventListener('click', () => track('crazygames', { from: a.closest('#result') ? 'result' : 'title', lang: LANG })));
 let booted = false;
 function start() {
   if (!booted) return;
@@ -13253,7 +13280,7 @@ function drawMissionToast(raw) {
 
 // ===== 78-share.js
 // ---------- sharing the result: X and LINE links, and a picture of the finale with the score on it ----------
-const SITE_URL = 'https://zombie-bakusan.pages.dev/';
+const SITE_URL = CG ? '' : 'https://zombie-bakusan.pages.dev/';
 const shotCv = document.createElement('canvas');
 let shotT = -1, shotHave = false, cardBlob = null, cardJob = 0, shareInfo = null, dlNS = null;
 // inside the claude.ai viewer a file is saved through the viewer, which asks the player first; on the site there is no window.claude
@@ -13306,6 +13333,7 @@ function shareBtn() {
 // called when the result comes up
 function setupShare(o) {
   shareInfo = o;
+  if (CG) { $('shareX').style.display = 'none'; $('shareLine').style.display = 'none'; }
   $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText(o, TAGS_X)) + '&url=' + encodeURIComponent(SITE_URL);
   $('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText(o) + '\n' + SITE_URL);
   if (!shotHave) requestShot(0);   // no finale frame (it can happen): the street as it is now
@@ -13317,7 +13345,7 @@ async function buildCard(o) {
   const job = ++cardJob;
   const D = '"Dela Gothic One", sans-serif', B = '"Zen Kaku Gothic New", sans-serif';
   const stats = jaEn(`撃破 ${o.kills}体 ・ 最大 ${o.combo}コンボ ・ 最長 ${o.flight}m`, `${o.kills} kills  ·  max combo ${o.combo}  ·  ${o.flight} m flight`);
-  const foot = jaEn('#ゾンビ爆散   zombie-bakusan.pages.dev', '#ZombieBakusan   zombie-bakusan.pages.dev');
+  const foot = CG ? jaEn('#ゾンビ爆散', '#ZombieBakusan') : jaEn('#ゾンビ爆散   zombie-bakusan.pages.dev', '#ZombieBakusan   zombie-bakusan.pages.dev');
   try {
     if (document.fonts && document.fonts.load) await Promise.race([Promise.all([
       document.fonts.load(`80px ${D}`, 'ゾンビ爆散ZOMBIEBAKUSN SCORE0123456789,' + o.rank + o.badges.join('')),
@@ -13391,12 +13419,12 @@ $('shareImg').addEventListener('click', async () => {
   msg('');
   if (dlNS) {
     try { await dlNS.save({ filename: name, data: blob }); msg(saved); }
-    catch (e) { if (!e || e.code !== 'declined') msg(jaEn('ここでは保存できませんでした。XかLINEのボタンを使ってください', "Couldn't save it here. Use the X or LINE button.")); }
+    catch (e) { if (!e || e.code !== 'declined') msg(CG ? jaEn('ここでは保存できませんでした', "Couldn't save it here.") : jaEn('ここでは保存できませんでした。XかLINEのボタンを使ってください', "Couldn't save it here. Use the X or LINE button.")); }
     return;
   }
   if (sheet) {
-    try { await navigator.share({ files: [new File([blob], name, { type })], text: shareText(shareInfo, TAGS_X) + '\n' + SITE_URL }); }
-    catch (e) { if (!e || e.name !== 'AbortError') msg(jaEn('ここでは共有できませんでした。XかLINEのボタンを使ってください', "Couldn't share it here. Use the X or LINE button.")); }
+    try { await navigator.share({ files: [new File([blob], name, { type })], text: shareText(shareInfo, TAGS_X) + (SITE_URL ? '\n' + SITE_URL : '') }); }
+    catch (e) { if (!e || e.name !== 'AbortError') msg(CG ? jaEn('ここでは共有できませんでした', "Couldn't share it here.") : jaEn('ここでは共有できませんでした。XかLINEのボタンを使ってください', "Couldn't share it here. Use the X or LINE button.")); }
     return;
   }
   // no share sheet (most PCs): save it instead
@@ -13571,7 +13599,7 @@ function drawVidFrame() {
   vg.textAlign = 'left'; vg.textBaseline = 'alphabetic'; vg.lineJoin = 'round';
   if (EN) { vg.letterSpacing = '1px'; vidText('ZOMBIE BAKUSAN', 20, 44, 24, VD, '#ffd25e', '#120c17'); vg.letterSpacing = '0px'; }
   else vidText('ゾンビ爆散', 20, 46, 30, VD, '#ffd25e', '#120c17');
-  vidText('zombie-bakusan.pages.dev', 21, 70, 15, VB, 'rgba(243,233,220,.92)', 'rgba(18,12,23,.85)', 700);
+  if (!CG) vidText('zombie-bakusan.pages.dev', 21, 70, 15, VB, 'rgba(243,233,220,.92)', 'rgba(18,12,23,.85)', 700);
 }
 // the card's picture: the fireball the share picture uses, else the last frame
 function vidCardBg() {
@@ -13642,7 +13670,7 @@ function drawVidCard(k) {
     vg.textAlign = 'center';
   }
   vg.globalAlpha = a0;
-  vidText(jaEn('#ゾンビ爆散', '#ZombieBakusan') + '   zombie-bakusan.pages.dev', cx, 925, 22, VB, 'rgba(243,233,220,.9)', 'rgba(18,12,23,.8)', 700);
+  vidText(jaEn('#ゾンビ爆散', '#ZombieBakusan') + (CG ? '' : '   zombie-bakusan.pages.dev'), cx, 925, 22, VB, 'rgba(243,233,220,.9)', 'rgba(18,12,23,.8)', 700);
   vg.globalAlpha = 1;
 }
 if (window.ZB_DEBUG) {
