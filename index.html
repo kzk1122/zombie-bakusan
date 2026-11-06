@@ -55,6 +55,11 @@ body {
   container-type: inline-size; background: var(--night);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bone) 8%, transparent), 0 0 90px rgba(0, 0, 0, .65);
 }
+/* the CrazyGames build (2026-11-06, kazu: the other games there fill their frame, and the phone-shaped column felt cramped
+   in it): the game fills the frame, whatever its shape (crazygames/cg.py puts the class on <html>) */
+html.cg #stage { width: 100%; box-shadow: none; }
+/* the halves of the title and the result card: on the site the card is one column and they are not there (display: contents) */
+.col { display: contents; }
 canvas { display: block; width: 100%; height: 100%; }
 #gl { position: absolute; inset: 0; pointer-events: none; }
 #cv { position: absolute; inset: 0; cursor: none; }
@@ -362,7 +367,13 @@ canvas { display: block; width: 100%; height: 100%; }
 .md.t3 { background: #ffd25e; }
 @keyframes mis-flip { from { transform: rotateX(90deg); opacity: 0; } }
 .mis .unlock { margin: 7px 0 1px; font-family: var(--display); font-size: 15px; color: #dccaff; text-align: center; text-shadow: 0 0 14px #7a44e0; animation: mis-flip .45s ease-out; }
-@media (prefers-reduced-motion: reduce) { .mis li.fresh { animation: none; } }
+/* the next weapon and how far off it is, under the result card's challenges (showNextWeapon) */
+.nextw { margin: 8px 0 2px; }
+.nextw-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--display); font-size: 14px; color: #dccaff; }
+.nextw-h b { font-weight: 400; font-size: 17px; color: var(--flare); white-space: nowrap; }
+.nextw-bar { height: 8px; margin-top: 4px; border-radius: 4px; background: color-mix(in srgb, var(--bone) 14%, transparent); overflow: hidden; }
+.nextw-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #7a44e0, #dccaff); transition: width .9s ease-out; }
+@media (prefers-reduced-motion: reduce) { .mis li.fresh { animation: none; } .nextw-bar i { transition: none; } }
 @media (max-height: 700px) {
   .card { gap: 10px; }
   /* seven weapons on a short screen: the open ones show their names only, so the start button stays in view */
@@ -382,8 +393,29 @@ canvas { display: block; width: 100%; height: 100%; }
   .logo { font-size: clamp(34px, 11vh, 52px); }
   .logo br { display: none; }
   .roman { margin: -6px 0 -2px; font-size: 14px; }
-  #title .card > .tag { display: none; }
+  #title .tag { display: none; }
   #title .pick .pk:not(.locked) .d { display: none; }
+}
+/* CrazyGames in a landscape frame (2026-11-06): the title and the result card lay out side by side, the name or the score on
+   the left, the weapons, the stage and the start or play-again button on the right, so the button is in view without
+   scrolling, in CrazyGames' 800x450 frame and on a phone held sideways too */
+@media (min-aspect-ratio: 5/4) {
+  html.cg .card { max-width: 1000px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; column-gap: clamp(20px, 4vw, 60px); row-gap: 10px; }
+  html.cg .col { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
+  html.cg #title .col-a { grid-column: 1; grid-row: 1; align-self: end; }
+  html.cg #title .how { grid-column: 1; grid-row: 2; align-self: start; margin: 0; }
+  html.cg #title .col-b { grid-column: 2; grid-row: 1 / span 2; }
+  html.cg #result .col-a { grid-column: 1; }
+  html.cg #result .col-b { grid-column: 2; }
+  html.cg .card > .cgl { grid-column: 1 / -1; }
+  html.cg .logo { font-size: clamp(44px, min(15vh, 8.5vw), 120px); }
+  html.cg .logo br { display: inline; }
+  /* the language button moves to the empty top-left corner (the ranking button there is never shown on CrazyGames), clear of
+     the weapons at the top of the right half */
+  html.cg #langBtn { right: auto; left: max(12px, env(safe-area-inset-left, 0px)); }
+}
+@media (min-aspect-ratio: 5/4) and (max-height: 520px) {
+  html.cg .col { gap: 8px; }
 }
 /* problem notes, shown only when something went wrong; selectable so they can be copied into a report */
 .diag {
@@ -417,10 +449,13 @@ canvas { display: block; width: 100%; height: 100%; }
     <button class="lang" id="langBtn" type="button" lang="en" data-en="日本語">English</button>
     <button class="lang rk" id="rankBtn" type="button" hidden data-en="🏆 Ranking">🏆 ランキング</button>
     <div class="card">
+      <div class="col col-a">
       <h1 class="logo">ゾンビ<br>爆散</h1>
       <p class="roman" lang="en">ZOMBIE BAKUSAN</p>
       <p class="tag"><span class="badge3d" data-en="3D">3D版</span></p>
       <p class="tag" data-en-html="<span>This is the last line of defense.</span> <span>Blow them all away in 10 seconds.</span>"><span>ここが最終防衛ライン。</span><span>10秒で全部ぶっ飛ばせ。</span></p>
+      </div>
+      <div class="col col-b">
       <div class="pick" role="group" aria-label="武器を選ぶ" data-en-label="Choose a weapon">
         <button class="pk" type="button" data-w="rocket" aria-pressed="true"><span class="t" data-en="Rockets">ロケラン</span><span class="d" data-en="Explosive rockets">爆発するロケット弾</span></button>
         <button class="pk" type="button" data-w="tank" aria-pressed="false"><span class="t" data-en="Tank">戦車</span><span class="d" data-en="Skewering cannon">串刺しにする主砲</span></button>
@@ -445,6 +480,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <div class="mis-h"><span data-en="CHALLENGES">お題</span><span class="mis-m" id="misMedalsT"></span></div>
         <ol></ol>
       </div>
+      </div>
       <p class="how" data-en-html="<span>Drums and cars go up big,</span> <span>buildings fall when you shoot them.</span><br><span>Keep killing and an air strike rolls in.</span> <span>Send the giant to the moon.</span><br>On a PC, click or press Space to fire the <span id=&quot;ctlPc&quot;>Rocket</span>."><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
       <a class="cgl" href="https://www.crazygames.com/game/zombie-bakusan" target="_blank" rel="noopener" data-en="🎮 Also on CrazyGames">🎮 CrazyGames でも遊べる</a>
     </div>
@@ -452,6 +488,7 @@ canvas { display: block; width: 100%; height: 100%; }
 
   <div class="overlay" id="result" hidden>
     <div class="card">
+      <div class="col col-a">
       <div class="hero" id="resHero">
         <canvas id="bestCv" aria-hidden="true"></canvas>
         <p class="rank" id="resRank">A</p>
@@ -467,9 +504,12 @@ canvas { display: block; width: 100%; height: 100%; }
         <div><div class="k" data-en="Longest flight">最長飛距離</div><div class="v" id="resFlight">0m</div></div>
       </div>
       <div class="badges" id="resBadges"></div>
+      </div>
+      <div class="col col-b">
       <div class="mis" id="misRes">
         <div class="mis-h"><span data-en="CHALLENGES">お題</span><span class="mis-m" id="misMedalsR"></span></div>
         <ol></ol>
+        <div class="nextw" id="misNext" hidden><div class="nextw-h"><span id="misNextT"></span><b id="misNextN"></b></div><div class="nextw-bar"><i id="misNextB"></i></div></div>
       </div>
       <p class="tag" id="resBest"></p>
       <div class="stg small" role="group" aria-label="ステージを選ぶ" data-en-label="Choose a stage"></div>
@@ -494,6 +534,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="sbtn img" id="shareImg" type="button" disabled data-en="Share image">画像で共有</button>
       </div>
       <p class="share-msg" id="shareMsg" hidden></p>
+      </div>
       <a class="cgl" href="https://www.crazygames.com/game/zombie-bakusan" target="_blank" rel="noopener" data-en="🎮 Also on CrazyGames">🎮 CrazyGames でも遊べる</a>
     </div>
   </div>
@@ -6486,9 +6527,10 @@ function updateMissiles(dt) {
     missilePos(m, s);
     const P = m.trail.pts, l = P[P.length - 1];
     if (!l || msClock - l.t > 0.02) P.push({ x: m.x, z: m.z, h: m.h, t: msClock });
-    if (s >= 1) { m.done = true; m.trail.done = true; missileHit(m); }
+    if (s >= 1) { m.done = true; m.trail.done = true; }
   }
-  if (missiles.some(m => m.done)) missiles = missiles.filter(m => !m.done);
+  // the ones that got there leave the list before their blasts go off, so a blast that goes wrong cannot repeat every frame
+  if (missiles.some(m => m.done)) { const hit = missiles.filter(m => m.done); missiles = missiles.filter(m => !m.done); hit.forEach(missileHit); }
   for (const tr of msTrails) { const P = tr.pts; while (P.length && msClock - P[0].t > MS_TRAIL) P.shift(); }
   if (msTrails.some(tr => tr.done && !tr.pts.length)) msTrails = msTrails.filter(tr => !tr.done || tr.pts.length);
 }
@@ -6967,6 +7009,7 @@ function noiseSrc(t, dur) {
 function filt(type, f, q) { const b = actx.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; return b; }
 function osc(type, f, t) { const o = actx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); return o; }
 function gain(t, peak, attack, decay) {
+  if (!(peak >= 0.0001 && peak < 100)) peak = 0.0001;   // NaN or worse from a caller would throw out of the frame (2026-11-06)
   const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(peak, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
   return g;
@@ -7824,6 +7867,10 @@ function burstZombie(zb, o) {
   }
 }
 function explode(x, z, power = 1, h0 = 0.3, skip = null, ch = null) {
+  // a blast at a place that is not a number (a bug elsewhere) goes nowhere: it would shake the camera to NaN and throw from
+  // the sound, every frame (2026-11-06)
+  if (!Number.isFinite(x) || !Number.isFinite(z) || !Number.isFinite(power)) { if (!explode.warned) { explode.warned = true; console.warn('ZB explode at', x, z, power); } return; }
+  if (!Number.isFinite(h0)) h0 = 0.3;
   const R = 3.3 * power, near = Math.min(1.6, 14 / z), low = clamp((z - 4) / 6, 0.4, 1), hh = clamp(h0, 0.2, 8);
   boom(power, z);
   if (power >= 2) buzz(Math.round(90 * power * Math.min(1, near)), 2);
@@ -10395,7 +10442,8 @@ const bannerY = (b, size) => b.low ? Math.max(hudH + size * 0.7, moonNow.Y + moo
 function bannerSize(b) {
   if (!b.size) {
     ctx.font = '100px "Dela Gothic One", sans-serif';
-    b.size = Math.min(88, W * 0.84 / (ctx.measureText(b.text).width / 100 + 0.2));
+    // and no taller than about an eighth of the screen, for a short landscape frame (CrazyGames, 2026-11-06)
+    b.size = Math.min(88, H * 0.13, W * 0.84 / (ctx.measureText(b.text).width / 100 + 0.2));
   }
   return b.size;
 }
@@ -11556,7 +11604,9 @@ function startHappening(kind) {
   const c = { kind, big: H, x, z: Z_FAR + 18, h: 0, vx: 0, vz: 0, vh: 0, q: new THREE.Quaternion(), w: new THREE.Vector3(), state: 'roll', hp: H.hp, flash: 0, burnT: 0, face: -1, M,
     // both stop clear of where the giant lands
     yaw: Math.PI, target: kind === 'tanker' ? 13.5 : 24, turnAt: kind === 'tanker' ? 17 : 30,
-    turn: Math.random() < 0.5 ? 1 : -1, hw: H.w, hl: H.l, load: kind === 'bus' ? BUS_LOAD : 0, unloadT: 0.5 };
+    // ht like every car (2026-11-06: without it the missiles and the bits sent at one aimed at NaN, and a missile's blast there
+    // threw from its sound every frame, which stopped the sound and the game; kazu playing the missiles)
+    turn: Math.random() < 0.5 ? 1 : -1, hw: H.w, hl: H.l, ht: H.ht, load: kind === 'bus' ? BUS_LOAD : 0, unloadT: 0.5 };
   cars.push(c);
   hornSnd();
 }
@@ -13161,15 +13211,18 @@ const MKEY = 'zb3d-missions';
 let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT = 0, fatPops = 0, bombesShot = 0;
 // the weapons the medals open, in order (2026-10-25: kazu picked the black hole for the first, then asked for the railgun and
 // the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
-// missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam)
+// missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam).
+// On CrazyGames they open much sooner (2026-11-06: kazu, after its first day there showed most players leaving after two
+// rounds or so): a round pays about two or three medals, so the first comes after a round or two and a new one every few
+// rounds after that, where the site's 10 apiece take four rounds each
 const UNLOCKS = [
-  { w: 'hole', medals: 10, sub: jaEn('吸い込んで大爆発', 'Sucks in, then boom') },
-  { w: 'rail', medals: 20, sub: jaEn('一瞬で貫くビーム', 'Instant piercing beam') },
-  { w: 'wave', medals: 30, sub: jaEn('極太ビームで一掃', 'Huge sweeping beam') },
-  { w: 'flame', medals: 40, sub: jaEn('燃え広がる炎', 'Spreading flames') },
-  { w: 'shock', medals: 50, sub: jaEn('飛び移る稲妻', 'Chain lightning') },
-  { w: 'missile', medals: 60, sub: jaEn('20発の追尾ミサイル', '20 homing missiles') },
-  { w: 'bits', medals: 70, sub: jaEn('浮遊ビーム砲台', 'Floating beam turrets') },
+  { w: 'hole', medals: CG ? 3 : 10, sub: jaEn('吸い込んで大爆発', 'Sucks in, then boom') },
+  { w: 'rail', medals: CG ? 6 : 20, sub: jaEn('一瞬で貫くビーム', 'Instant piercing beam') },
+  { w: 'wave', medals: CG ? 10 : 30, sub: jaEn('極太ビームで一掃', 'Huge sweeping beam') },
+  { w: 'flame', medals: CG ? 15 : 40, sub: jaEn('燃え広がる炎', 'Spreading flames') },
+  { w: 'shock', medals: CG ? 21 : 50, sub: jaEn('飛び移る稲妻', 'Chain lightning') },
+  { w: 'missile', medals: CG ? 28 : 60, sub: jaEn('20発の追尾ミサイル', '20 homing missiles') },
+  { w: 'bits', medals: CG ? 36 : 70, sub: jaEn('浮遊ビーム砲台', 'Floating beam turrets') },
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
 function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射'; }
@@ -13228,6 +13281,7 @@ function settleMissions() {
   const before = mis.act.slice(), done = misNow.slice(), gained = done.reduce((a, id) => a + MISSION_BY[id].tier, 0);
   showMissions('misRes', before, done);
   $('misMedalsR').textContent = jaEn(`メダル ${mis.medals - gained}枚`, `${mis.medals - gained} medals`);
+  showNextWeapon(mis.medals - gained);
   if (!done.length) return;
   mis.seen.push(...done);
   mis.act = before.map(id => done.includes(id) ? drawMission(MISSION_BY[id].tier, before) : id);
@@ -13237,11 +13291,24 @@ function settleMissions() {
   misFlipT = setTimeout(() => {
     showMissions('misRes', mis.act, [], mis.act.filter(id => !before.includes(id)));
     $('misMedalsR').textContent = jaEn(`メダル ${mis.medals}枚 (+${gained})`, `${mis.medals} medals (+${gained})`);
+    showNextWeapon(mis.medals);
     if (unlocked.length) {
       $('misRes').insertAdjacentHTML('beforeend', jaEn(`<p class="unlock">新武器解放! ${unlocked.join('と')}が使えます</p>`, `<p class="unlock">New weapon! ${unlocked.join(' and ')} unlocked</p>`));
       weaponButtons(); medalSnd(3);
     }
   }, 1900);
+}
+// under the challenges on the result card: the next weapon the medals open, how many to go, and a bar from the last one
+// (2026-11-06: kazu, so the end of a round shows something close enough to play one more for). Gone once all are open
+function showNextWeapon(medals) {
+  // only on CrazyGames for now, with its faster unlocks; the site stays as it was (2026-11-06)
+  const el = $('misNext'), i = UNLOCKS.findIndex(u => medals < u.medals);
+  el.hidden = !CG || i < 0;
+  if (el.hidden) return;
+  const u = UNLOCKS[i], from = i ? UNLOCKS[i - 1].medals : 0, left = u.medals - medals;
+  $('misNextT').textContent = jaEn(`次の武器「${WEAPON_NAME[u.w]}」`, `Next weapon: ${WEAPON_NAME[u.w]}`);
+  $('misNextN').textContent = jaEn(`あと${left}枚`, `${left} more`);
+  $('misNextB').style.width = `${Math.max(4, (medals - from) / (u.medals - from) * 100)}%`;
 }
 function showMissions(box, ids, done = [], fresh = []) {
   const el = $(box), u = el.querySelector('.unlock');
