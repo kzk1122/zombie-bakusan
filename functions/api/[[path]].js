@@ -1,7 +1,7 @@
 // ゾンビ爆散: the world ranking (2026-11-03, kazu: 世界ランキングいきましょう). A Cloudflare Pages Function in front of a D1
 // database bound as DB (the project's Settings > Bindings, for Production and Preview). The game (src/81-rank.js) calls:
 //   POST /api/start {pid}                                   -> {t}: the round's start, signed, sent back with the score
-//   POST /api/score {pid, name, score, kills, weapon, stage, lang, t} -> where the player stands today and of all time
+//   POST /api/score {pid, name, score, kills, weapon, stage, lang, t, mul} -> where the player stands today and of all time
 //   POST /api/name  {pid, name}                             -> renames the player (today's entry and the all-time one)
 //   GET  /api/board?b=day|all                               -> the top 100 and how many are on the board
 // pid is a random id the browser keeps (localStorage zb3d-pid); the boards never show it, only a short hash of it (h) by
@@ -21,10 +21,13 @@ const WEAPONS = ['rocket', 'tank', 'hole', 'rail', 'wave', 'flame', 'shock', 'mi
 const STAGES = ['avenue', 'park', 'fest', 'hwy'];
 // the rank lines (RANKS in src/70-game.js)
 const GRADES = [['SSS', 6400000], ['SS', 5400000], ['S', 4200000], ['A', 2800000], ['B', 800000], ['C', 0]];   // the game's RANKS (10-second rounds)
-const BAND = 100000, TOP = 100, MAX_SCORE = 30000000, MIN_ROUND_MS = 9000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
+const BAND = 100000, TOP = 100, MAX_SCORE = 60000000, MIN_ROUND_MS = 9000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
 // a kill is worth at most 100 x 50 (the combo's cap) x 2 (from the 11th of a chain); the bonuses (buildings, the giant,
 // cars, happenings, set pieces, contraptions) come to a couple of million at most
 const PER_KILL = 10000, BONUS_ROOM = 5000000;
+// 連戦 (2026-11-07, kazu: 10回連続で2倍とか、スコアのインフレは問題ない): rounds played back to back multiply every point,
+// ×1.1 from the second up to ×2 from the tenth; the game sends its multiplier with the score (an older page sends none: ×1)
+const MAX_MUL = 2;
 // names that would put the board to shame: these anywhere in it (spaces and symbols taken out, lower case), these as words
 // (a 'grape' or a 'Dickens' is fine), and no links
 const NG = ['fuck', 'shit', 'cunt', 'nigg', 'fagg', 'porn', 'whore', 'pussy', 'penis', 'vagina', 'retard', 'hitler',
@@ -141,8 +144,9 @@ const bump = (R, boardKey, b, d) => R.db.prepare(`INSERT INTO ${R.P}hist (board,
 async function score(R, body, request, reply) {
   const { db, P } = R, now = Date.now();
   const { pid, t } = body, sc = body.score, kills = body.kills;
+  const mul = typeof body.mul === 'number' && Number.isFinite(body.mul) ? Math.min(MAX_MUL, Math.max(1, body.mul)) : 1;
   if (!validPid(pid)) return reply({ ok: false, err: 'pid' }, 400);
-  if (!Number.isSafeInteger(sc) || sc < 0 || sc > MAX_SCORE || !Number.isSafeInteger(kills) || kills < 0 || kills > 5000 || sc > kills * PER_KILL + BONUS_ROOM)
+  if (!Number.isSafeInteger(sc) || sc < 0 || sc > MAX_SCORE || !Number.isSafeInteger(kills) || kills < 0 || kills > 5000 || sc > (kills * PER_KILL + BONUS_ROOM) * mul)
     return reply({ ok: false, err: 'score' }, 400);
   if (!WEAPONS.includes(body.weapon) || !STAGES.includes(body.stage)) return reply({ ok: false, err: 'meta' }, 400);
   // a round with nothing hit is not a place on the boards (kazu 2026-11-03: 点数が０点でも2位になります); the game no longer sends one
