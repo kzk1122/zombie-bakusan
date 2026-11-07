@@ -29,6 +29,9 @@ CrazyGames でも遊べます: https://www.crazygames.com/game/zombie-bakusan
 - 夜の高速道路では、奥のジャンクションの高架を撃つと、渋滞の車が1台ずつ燃えながら群れに降ってきて爆発し、最後にタンクローリーが落ちてきて大爆発、橋桁がV字に崩れ落ちます。屋根やボンネットにゾンビを乗せたゾンビカーも3台、群れを跳ね飛ばしながら突っ込んできます。撃てば乗っているゾンビごと吹き飛びます
 - 毎回3つのお題（銅・銀・金）が出ます。達成するとメダルがもらえ、集めたメダルで新しい武器が解放されます。お題とメダルはそのブラウザに保存されます
 - 途中で巨大ゾンビが来ます。空から1体降ってくるか、2体同時に降ってくるか、燃えながら霧の奥から駆けてくる巨大ゾンビ犬のどれかです。倒すと月まで飛んでいき、2体同時なら2体目は星になって「キラーン」と消えます。遠くまで吹き飛んだゾンビが月に当たることも
+- ときどき（5回に2回ほど）、いつもとちがうサプライズが起きます。虹色に光って踊りながら来るゲーミングゾンビ（倒すとその回の最後まで群れも爆発も虹色になる「ゲーミングタイム」）、群れを光線で吸い上げるUFO（撃ち落とすと吸い上げたゾンビごと墜落します）、倒すと大当たりの金ピカ巨大ゾンビ、何もかもフワッと高く吹っ飛ぶ月面重力、撃つたびに狙ったところへ隕石が飛び込んでくる隕石の雨の5つです。毎日ひとつ「今日のサプライズ」が出やすくなり、タイトル画面に出ます
+- 見たサプライズはタイトル画面の図鑑に並びます（まだ見ていないものは「？」）。結果画面には、その回のサプライズと図鑑の数が出ます
+- 結果画面から3分以内にもう一回遊ぶと「連戦」になり、点数に倍率がかかります。2連戦目は1.1倍で1回ごとに0.1ずつ上がり、10連戦目からは2倍です。空爆のメーターが少し溜まった状態で始まり、ゾンビも増えます。3連戦目からはサプライズが必ず、5連戦目（大祭り）からは2つ、10連戦目（超大祭り）からは3つ起きます。倍率のかかった点数がそのまま世界ランキングにも載ります
 - 10秒たつと、残ったゾンビも車も巨大ゾンビもまとめて大爆発します
 - 負けはありません。点になるのは、自分の弾から始まった爆発や誘爆、吹き飛んだ体のストライク、崩したビルや動かした仕掛けで倒したゾンビだけです。1発で11体目からは2倍。10秒で稼いだ点数でランク（C / B / A / S / SS / SSS）が決まります
 - 結果画面では、その回いちばん大きな連鎖をスローで再生します
@@ -46,9 +49,9 @@ CrazyGames でも遊べます: https://www.crazygames.com/game/zombie-bakusan
 - 実況とうめき声は [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M)（Apache-2.0）で生成し、ファイルに埋め込んでいます
 - フォントは Google Fonts の [Dela Gothic One](https://fonts.google.com/specimen/Dela+Gothic+One) と [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License）です
 - 最初に作った2D版は 2026-11-03 に廃止しました。古い `/2d/` のURLは `_redirects` でトップに転送します
-- 世界ランキングは Cloudflare Pages Functions（`functions/api/[[path]].js`、`_routes.json` で `/api/` だけに動かしています）と Cloudflare D1 で動いています。送るのは点数・撃破数・武器・ステージ・名前・表示言語と、ブラウザごとに作るランダムなID（`localStorage` に保存、ランキングには出ません）です。国旗の国はアクセス元から判定します。github.io の写しからも pages.dev のランキングを使い、ファイルを直接開いたときはランキングは出ません
+- 世界ランキングは Cloudflare Pages Functions（`functions/api/[[path]].js`、`_routes.json` で `/api/` だけに動かしています）と Cloudflare D1 で動いています。送るのは点数・撃破数・連戦の倍率・武器・ステージ・名前・表示言語と、ブラウザごとに作るランダムなID（`localStorage` に保存、ランキングには出ません）です。国旗の国はアクセス元から判定します。github.io の写しからも pages.dev のランキングを使い、ファイルを直接開いたときはランキングは出ません
 - ランキングを動かすには、Cloudflare の D1 でデータベースを作り、Pages プロジェクトの Settings → Bindings に変数名 `DB` で足します（Production と Preview の両方）。表は最初のアクセスで自動で作られます。プレビューのURLでは名前に `t_` の付いた別の表を使うので、試しても本番のランキングには載りません
-- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数・表示言語）、空爆、シェアのボタン、ランキング画面を開いたことをイベントとして送ります
+- アクセス解析に Google Analytics（GA4）を使っています。ページの表示のほか、ゲームの開始と終了（武器・ステージ・ランク・点数・表示言語）、空爆、サプライズ、シェアのボタン、ランキング画面を開いたことをイベントとして送ります
 
 ## English
 
@@ -59,5 +62,7 @@ ZOMBIE BAKUSAN (ゾンビ爆散, "zombies blown to bits") is a 10-second 3D brow
 Also on CrazyGames: https://www.crazygames.com/game/zombie-bakusan
 
 The game is in English unless your browser is set to Japanese; the button at the top right of the title screen switches languages.
+
+Now and then a round brings a surprise: a gaming zombie lit in every colour (drop it and it is GAMING TIME, the horde and every blast in rainbow), a UFO beaming the horde up, a golden giant, moon gravity or a meteor shower. The ones you have seen fill the collection on the title screen, and one of them is today's surprise. Play again within three minutes and it is a streak: every point counts ×1.1 in the second round in a row, a tenth more each round, ×2 from the tenth, and the streak's scores go on the world ranking as they are.
 
 There is a world ranking: after every round the result screen shows where you stand in the world, today and of all time. The 🏆 Ranking button at the top left of the title screen lists the top 100 with their flags, and you can change your name there (up to 16 characters). The daily board resets at 00:00 UTC.
