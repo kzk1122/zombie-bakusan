@@ -1,6 +1,6 @@
 // ゾンビ爆散: the world ranking (2026-11-03, kazu: 世界ランキングいきましょう). A Cloudflare Pages Function in front of a D1
 // database bound as DB (the project's Settings > Bindings, for Production and Preview). The game (src/81-rank.js) calls:
-//   POST /api/start {pid}                                   -> {t}: the round's start, signed, sent back with the score
+//   POST /api/start {pid, prev}                             -> {t}: the round's start, signed, sent back with the score
 //   POST /api/score {pid, name, score, kills, weapon, stage, lang, t, mul} -> where the player stands today and of all time
 //   POST /api/name  {pid, name}                             -> renames the player (today's entry and the all-time one)
 //   GET  /api/board?b=day|all                               -> the top 100 and how many are on the board
@@ -21,13 +21,19 @@ const WEAPONS = ['rocket', 'tank', 'hole', 'rail', 'wave', 'flame', 'shock', 'mi
 const STAGES = ['avenue', 'park', 'fest', 'hwy'];
 // the rank lines (RANKS in src/70-game.js)
 const GRADES = [['SSS', 6400000], ['SS', 5400000], ['S', 4200000], ['A', 2800000], ['B', 800000], ['C', 0]];   // the game's RANKS (10-second rounds)
-const BAND = 100000, TOP = 100, MAX_SCORE = 60000000, MIN_ROUND_MS = 9000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
+const BAND = 100000, TOP = 100, MAX_SCORE = 30000000, MIN_ROUND_MS = 9000, MAX_ROUND_MS = 30 * 60 * 1000, KEEP_DAYS = 3;
 // a kill is worth at most 100 x 50 (the combo's cap) x 2 (from the 11th of a chain); the bonuses (buildings, the giant,
 // cars, happenings, set pieces, contraptions) come to a couple of million at most
 const PER_KILL = 10000, BONUS_ROOM = 5000000;
-// 連戦 (2026-11-07, kazu: 10回連続で2倍とか、スコアのインフレは問題ない): rounds played back to back multiply every point,
-// ×1.1 from the second up to ×2 from the tenth; the game sends its multiplier with the score (an older page sends none: ×1)
-const MAX_MUL = 2;
+// 連戦 (2026-11-07, kazu: 10回連続で2倍とか、スコアのインフレは問題ない; the same night: 0.1倍ずつ, 上限を撤廃): rounds played
+// back to back multiply every point, ×1.1 for the second, a tenth more each round, ×2 at the tenth and on with no top. The
+// game sends its multiplier (mul) with the score, and the score's caps above go up by it (an older page sends none: ×1).
+// So that a multiplier can't simply be made up, each start's token carries how many rounds in a row this player has
+// started as the server saw it (the game sends the last token back as prev; a start within RUN_GAP of that one carries
+// on the run), and a score counts at most at that run's multiplier, RUN_SLACK rounds to spare for a start that got no
+// answer: one claiming more is scaled down to it. A token from a page before the runs were signed allows ×2 (OLD_MUL).
+const RUN_GAP = MAX_ROUND_MS + 4 * 60 * 1000, RUN_SLACK = 3, RUN_MAX = 9999, OLD_MUL = 2;
+const runMul = n => (n >= 10 ? n + 10 : Math.max(1, n) + 9) / 10;   // the game's streakMul (src/76-surprise.js), in tenths
 // names that would put the board to shame: these anywhere in it (spaces and symbols taken out, lower case), these as words
 // (a 'grape' or a 'Dickens' is fine), and no links
 const NG = ['fuck', 'shit', 'cunt', 'nigg', 'fagg', 'porn', 'whore', 'pussy', 'penis', 'vagina', 'retard', 'hitler',
@@ -123,10 +129,22 @@ function countryOf(request) {
   return typeof c === 'string' && /^[A-Z]{2}$/.test(c) && c !== 'XX' && c !== 'T1' ? c : '';
 }
 
+// a start's token: `ts.n.sig`, n the round's place in a run as the server has seen it, or `ts.sig` (n 0) from a page
+// before the runs were signed
+async function readTok(R, pid, t) {
+  const m = /^(\d{13})\.(?:(\d{1,4})\.)?([0-9a-f]{32})$/.exec(typeof t === 'string' ? t : '');
+  if (!m) return null;
+  const ts = +m[1], n = m[2] === undefined ? 0 : +m[2];
+  if (m[3] !== await sign(R, pid + '.' + ts + (m[2] === undefined ? '' : '.' + n))) return null;
+  return { ts, n };
+}
 async function start(R, body, reply) {
   if (!validPid(body.pid)) return reply({ ok: false, err: 'pid' }, 400);
-  const ts = Date.now();
-  return reply({ ok: true, t: ts + '.' + await sign(R, body.pid + '.' + ts) });
+  const ts = Date.now(), p = await readTok(R, body.pid, body.prev);
+  // the run goes on from the last start if it was this player's and not long ago; a start again within a round's time
+  // (an answer that never came, asked again) keeps its place
+  const n = !p || !p.n || ts < p.ts || ts - p.ts > RUN_GAP ? 1 : ts - p.ts < MIN_ROUND_MS ? p.n : Math.min(RUN_MAX, p.n + 1);
+  return reply({ ok: true, t: ts + '.' + n + '.' + await sign(R, body.pid + '.' + ts + '.' + n) });
 }
 
 // where a score stands on one board: the bands above it, then the ones above it in its own band
@@ -143,20 +161,24 @@ const bump = (R, boardKey, b, d) => R.db.prepare(`INSERT INTO ${R.P}hist (board,
 
 async function score(R, body, request, reply) {
   const { db, P } = R, now = Date.now();
-  const { pid, t } = body, sc = body.score, kills = body.kills;
-  const mul = typeof body.mul === 'number' && Number.isFinite(body.mul) ? Math.min(MAX_MUL, Math.max(1, body.mul)) : 1;
+  const { pid, t } = body, kills = body.kills;
+  let sc = body.score;
+  const mul = typeof body.mul === 'number' && Number.isFinite(body.mul) ? Math.min(runMul(RUN_MAX + RUN_SLACK), Math.max(1, body.mul)) : 1;
   if (!validPid(pid)) return reply({ ok: false, err: 'pid' }, 400);
-  if (!Number.isSafeInteger(sc) || sc < 0 || sc > MAX_SCORE || !Number.isSafeInteger(kills) || kills < 0 || kills > 5000 || sc > (kills * PER_KILL + BONUS_ROOM) * mul)
+  if (!Number.isSafeInteger(sc) || sc < 0 || sc > MAX_SCORE * mul || !Number.isSafeInteger(kills) || kills < 0 || kills > 5000 || sc > (kills * PER_KILL + BONUS_ROOM) * mul)
     return reply({ ok: false, err: 'score' }, 400);
   if (!WEAPONS.includes(body.weapon) || !STAGES.includes(body.stage)) return reply({ ok: false, err: 'meta' }, 400);
   // a round with nothing hit is not a place on the boards (kazu 2026-11-03: 点数が０点でも2位になります); the game no longer sends one
   if (sc === 0) return reply({ ok: false, err: 'zero' }, 400);
   // the round's start, as signed here: long enough ago for a round, not too long, and not used before
-  const m = /^(\d{13})\.([0-9a-f]{32})$/.exec(typeof t === 'string' ? t : '');
-  if (!m) return reply({ ok: false, err: 'token' }, 403);
-  const ts = +m[1];
-  if (m[2] !== await sign(R, pid + '.' + ts)) return reply({ ok: false, err: 'token' }, 403);
+  const tok = await readTok(R, pid, t);
+  if (!tok) return reply({ ok: false, err: 'token' }, 403);
+  const ts = tok.ts;
   if (now - ts < MIN_ROUND_MS || now - ts > MAX_ROUND_MS) return reply({ ok: false, err: 'time' }, 403);
+  // more than the run allows: the score as it would be at the run's multiplier (the checks above hold for it just the same)
+  const room = tok.n ? runMul(tok.n + RUN_SLACK) : OLD_MUL;
+  if (mul > room) sc = Math.round(sc * room / mul);
+  if (!sc) return reply({ ok: false, err: 'zero' }, 400);
   let name = cleanName(body.name), nameOk = !!name;
   if (!name) name = fallbackName(pid, body.lang);
   const day = today(now), dKey = 'd:' + day, grade = gradeOf(sc), cc = countryOf(request), h = await shortHash(pid);
