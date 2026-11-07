@@ -31,7 +31,7 @@ CrazyGames でも遊べます: https://www.crazygames.com/game/zombie-bakusan
 - 途中で巨大ゾンビが来ます。空から1体降ってくるか、2体同時に降ってくるか、燃えながら霧の奥から駆けてくる巨大ゾンビ犬のどれかです。倒すと月まで飛んでいき、2体同時なら2体目は星になって「キラーン」と消えます。遠くまで吹き飛んだゾンビが月に当たることも
 - ときどき（5回に2回ほど）、いつもとちがうサプライズが起きます。虹色に光って踊りながら来るゲーミングゾンビ（倒すとその回の最後まで群れも爆発も虹色になる「ゲーミングタイム」）、群れを光線で吸い上げるUFO（撃ち落とすと吸い上げたゾンビごと墜落します）、倒すと大当たりの金ピカ巨大ゾンビ、何もかもフワッと高く吹っ飛ぶ月面重力、撃つたびに狙ったところへ隕石が飛び込んでくる隕石の雨の5つです。毎日ひとつ「今日のサプライズ」が出やすくなり、タイトル画面に出ます
 - 見たサプライズはタイトル画面の図鑑に並びます（まだ見ていないものは「？」）。結果画面には、その回のサプライズと図鑑の数が出ます
-- 結果画面から3分以内にもう一回遊ぶと「連戦」になり、点数に倍率がかかります。2連戦目は1.1倍で1回ごとに0.1ずつ上がり、10連戦目からは2倍です。空爆のメーターが少し溜まった状態で始まり、ゾンビも増えます。3連戦目からはサプライズが必ず、5連戦目（大祭り）からは2つ、10連戦目（超大祭り）からは3つ起きます。倍率のかかった点数がそのまま世界ランキングにも載ります
+- 結果画面から3分以内にもう一回遊ぶと「連戦」になり、点数に倍率がかかります。2連戦目は1.1倍で、1回ごとに0.1ずつ上がります。10連戦目で2倍、そのあとも上限なしで上がり続けます（20連戦目で3倍）。空爆のメーターが少し溜まった状態で始まり、ゾンビも増えます。3連戦目からはサプライズが必ず、5連戦目（大祭り）からは2つ、10連戦目（超大祭り）からは3つ起きます。倍率のかかった点数がそのまま世界ランキングにも載ります
 - 10秒たつと、残ったゾンビも車も巨大ゾンビもまとめて大爆発します
 - 負けはありません。点になるのは、自分の弾から始まった爆発や誘爆、吹き飛んだ体のストライク、崩したビルや動かした仕掛けで倒したゾンビだけです。1発で11体目からは2倍。10秒で稼いだ点数でランク（C / B / A / S / SS / SSS）が決まります
 - 結果画面では、その回いちばん大きな連鎖をスローで再生します
@@ -63,6 +63,6 @@ Also on CrazyGames: https://www.crazygames.com/game/zombie-bakusan
 
 The game is in English unless your browser is set to Japanese; the button at the top right of the title screen switches languages.
 
-Now and then a round brings a surprise: a gaming zombie lit in every colour (drop it and it is GAMING TIME, the horde and every blast in rainbow), a UFO beaming the horde up, a golden giant, moon gravity or a meteor shower. The ones you have seen fill the collection on the title screen, and one of them is today's surprise. Play again within three minutes and it is a streak: every point counts ×1.1 in the second round in a row, a tenth more each round, ×2 from the tenth, and the streak's scores go on the world ranking as they are.
+Now and then a round brings a surprise: a gaming zombie lit in every colour (drop it and it is GAMING TIME, the horde and every blast in rainbow), a UFO beaming the horde up, a golden giant, moon gravity or a meteor shower. The ones you have seen fill the collection on the title screen, and one of them is today's surprise. Play again within three minutes and it is a streak: every point counts ×1.1 in the second round in a row and a tenth more each round with no top (×2 at the tenth, ×3 at the twentieth), and the streak's scores go on the world ranking as they are.
 
 There is a world ranking: after every round the result screen shows where you stand in the world, today and of all time. The 🏆 Ranking button at the top left of the title screen lists the top 100 with their flags, and you can change your name there (up to 16 characters). The daily board resets at 00:00 UTC.

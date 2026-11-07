@@ -13379,11 +13379,14 @@ const SUR_GLYPHS = 'ゲーミングゾンビタイム倒すと虹色群れも爆
 const SUR_P = 0.4, MOON_G = 0.42, METEOR_CD = 0.9, METEOR_T = 0.75, UFO_MAX = 8, UFO_H = 6.2, UFO_Z = 21.5;
 // 連戦 (2026-11-07): back for another within three minutes of the last, each round goes in hotter. Every point it scores
 // counts for more (kazu: playing on should raise a multiplier, double at ten in a row; scores inflating is fine, what matters
-// is how good it feels): ×1.1 for the second, a tenth more each round, ×2 from the tenth. The air strike's meter starts part
-// full and the horde comes thicker; from the third in a row a surprise is sure, from the fifth (大祭り) two, the tenth three
+// is how good it feels): ×1.1 for the second, a tenth more each round, ×2 at the tenth, and from there on still a tenth more
+// each round with no top (kazu, the same night: 連続でプレイするごとに0.1倍ずつ, 10回2倍で上限に達しているのを撤廃; the 11th
+// ×2.1, the 20th ×3.0). The air strike's meter starts part full and the horde comes thicker; from the third in a row a
+// surprise is sure, from the fifth (大祭り) two, the tenth three
 const STREAK_GAP = 180000;
 const STREAK = [{}, {}, { fever: 15 }, { fever: 25, horde: 1.08 }, { fever: 35, horde: 1.15 }, { fever: 45, horde: 1.2 }];
-const streakMul = n => n >= 10 ? 2 : 1 + (Math.max(1, n) - 1) * 0.1;
+// in tenths, so that ×2.1 is 2.1 to the last digit (the server works the same number out: functions/api in the repo)
+const streakMul = n => { n = Math.max(1, n | 0); return (n >= 10 ? n + 10 : n + 9) / 10; };
 const mulTxt = m => '×' + m.toFixed(1);
 let surKinds = [], lastSur = '', forceSur = null, surNew = [], surBadge = [], surBanners = [];
 let gaming = false, gamingAt = 99, gravK = 1, meteorOn = false, meteorCD = 0, meteors = [], meteorHits = 0, ufoAt = 99, goldBoss = false, hordeK = 1;
@@ -13435,6 +13438,10 @@ function pickSur(not) {
 // at start(), after reset(): how far into a run of rounds this is, and which surprises this round has
 function planSurprises() {
   const now = Date.now(), day = localDay(), firstToday = zukan.day !== day;
+  // the preview (mkpreview.py STREAK=n) has a run already n rounds long whenever one would start, to see the multiplier
+  // past ×2 without ten rounds first
+  const pv = +window.ZB_STREAK_PREVIEW || 0;
+  if (pv > 0 && !(lastEndAt && now - lastEndAt < STREAK_GAP && now >= lastEndAt && streakN >= pv)) { streakN = pv; lastEndAt = now; }
   streakN = lastEndAt && now - lastEndAt < STREAK_GAP && now >= lastEndAt ? streakN + 1 : 1;
   zukan.rounds++; zukan.day = day; zukan.streak = streakN;
   const lv = Math.min(streakN, 5), S = STREAK[lv];
@@ -14791,14 +14798,16 @@ function rankInit() {
   });
   pre();
 }
-// a round starts: the server signs the moment, and the score goes back with it
+// a round starts: the server signs the moment, and the score goes back with it. The last start's token goes with it
+// (prev, kept through a reload): from it the server counts the rounds played in a row, which bounds the 連戦 multiplier
+// a score may have
 function rankStart() {
   rankTok = null;
   if (!rankOn) return;
   const seq = ++rankSeq;
-  const go = (n) => rankCall('/start', { pid: rankPid() }).then(o => {
+  const go = (n) => rankCall('/start', { pid: rankPid(), prev: lsGet('zb3d-rprev') || '' }).then(o => {
     if (seq !== rankSeq) return;
-    if (o && o.ok) rankTok = o.t;
+    if (o && o.ok) { rankTok = o.t; lsSet('zb3d-rprev', o.t); }
     else if (!o && n < 2 && running) setTimeout(() => go(n + 1), 1500);
   });
   go(0);
@@ -14828,7 +14837,7 @@ function rankSubmit(sc, k) {
   if (!t) { el.classList.remove('wait'); rankLine(); return; }
   el.classList.add('wait'); $('resWorldT').textContent = jaEn('世界ランキングに送信中…', 'Sending to the world ranking…');
   const seq = rankSeq;
-  // mul: the 連戦 multiplier the round was played at (×1 to ×2), which the server allows for when it checks the score against the kills
+  // mul: the 連戦 multiplier the round was played at, which the server allows for when it checks the score against the kills
   rankCall('/score', { pid: rankPid(), name: rankName(), score: sc, kills: k, weapon, stage: stageId, lang: LANG, t, mul: scoreMul }).then(o => {
     if (seq !== rankSeq) return;   // the next round has begun
     el.classList.remove('wait');
