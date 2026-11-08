@@ -7073,7 +7073,7 @@ function initAudio() {
 const live = () => actx && !muted;
 // ---------- keeping the sound light (2026-11-08, kazu: on CrazyGames the sound crackled after a few rounds) ----------
 // Every blast was built from scratch out of some 15 sources and 40 nodes, and a round made about 36,000 nodes, with up to
-// 170 sounds at once in a chain of blasts; a phone's audio thread could not keep up. Now the blast is rendered once at the
+// 340 sounds at once in a chain of blasts; a phone's audio thread could not keep up. Now the blast is rendered once at the
 // start (renderBooms) and each one plays as two sources, and the sounds a chain fires by the dozen take turns: sndRoom(k)
 // lets one through only gap seconds after the last of its kind and only max of them in win seconds.
 const sndLog = {};
