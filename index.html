@@ -7039,7 +7039,9 @@ function makeCurve(k) {
 function initAudio() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
   try {
-    actx = new (window.AudioContext || window.webkitAudioContext)();
+    // 'balanced' gives the sound a little more room on a busy phone, where 'interactive' (the default) crackles first
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { actx = new AC({ latencyHint: 'balanced' }); } catch (e) { actx = new AC(); }
     const len = actx.sampleRate * 2.5;
     noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -7063,11 +7065,24 @@ function initAudio() {
     const elp = filt('lowpass', 1400), fb = actx.createGain(); fb.gain.value = 0.38;
     echoIn.connect(dl).connect(elp).connect(fb).connect(dl); elp.connect(comp);
     loadVoices();
+    renderBooms();
     // unlock audio on iOS with a silent blip inside the tap
     const sb = actx.createBufferSource(); sb.buffer = actx.createBuffer(1, 1, 22050); sb.connect(actx.destination); sb.start(0);
   } catch (e) { actx = null; }
 }
 const live = () => actx && !muted;
+// ---------- keeping the sound light (2026-11-08, kazu: on CrazyGames the sound crackled after a few rounds) ----------
+// Every blast was built from scratch out of some 15 sources and 40 nodes, and a round made about 36,000 nodes, with up to
+// 170 sounds at once in a chain of blasts; a phone's audio thread could not keep up. Now the blast is rendered once at the
+// start (renderBooms) and each one plays as two sources, and the sounds a chain fires by the dozen take turns: sndRoom(k)
+// lets one through only gap seconds after the last of its kind and only max of them in win seconds.
+const sndLog = {};
+function sndRoom(k, gap, max, win) {
+  const t = actx.currentTime, L = sndLog[k] || (sndLog[k] = []);
+  while (L.length && L[0] < t - win) L.shift();
+  if (L.length >= max || (L.length && t - L[L.length - 1] < gap)) return false;
+  L.push(t); return true;
+}
 function noiseSrc(t, dur) {
   const src = actx.createBufferSource(); src.buffer = noiseBuf;
   src.playbackRate.value = rand(0.8, 1.2);
@@ -7255,6 +7270,19 @@ function boom(size = 1, z = 10) {
   if (!live()) return;
   const t = actx.currentTime;
   const near = clamp(14 / z, 0.45, 1.25) * Math.min(size, 1.6);
+  // a chain going off in one frame is one blast to the ear: the first of them, and a big one close by after it
+  if (!sndRoom('boom', 0.05, 6, 0.6) && !(near >= 1.2 && sndRoom('boomBig', 0.1, 4, 0.6))) return;
+  if (!boomBufs) { boomSynth(t, near); return; }
+  const B = boomBufs[Math.random() * boomBufs.length | 0], rate = rand(0.94, 1.06);
+  for (const [buf, out] of [[B.full, master], [B.body, echoIn]]) {
+    if (!out) continue;
+    const src = actx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+    const g = actx.createGain(); g.gain.value = near;
+    src.connect(g).connect(out); src.start(t);
+  }
+}
+// the blast itself, made of noise and two falling tones: the body also goes into the street echo
+function boomSynth(t, near) {
   noiseSrc(t, 0.1).connect(filt('highpass', 1800)).connect(gain(t, 0.9 * near, 0.001, 0.09)).connect(master);
   const lp = filt('lowpass', 4200, 1.5); lp.frequency.setValueAtTime(4200, t); lp.frequency.exponentialRampToValueAtTime(90, t + 1.3);
   const sh = actx.createWaveShaper(); sh.curve = distCurve;
@@ -7270,6 +7298,41 @@ function boom(size = 1, z = 10) {
     const tt = t + rand(0.2, 1.3);
     noiseSrc(tt, 0.05).connect(filt('bandpass', rand(900, 3200), 6)).connect(gain(tt, rand(0.12, 0.28) * near, 0.002, 0.045)).connect(master);
   }
+}
+// four blasts rendered once, in the background: each kept as the whole of it and as the part that goes into the echo
+let boomBufs = null;
+function renderBooms() {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) return;
+  const sr = actx.sampleRate, L = Math.ceil(sr * 2.2), V = 4, keep = [actx, master, echoIn];
+  let off;
+  try {
+    off = new OAC(2, L * V, sr);
+    const mg = off.createChannelMerger(2); mg.connect(off.destination);
+    actx = off;
+    master = off.createGain(); master.connect(mg, 0, 0);
+    echoIn = off.createGain(); echoIn.connect(mg, 0, 1);
+    for (let i = 0; i < V; i++) boomSynth(i * L / sr + 0.002, 1);
+  } catch (e) { off = null; }
+  [actx, master, echoIn] = keep;
+  if (!off) return;
+  let done = false;
+  const got = buf => {
+    if (done || !buf || !actx) return; done = true;
+    const out = [];
+    for (let i = 0; i < V; i++) {
+      const B = {};
+      for (const [k, ch] of [['full', 0], ['body', 1]]) {
+        const b = actx.createBuffer(1, L, sr);
+        b.getChannelData(0).set(buf.getChannelData(ch).subarray(i * L, (i + 1) * L));
+        B[k] = b;
+      }
+      out.push(B);
+    }
+    boomBufs = out;
+  };
+  off.oncomplete = e => got(e.renderedBuffer);
+  try { const pr = off.startRendering(); if (pr && pr.then) pr.then(got, () => {}); } catch (e) {}
 }
 function thud() {
   if (!live()) return;
@@ -7408,7 +7471,7 @@ function deathGurgle(z) {
 }
 // wet squelch for hits; big ones add a crunch of bone
 function squelch(big) {
-  if (!live()) return;
+  if (!live() || !sndRoom('squelch', 0.04, 5, 0.4)) return;
   const t = actx.currentTime;
   const bp = filt('bandpass', 1400, 2.2); bp.frequency.setValueAtTime(big ? 1000 : 1500, t); bp.frequency.exponentialRampToValueAtTime(big ? 170 : 260, t + 0.17);
   noiseSrc(t, 0.2).connect(bp).connect(gain(t, big ? 0.6 : 0.3, 0.003, 0.17)).connect(master);
@@ -7733,7 +7796,7 @@ function meteorSnd() {
   o.connect(gain(t, 0.07, 0.05, T)).connect(master); o.start(t); o.stop(t + T + 0.1);
 }
 function popSnd(s, z) {
-  if (!live()) return;
+  if (!live() || !sndRoom('pop', 0.04, 4, 0.4)) return;
   const t = actx.currentTime, near = clamp(14 / z, 0.45, 1.2) * s;
   noiseSrc(t, 0.12).connect(filt('bandpass', rand(500, 900), 0.9)).connect(gain(t, 0.7 * near, 0.002, 0.11)).connect(master);
   const o = osc('sine', rand(110, 140), t); o.frequency.exponentialRampToValueAtTime(40, t + 0.16);
