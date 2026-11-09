@@ -269,6 +269,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .stg { display: flex; gap: 4px 6px; justify-content: center; align-items: center; flex-wrap: wrap; max-width: 372px; }
 .stg .k { font-size: 12px; font-weight: 700; opacity: .75; }
 .sgs { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+/* おまかせ and five stages (the port in, 2026-11-09) don't fit one line: two even rows of three, not five and one left over */
+.sgs:has(> .sg:nth-child(6):last-child) { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; }
 .sg {
   font: inherit; font-size: 12.5px; font-weight: 700; color: var(--bone); cursor: pointer;
   background: color-mix(in srgb, var(--ink) 55%, transparent);
@@ -336,6 +338,59 @@ canvas { display: block; width: 100%; height: 100%; }
 .wr.wait { opacity: .75; border-color: color-mix(in srgb, var(--bone) 30%, transparent); cursor: default; }
 .wr:hover:not(.wait) { border-color: var(--flare); }
 .wr:focus-visible, .bd-tab:focus-visible, .bd-btn:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+/* 実績 and 称号 (82-ach.js, CrazyGames, 2026-11-09): the 称号 and a button for the list under the logo, the round's on the
+   results, a lap's 称号 popping in there; the list over everything like the ranking. Their colour, a cool blue, is apart
+   from the medals' */
+.ach-me { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ttl { margin: 0; display: flex; align-items: center; justify-content: center; gap: 4px 8px; flex-wrap: wrap; }
+.ttl .k { font-size: 11px; font-weight: 700; letter-spacing: .1em; padding: 1px 8px; border-radius: 999px; color: var(--ink); background: var(--flare); }
+.ttl b { font-family: var(--display); font-weight: 400; font-size: 21px; color: var(--flare); text-shadow: 0 2px 0 var(--ember); }
+.ttl small { font-size: 12px; opacity: .8; }
+.achb { font: 700 13px var(--body); color: var(--bone); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent); border: 1.5px solid color-mix(in srgb, #7ad8ff 60%, transparent);
+  border-radius: 999px; padding: 5px 12px; transition: transform .08s; }
+.achb b { color: #7ad8ff; font-variant-numeric: tabular-nums; }
+.achb .go { opacity: .7; }
+.achb:hover { border-color: #7ad8ff; transform: translateY(-1px); }
+.achb:focus-visible { outline: 3px solid var(--flare); outline-offset: 2px; }
+.ach-res { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.prog .ttl-in { font-style: normal; display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 1px 0 2px;
+  font-family: var(--display); font-size: 24px; line-height: 1.15; color: var(--bone); text-shadow: 0 2px 0 var(--ember); animation: ttlpop .6s cubic-bezier(.2, 1.6, .4, 1) .35s both; }
+.prog .ttl-in small { font-family: var(--body); font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--flare); text-shadow: none; }
+@keyframes ttlpop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+.ach-got { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: center; align-items: center; font-size: 12.5px; }
+.ach-got b { color: #7ad8ff; }
+.ach-got span { padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, #7ad8ff 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, #7ad8ff 55%, transparent); }
+#ach { z-index: 6; background: color-mix(in srgb, var(--night) 95%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.achd { max-width: 760px; }
+html.cg #ach .card { display: flex; max-width: 760px; }   /* one column, not the title's and the results' two halves */
+.ach-ttls, .ach-list { width: 100%; text-align: left; }
+.ach-ttls h3, .ach-list h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .06em; display: flex; justify-content: space-between; gap: 8px; color: var(--flare); }
+.ach-list h3 small { color: var(--bone); opacity: .7; font-variant-numeric: tabular-nums; }
+.ach-ttls ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 4px; }
+.ach-ttls li { display: flex; flex-direction: column; padding: 4px 9px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 55%, transparent); opacity: .45; }
+.ach-ttls li small { font-size: 10.5px; opacity: .8; }
+.ach-ttls li span { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ach-ttls li.on { opacity: 1; box-shadow: inset 0 0 0 1.5px var(--flare); }
+.ach-ttls li.on span { color: var(--flare); }
+.ach-ttls li.next { opacity: .8; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bone) 45%, transparent); }
+.ach-list { display: grid; gap: 12px; }
+.ach-list ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px; }
+.ach-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent); }
+.ach-list .ic { font-size: 19px; line-height: 1; text-align: center; }
+.ach-list .tx b { display: block; font-size: 13.5px; }
+.ach-list .tx small { display: block; font-size: 11px; opacity: .72; }
+.ach-list li.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #7ad8ff 70%, transparent); }
+.ach-list li.on b { color: #7ad8ff; }
+.ach-list li.lk { opacity: .8; }
+.ach-list li.lk .ic { filter: grayscale(1); opacity: .65; }
+.ach-list li.new { background: color-mix(in srgb, #7ad8ff 18%, transparent); }
+.ach-list .ok { color: #7ad8ff; font-weight: 700; }
+.ach-list .bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--bone) 18%, transparent); }
+.ach-list .bar i { display: block; height: 100%; background: #7ad8ff; }
+.ach-list .tx small.pn { font-size: 10.5px; opacity: .65; font-variant-numeric: tabular-nums; margin-top: 1px; }
+@media (prefers-reduced-motion: reduce) { .prog .ttl-in { animation: none; } }
 #board { z-index: 6; background: color-mix(in srgb, var(--night) 95%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .bd { gap: 10px; }
 .bd-h { margin: 4px 0 0; font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--flare); text-shadow: 0 3px 0 var(--ember); }
@@ -514,6 +569,10 @@ canvas { display: block; width: 100%; height: 100%; }
       <p class="roman" lang="en">ZOMBIE BAKUSAN</p>
       <p class="tag"><span class="badge3d" data-en="3D">3D版</span></p>
       <p class="tag" data-en-html="<span>This is the last line of defense.</span> <span>Blow them all away in 10 seconds.</span>"><span>ここが最終防衛ライン。</span><span>10秒で全部ぶっ飛ばせ。</span></p>
+      <div class="ach-me" id="achMe" hidden>
+        <p class="ttl" id="ttlT"></p>
+        <button class="achb" id="achBtn" type="button"></button>
+      </div>
       </div>
       <div class="col col-b">
       <div class="pick" role="group" aria-label="武器を選ぶ" data-en-label="Choose a weapon">
@@ -573,6 +632,7 @@ canvas { display: block; width: 100%; height: 100%; }
       </div>
       <div class="badges" id="resBadges"></div>
       <div class="zk-res" id="resSur" hidden></div>
+      <div class="ach-res" id="resAch" hidden></div>
       </div>
       <div class="col col-b">
       <div class="mis" id="misRes">
@@ -624,6 +684,15 @@ canvas { display: block; width: 100%; height: 100%; }
       <form class="bd-edit" id="bdEdit" hidden><input id="bdInput" type="text" maxlength="20" autocomplete="nickname" enterkeyhint="done" aria-label="名前" data-en-label="Name"><button class="sbtn img" type="submit">OK</button></form>
       <p class="bd-msg" id="bdMsg" hidden></p>
       <button class="btn small" id="bdClose" type="button"><span class="t" data-en="CLOSE">とじる</span></button>
+    </div>
+  </div>
+  <div class="overlay" id="ach" hidden role="dialog" aria-modal="true" aria-labelledby="achH">
+    <div class="card bd achd">
+      <h2 class="bd-h" id="achH" data-en="ACHIEVEMENTS">実績</h2>
+      <p class="bd-sub" id="achSub"></p>
+      <div class="ach-ttls" id="achTtls"></div>
+      <div class="ach-list" id="achList"></div>
+      <button class="btn small" id="achClose" type="button"><span class="t" data-en="CLOSE">とじる</span></button>
     </div>
   </div>
   <p class="diag" id="diag" hidden></p>
@@ -3539,6 +3608,461 @@ function buildOverpass(root, M) {
   const tk = tankerMesh(); root.add(tk.g);
   tk.g.traverse(o => { if (o.material && !o.material.isMeshBasicMaterial) lessFog(o.material, 0.5, 0.3); });
   return { stat, spans, jm, jam, tk };
+}
+
+// ===== 24-port.js
+// ---------- 埠頭, the container port (2026-11-09, kazu: 「ステージも2~3ステージ増やして欲しいです」, then picked 埠頭・空港・お寺; this
+// is the first of them) ----------
+// A container terminal by the sea at night. The road is the yard's truck lane: pale concrete slabs, yellow edge lines, the gantry
+// crane's rails along both sides. Containers stacked two to five high line it, three rows deep, every colour, their doors to us
+// and their long sides to the lane; the near stacks, in rocket reach, come down like the avenue's buildings (into a heap of
+// crumpled boxes). Floodlight masts in the gaps between the stacks throw a cold white down the lane. At the far end the quay:
+// two ship-to-shore cranes over a container ship at her berth, her black hull with her name on it, her deck stacked high, her
+// bridge lit, the city across the bay behind her.
+// Across the lane at 70 m stands the yard's gantry crane, a 20-foot container hanging from it: the stage's set piece
+// (76-port.js). On a phone the sides show only from about 45 m on and the sky only a little way up: the crane is far enough and
+// low enough for all of it to show under the HUD with the moon over its girder, and the tops of the stacks beside it are out of
+// sight, so the containers its fall knocks off them come down out of the sky. Down the lane between the stacks the ship shows
+// only in a narrow slot, her name low on her hull, under the hanging container.
+// CRANE: its near legs' middle and its far ones', the legs' x (on the rails) and half their size, its girder's underside and
+// top (its highest point: the trolley runs under it), the middle of the hanging container (along the lane) and its underside
+const CRANE = { z: 70, zb: 72.8, x: 6.0, leg: 0.36, gird: 6.8, girdTop: 7.9, top: 7.9, hz: 71.4, hang: 2.6 };
+const BOX = { L: 12.2, S: 6.1, W: 2.44, H: 2.6 };   // a container: 40 and 20 feet long, its width, its height
+const PORT_TEXT = { ship: '爆散丸', shipE: 'BAKUSAN MARU', gird: '爆散港', girdE: 'RMG-04', line: '爆散海運', lineE: 'BAKUSAN KAIUN' };
+// every letter the stage draws on its canvases and in its callouts, for the font to load before they are drawn (70-game.js boot)
+const PORT_GLYPHS = Object.values(PORT_TEXT).join('') + 'クレーン倒壊コンテナの雨下敷き崩落埠頭夜ZOMBIELINEHADSGHOULDEND-0123456789';
+const ENV_PORT = { bg: 0x08101a, floor: 0x0c1016, top: 0x0c1424, far: 0x24405a, near: 0x101822, wall: 0x101a24, strip: 0xdfe8ff, neon: [0xdfe8ff, 0xffc060, 0x5a8ad8, 0xe8f0ff, 0x80a0c0, 0xffd890] };
+STAGES.port = {
+  name: jaEn('埠頭', 'Port'), build: buildPort, env: ENV_PORT, fog: 0x1c3044, zen: 0x040a16, glow: col(0x4a8ac8, 0.14),
+  hemi: [0x8aa4d0, 0x1a2228, 1.45], search: 0xe4eeff, haze: '#3a5a74', moon: { z: CRANE.z, top: CRANE.girdTop },
+  cars: ['van', 'kei', 'sedan', 'police'], wreck: ['kei', -2.6, 41, 0.45], jetHi: 11.5,
+};
+// the containers' paint: six 40-foot ones (a line's name big down the side, or only the number: the plain grey one, tinted any
+// colour by its buffer), two 20-foot ones
+const BOX_VARS = [
+  { c: '#9a2e26', big: PORT_TEXT.line, sub: PORT_TEXT.lineE, no: 'BKSU 404666 1', fg: '#f4eee4' },
+  { c: '#1f4a86', big: 'ZOMBIE LINE', no: 'ZMBU 131313 6', fg: '#eef2f8' },
+  { c: '#2d6e42', big: 'HADES', no: 'HDSU 666000 4', fg: '#eef2e8' },
+  { c: '#c8641c', big: 'GHOUL', no: 'GHLU 900123 7', fg: '#fff6e8' },
+  { c: '#b4b8bc', big: '', no: 'GRVU 123456 0', fg: '#2a2a2e' },
+  { c: '#c8a02a', big: 'DEAD END', no: 'DEDU 404404 4', fg: '#1c1a16' },
+];
+const BOX_SHORT = [{ c: '#a82c24', big: PORT_TEXT.line, no: 'BKSU 200001 2', fg: '#f6f0e6' }, { c: '#24548e', big: 'Z-LINE', no: 'ZMBU 200002 0', fg: '#eef2f8' }];
+const BOX_PICK = [0, 0, 1, 1, 2, 3, 4, 4, 4, 4, 5];
+const BOX_TINTS = [0xffffff, 0xd8604c, 0x5aa0b0, 0x7a6ab8, 0xc89a5a, 0x7fa86a, 0xe8e4dc, 0x9a5a3a];
+// the plain one any colour; the rest faded a little, each its own
+const boxTint = v => v === 4 ? new THREE.Color(pick(BOX_TINTS)).multiplyScalar(rand(0.8, 1.05)) : new THREE.Color(1, 1, 1).multiplyScalar(rand(0.72, 1));
+// the containers' canvas: a row of 128 px for each 40-foot side, a row with the two 20-foot ones, a row of door ends. BOX_UV holds
+// where each is, as [u0, v0, u1, v1]
+const BOX_UV = { side: [], short: [], door: [], roof: [] };
+function makePortBoxTex() {
+  const S = 1024, R = 128, [c, g] = canvas(S, S);
+  const at = (x0, y0, x1, y1) => [x0 / S, 1 - y1 / S, x1 / S, 1 - y0 / S];
+  const rust = () => `rgba(${rand(90, 130) | 0},${rand(44, 62) | 0},${rand(24, 34) | 0},${rand(0.12, 0.32)})`;
+  // a side: the corrugation, the rails top and bottom, the corner posts and their castings, the name squeezed to read square on
+  // the box (84 px a metre along it, 49 up it), the number up in the corner, rust run down from the top, dirt up from the bottom
+  const side = (x0, y0, w, V) => {
+    g.fillStyle = V.c; g.fillRect(x0, y0, w, R);
+    for (let x = x0 + 12; x < x0 + w - 18; x += 24) {
+      g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(x, y0 + 7, 7, R - 16);
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(x + 12, y0 + 7, 6, R - 16);
+    }
+    g.save(); g.fillStyle = V.fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (V.big) {
+      g.translate(x0 + w / 2, y0 + (V.sub ? 56 : 64)); g.scale(1.7, 1);
+      g.font = `${/[^\x00-\x7f]/.test(V.big) ? 54 : 50}px ${FONT}`; g.fillText(V.big, 0, 0, (w - 130) / 1.7);
+      if (V.sub) { g.font = `17px ${FONT}`; g.fillText(V.sub, 0, 40, (w - 200) / 1.7); }
+    }
+    g.restore();
+    g.save(); g.fillStyle = V.fg; g.globalAlpha = 0.8; g.textAlign = 'right'; g.textBaseline = 'top';
+    g.translate(x0 + w - 24, y0 + 13); g.scale(1.7, 1); g.font = `12px ${FONT}`; g.fillText(V.no, 0, 0);
+    g.restore();
+    for (let i = 0; i < w / 34; i++) { g.fillStyle = rust(); g.fillRect(x0 + rand(12, w - 16), y0 + 6, rand(2, 5), rand(10, 64)); }
+    for (let i = 0; i < w / 70; i++) blotch(g, x0 + rand(16, w - 16), y0 + rand(20, R - 20), rand(6, 16), rust(), 6);
+    const gr = g.createLinearGradient(0, y0 + R * 0.5, 0, y0 + R); gr.addColorStop(0, 'rgba(20,16,14,0)'); gr.addColorStop(1, 'rgba(20,16,14,.45)');
+    g.fillStyle = gr; g.fillRect(x0, y0 + R * 0.5, w, R * 0.5);
+    g.fillStyle = 'rgba(0,0,0,.38)'; g.fillRect(x0, y0, w, 7); g.fillRect(x0, y0 + R - 9, w, 9); g.fillRect(x0, y0, 12, R); g.fillRect(x0 + w - 12, y0, 12, R);
+    g.fillStyle = 'rgba(28,24,22,.92)';
+    for (const cx of [x0 + 1, x0 + w - 13]) for (const cy of [y0 + 1, y0 + R - 13]) g.fillRect(cx, cy, 12, 12);
+  };
+  // a door end: two leaves, their ribs, four locking bars with their handles, the hinges, the number
+  const door = (x0, y0, V) => {
+    g.fillStyle = V.c; g.fillRect(x0, y0, R, R);
+    for (let y = y0 + 14; y < y0 + R - 14; y += 10) { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(x0 + 10, y, R - 20, 4); }
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x0 + R / 2 - 1, y0 + 8, 2, R - 16);
+    g.fillStyle = 'rgba(44,44,48,.92)';
+    for (const bx of [0.2, 0.38, 0.62, 0.8]) { g.fillRect(x0 + R * bx - 2, y0 + 6, 4, R - 12); g.fillRect(x0 + R * bx - 5, y0 + R * 0.56, 10, 6); }
+    for (const hy of [0.18, 0.5, 0.8]) for (const hx of [5, R - 11]) g.fillRect(x0 + hx, y0 + R * hy, 6, 8);
+    g.fillStyle = V.fg; g.globalAlpha = 0.8; g.font = `9px ${FONT}`; g.textAlign = 'right'; g.textBaseline = 'top'; g.fillText(V.no.slice(0, 11), x0 + R - 14, y0 + 12); g.globalAlpha = 1;
+    for (let i = 0; i < 6; i++) { g.fillStyle = rust(); g.fillRect(x0 + rand(8, R - 10), y0 + rand(8, 40), rand(2, 4), rand(8, 44)); }
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(x0, y0, R, 7); g.fillRect(x0, y0 + R - 8, R, 8); g.fillRect(x0, y0, 5, R); g.fillRect(x0 + R - 5, y0, 5, R);
+  };
+  BOX_VARS.forEach((V, i) => {
+    side(0, i * R, S, V); BOX_UV.side[i] = at(0, i * R, S, i * R + R); BOX_UV.roof[i] = at(150, i * R + 14, 190, i * R + R - 14);
+    door(i * R, 7 * R, V); BOX_UV.door[i] = at(i * R, 7 * R, i * R + R, 8 * R);
+  });
+  BOX_SHORT.forEach((V, i) => {
+    side(i * 512, 6 * R, 512, V); BOX_UV.short[i] = at(i * 512, 6 * R, i * 512 + 512, 7 * R);
+    door((6 + i) * R, 7 * R, V); BOX_UV.door[6 + i] = at((6 + i) * R, 7 * R, (7 + i) * R, 8 * R);
+  });
+  grain(g, S, S, 12, 0);
+  return ctex(c);
+}
+// the lane: concrete slabs two across and 4 m long, each its own shade, the joints dark between them; the lorries' tyres worn
+// dark down it, oil, sealed cracks, the yellow edge lines. Over 16 m like the expressway's
+function makePortRoadTex() {
+  const w = 512, h = 1024, [c, g] = canvas(w, h), [rc, rg] = canvas(256, 512);
+  const pxm = w / (ROAD * 2), pzm = h / 16;
+  for (let sx = 0; sx < 2; sx++) for (let sz = 0; sz < 4; sz++) { const k = rand(-8, 8) | 0; g.fillStyle = `rgb(${70 + k},${72 + k},${78 + k})`; g.fillRect(sx * w / 2, sz * 4 * pzm, w / 2, 4 * pzm); }
+  for (let i = 0; i < 60; i++) blotch(g, rand(0, w), rand(0, h), rand(20, 70), `rgba(${rand(30, 60) | 0},${rand(30, 58) | 0},${rand(34, 64) | 0},.14)`);
+  const tracks = [-2.6, -0.9, 0.9, 2.6];
+  for (const lx of tracks) {
+    const x = (ROAD + lx) * pxm, gr = g.createLinearGradient(x - 22, 0, x + 22, 0);
+    gr.addColorStop(0, 'rgba(18,18,22,0)'); gr.addColorStop(0.5, 'rgba(18,18,22,.4)'); gr.addColorStop(1, 'rgba(18,18,22,0)');
+    g.fillStyle = gr; g.fillRect(x - 22, 0, 44, h);
+  }
+  for (const lx of [-1.75, 1.75]) for (let i = 0; i < 8; i++) blotch(g, (ROAD + lx + rand(-0.3, 0.3)) * pxm, rand(0, h), rand(6, 16), 'rgba(8,8,10,.4)', 6);
+  g.strokeStyle = 'rgba(20,20,24,.6)'; g.lineWidth = 2.5;
+  for (let i = 0; i < 6; i++) { let x = rand(0, w), y = rand(0, h); g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 8; s++) { x += rand(-14, 14); y += rand(-20, 20); g.lineTo(x, y); } g.stroke(); }
+  g.fillStyle = 'rgba(16,16,20,.8)'; g.fillRect(w / 2 - 2, 0, 4, h);
+  for (let sz = 0; sz < 4; sz++) g.fillRect(0, sz * 4 * pzm - 2, w, 4);
+  const lw = 0.16 * pxm;
+  for (const ex of [0.22, ROAD * 2 - 0.22]) {
+    g.fillStyle = 'rgba(232,184,40,.92)'; g.fillRect(ex * pxm - lw / 2, 0, lw, h);
+    g.fillStyle = 'rgba(40,36,30,.4)'; for (let i = 0; i < 60; i++) g.fillRect(rand(ex * pxm - lw / 2, ex * pxm + lw / 2 - 3), rand(0, h), rand(2, 4), rand(2, 7));
+  }
+  grain(g, w, h, 18, 0);
+  rg.fillStyle = '#c4c4c4'; rg.fillRect(0, 0, 256, 512);
+  for (const lx of tracks) {
+    const x = (ROAD + lx) / (ROAD * 2) * 256, gr = rg.createLinearGradient(x - 10, 0, x + 10, 0);
+    gr.addColorStop(0, 'rgba(110,110,110,0)'); gr.addColorStop(0.5, 'rgba(110,110,110,.8)'); gr.addColorStop(1, 'rgba(110,110,110,0)');
+    rg.fillStyle = gr; rg.fillRect(x - 10, 0, 20, 512);
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = rand(10, 246), y = rand(0, 512), r = rand(12, 30);
+    const gr = rg.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, '#2a2a2a'); gr.addColorStop(0.7, '#5a5a5a'); gr.addColorStop(1, 'rgba(196,196,196,0)');
+    rg.fillStyle = gr; rg.beginPath(); rg.ellipse(x, y, r * 1.2, r * 1.6, 0, 0, 7); rg.fill();
+  }
+  const map = ctex(c, true), rough = ctex(rc, true);
+  rough.colorSpace = THREE.NoColorSpace;
+  return { map, rough };
+}
+// beside the lane out to the stacks: u 0 at its edge, 1 at 7.5 m, 8 m along; the gantry crane's rail let into the concrete at 6 m
+function makePortWalkTex() {
+  const [c, g] = canvas(256, 512), rx = (CRANE.x - ROAD) / (WALK + 0.9 - ROAD) * 256;
+  g.fillStyle = '#3e3f46'; g.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 30; i++) blotch(g, rand(0, 256), rand(0, 512), rand(14, 40), `rgba(${rand(20, 46) | 0},${rand(20, 44) | 0},${rand(24, 50) | 0},.2)`);
+  g.fillStyle = 'rgba(16,16,20,.8)'; g.fillRect(0, 254, 256, 4);
+  g.fillStyle = '#16161a'; g.fillRect(rx - 10, 0, 20, 512);
+  g.fillStyle = '#8a9098'; g.fillRect(rx - 3, 0, 6, 512); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(rx - 1, 0, 2, 512);
+  for (let y = 0; y < 512; y += 64) { g.fillStyle = '#5a5e66'; g.fillRect(rx - 9, y, 18, 5); }
+  for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(${rand(60, 110) | 0},${rand(56, 100) | 0},${rand(60, 100) | 0},${rand(0.2, 0.45)})`; g.fillRect(rand(0, 256), rand(0, 512), rand(1, 3), rand(1, 3)); }
+  grain(g, 256, 512, 14, 0);
+  return ctex(c, true);
+}
+// the yard round the stacks: darker slabs, 8 m square
+function makePortYardTex() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#2e3036'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 24; i++) blotch(g, rand(0, 256), rand(0, 256), rand(14, 40), `rgba(${rand(16, 40) | 0},${rand(16, 40) | 0},${rand(20, 46) | 0},.22)`);
+  g.fillStyle = 'rgba(14,14,18,.8)'; g.fillRect(0, 0, 256, 3); g.fillRect(0, 128, 256, 3); g.fillRect(0, 0, 3, 256); g.fillRect(128, 0, 3, 256);
+  grain(g, 256, 256, 14, 0);
+  return ctex(c, true);
+}
+// the gantry crane's girder face: its yellow, the port's name and its number in black, black and yellow stripes at the ends
+// (75 px a metre along it, 116 up it: the letters squeezed to read square)
+const PORT_UV = {};
+function makePortSignTex() {
+  const W2 = 1024, H2 = 128, [c, g] = canvas(W2, H2);
+  g.fillStyle = '#d89c22'; g.fillRect(0, 0, W2, H2);
+  for (const x0 of [0, W2 - 120]) {
+    g.save(); g.beginPath(); g.rect(x0, 0, 120, H2); g.clip();
+    for (let x = x0 - H2; x < x0 + 120; x += 40) { g.fillStyle = '#16161a'; g.beginPath(); g.moveTo(x, H2); g.lineTo(x + 20, H2); g.lineTo(x + 20 + H2, 0); g.lineTo(x + H2, 0); g.closePath(); g.fill(); }
+    g.restore();
+  }
+  g.save(); g.fillStyle = '#16161a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.translate(W2 / 2, H2 / 2 + 4); g.scale(0.65, 1);
+  g.font = `92px ${FONT}`; g.fillText(PORT_TEXT.gird + '  ' + PORT_TEXT.girdE, 0, 0, (W2 - 300) / 0.65);
+  g.restore();
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(${rand(90, 130) | 0},${rand(50, 70) | 0},${rand(24, 34) | 0},${rand(0.1, 0.3)})`; g.fillRect(rand(0, W2), rand(0, 20), rand(2, 5), rand(10, 60)); }
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, W2, 6); g.fillRect(0, H2 - 8, W2, 8);
+  grain(g, W2, H2, 12, 0);
+  PORT_UV.gird = [0, 0, 1, 1];
+  return ctex(c);
+}
+// the ship's side, 104 m of it from her stern on 2048 px: black over the red at her waterline, a white line along her deck edge,
+// her name big in white with the letters lit a little by the quay's lights, draft marks, weld seams, rust; her portholes under the
+// bridge lit (the second map)
+function makePortHullTex() {
+  const W2 = 2048, H2 = 256, [c, g] = canvas(W2, H2), [ec, eg] = canvas(W2, H2);
+  const hy = h => H2 - (h + 2) / 12.5 * H2;   // a height on her to the canvas's y
+  g.fillStyle = '#14171d'; g.fillRect(0, 0, W2, H2);
+  g.fillStyle = '#6a1c18'; g.fillRect(0, hy(0.6), W2, H2 - hy(0.6));
+  g.fillStyle = '#d8d8d0'; g.fillRect(0, 0, W2, 5);
+  g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 2;
+  for (let x = 0; x < W2; x += 96) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H2); g.stroke(); }
+  for (const h of [3, 6.5]) { g.beginPath(); g.moveTo(0, hy(h)); g.lineTo(W2, hy(h)); g.stroke(); }
+  for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(${rand(80, 120) | 0},${rand(40, 56) | 0},${rand(22, 30) | 0},${rand(0.15, 0.4)})`; g.fillRect(rand(0, W2), rand(4, 30), rand(2, 6), rand(20, 120)); }
+  eg.fillStyle = '#000'; eg.fillRect(0, 0, W2, H2);
+  // her name low on her hull in the middle of the lane's slot (x 0 is 788 px from her stern), under the hanging container; again
+  // up by her bow in Latin letters
+  for (const G of [g, eg]) {
+    G.save(); G.fillStyle = G === g ? '#f2f0ea' : '#6a6a66'; G.textAlign = 'center'; G.textBaseline = 'middle';
+    G.font = `44px ${FONT}`; G.fillText(PORT_TEXT.ship, 788, hy(1.3));
+    G.font = `56px ${FONT}`; G.fillText(PORT_TEXT.shipE, 1560, hy(6.8));
+    G.restore();
+  }
+  g.fillStyle = '#e8e8e0'; g.font = `14px ${FONT}`; g.textAlign = 'left';
+  for (const x of [60, 1980]) for (let m = 2; m <= 10; m += 2) g.fillText(m + 'M', x, hy(m - 2) - 2);
+  // portholes along under the bridge (her stern, 6 to 22 m from it), some lit
+  for (let x = 120; x < 460; x += 22) for (const h of [8.4]) {
+    const lit = Math.random() < 0.55, y = hy(h);
+    g.fillStyle = lit ? '#ffe0a8' : '#22262c'; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill();
+    if (lit) { eg.fillStyle = '#ffd890'; eg.beginPath(); eg.arc(x, y, 4.5, 0, 7); eg.fill(); }
+  }
+  grain(g, W2, H2, 10, 0);
+  return { map: ctex(c), em: ctex(ec) };
+}
+// a square bar from a to b (three.js space), w thick, into the buffer
+const _pb = new THREE.Vector3(), _pbM = new THREE.Matrix4(), _pbQ = new THREE.Quaternion(), _pbU = new THREE.Vector3(0, 1, 0), _pbS = new THREE.Vector3(1, 1, 1), _pbP = new THREE.Vector3();
+function portBar(buf, a, b, w, c) {
+  const d = _pb.subVectors(b, a), L = d.length(), geo = new THREE.BoxGeometry(w, L, w);
+  geo.applyMatrix4(_pbM.compose(_pbP.addVectors(a, b).multiplyScalar(0.5), _pbQ.setFromUnitVectors(_pbU, d.divideScalar(L)), _pbS));
+  buf.geom(geo, c);
+}
+// a container in a stack: from x0 to x1 across, y0 up, from za to zb (game) along the lane; its long side to the lane, its doors
+// to us. v: its paint, t: its tint
+function stackBox(buf, side, x0, x1, y0, za, zb, v, t) {
+  buf.box(x0, y0, -zb, x1, y0 + BOX.H - 0.04, -za, t, (side > 0 ? 'nx' : 'px') + ' pz', f => f === 'pz' ? BOX_UV.door[v] : BOX_UV.side[v]);
+}
+// one on its own, centred on its middle, its length along x: for the crane's hook and for the ones it knocks flying
+function boxGeo(short, v, t) {
+  const G = new GeoBuf(), L = short ? BOX.S : BOX.L, hl = L / 2, hh = BOX.H / 2, hw = BOX.W / 2;
+  const sideUV = short ? BOX_UV.short[v] : BOX_UV.side[v], doorUV = BOX_UV.door[short ? 6 + v : v], roofUV = BOX_UV.roof[short ? 0 : v];
+  G.box(-hl, -hh, -hw, hl, hh, hw, t, 'pz nz px nx py ny', f => f === 'pz' || f === 'nz' ? sideUV : f === 'px' || f === 'nx' ? doorUV : roofUV);
+  return G;
+}
+const PORT_KEYS = ['road', 'walk', 'yard', 'box', 'boxFar', 'hull', 'far', 'lampFar', 'dark', 'conc', 'lamp', 'wire', 'fsign', 'glow', 'cone'];
+let port = null;
+function buildPort(root) {
+  const road = makePortRoadTex(), walkT = makePortWalkTex(), yardT = makePortYardTex(), boxT = makePortBoxTex(), signT = makePortSignTex(), hullT = makePortHullTex();
+  const M = {
+    road: new THREE.MeshStandardMaterial({ map: road.map, roughnessMap: road.rough, roughness: 1, metalness: 0, envMap, envMapIntensity: 0.35 }),
+    walk: new THREE.MeshStandardMaterial({ map: walkT, roughness: 0.9, envMap, envMapIntensity: 0.25 }),
+    yard: new THREE.MeshLambertMaterial({ map: yardT }),
+    box: lessFog(new THREE.MeshLambertMaterial({ map: boxT, vertexColors: true }), 0.8, 0.45),
+    boxFar: lessFog(new THREE.MeshLambertMaterial({ map: boxT, vertexColors: true }), 0.16, 0.45),
+    hull: lessFog(new THREE.MeshLambertMaterial({ map: hullT.map, emissiveMap: hullT.em, emissive: 0xffffff, emissiveIntensity: 1.4 }), 0.16, 0.3),
+    far: lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.16, 0.45),
+    lampFar: lessFog(new THREE.MeshBasicMaterial({ vertexColors: true }), 0.12),
+    crane: lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.45, 0.35),
+    gird: lessFog(new THREE.MeshLambertMaterial({ map: signT }), 0.45, 0.45),
+    dark: MAT.dark, conc: MAT.conc, lamp: MAT.lamp, wire: MAT.wire, fsign: MAT.fsign, glow: MAT.glow, cone: MAT.cone,
+  };
+  const B = {}, ZEND = 150;
+  for (const k of PORT_KEYS) B[k] = new GeoBuf();
+  // the yard, the lane down the middle of it, the strips beside the lane with the crane's rails
+  B.yard.quad(P3(-70, -0.01, 4), P3(70, -0.01, 4), P3(70, -0.01, -ZEND - 4), P3(-70, -0.01, -ZEND - 4), [0, 0, 140 / 8, (ZEND + 8) / 8], WHITE);
+  B.road.quad(P3(-ROAD, 0, 4), P3(ROAD, 0, 4), P3(ROAD, 0, -ZEND), P3(-ROAD, 0, -ZEND), [0, -4 / 16, 1, ZEND / 16], WHITE);
+  const XO = WALK + 0.9;
+  for (const s of [-1, 1]) {
+    const x0 = s > 0 ? ROAD : -XO, x1 = s > 0 ? XO : -ROAD;
+    B.walk.quad(P3(x0, 0.004, 4), P3(x1, 0.004, 4), P3(x1, 0.004, -ZEND), P3(x0, 0.004, -ZEND), s > 0 ? [0, -0.5, 1, ZEND / 8] : [1, -0.5, 0, ZEND / 8], WHITE);
+  }
+  // stacks down both sides, three rows deep and two to five high, a gap now and then with a mast in it. The near ones, in rocket
+  // reach, get meshes of their own so each can come down alone. On top of the front rows of some near the crane, out of rocket
+  // reach, a container left loose: the ones its fall knocks flying (76-port.js)
+  const AISLE = { '-1': [[47, 53], [97, 103]], '1': [[73, 79], [121, 127]] }, perches = [], masts = [];
+  for (const side of [-1, 1]) {
+    for (const [a0, a1] of AISLE[side]) masts.push([side, (a0 + a1) / 2]);
+    let d = 1.2;
+    while (d < 134) {
+      const aisle = AISLE[side].find(([a0, a1]) => d < a1 && d + BOX.L > a0);
+      if (aisle) { d = aisle[1] + 0.4; continue; }
+      const xf = WALK + rand(0.35, 0.85), t0 = pick([2, 3, 3, 4, 4, 5]), za = d, zb = d + BOX.L;
+      const own = za < BLAST_REACH && zb > 12 ? { box: new GeoBuf(), lamp: new GeoBuf() } : null, T = own || B, cols = [];
+      for (let r = 0; r < 3; r++) {
+        const n = r ? clamp(t0 + pick([-1, 0, 0, 1, 1, 2]), 1, 6) : t0, xa = xf + r * (BOX.W + 0.1);
+        const X0 = side > 0 ? xa : -xa - BOX.W, X1 = side > 0 ? xa + BOX.W : -xa;
+        for (let k = 0; k < n; k++) {
+          const v = pick(BOX_PICK), t = boxTint(v);
+          stackBox(T.box, side, X0, X1, k * BOX.H, za, zb, v, t);
+          if (!r) cols.push(new THREE.Color(BOX_VARS[v].c).multiply(t));
+          // a reefer's lamp on its doors, green or red
+          if (Math.random() < 0.12) T.lamp.box(side * (xa + 0.5) - 0.07, k * BOX.H + 1.9, -za - 0.02, side * (xa + 0.5) + 0.07, k * BOX.H + 2.04, -za, Math.random() < 0.7 ? col(0x40ff70, 3) : col(0xff3020, 3), 'pz');
+        }
+        if (r < 2 && za >= BLAST_REACH && za < 100) perches.push({ side, r, x: side * (xa + BOX.W / 2), z: (za + zb) / 2, h: n * BOX.H });
+      }
+      city.blocks.push({ side, x: side * xf, xf, depth: 3 * (BOX.W + 0.1), z0: za, z1: zb, h: t0 * BOX.H, tint: cols[0], cols, own, box: true });
+      d = zb + rand(0.35, 0.8);
+    }
+  }
+  for (const [s, d] of masts) portMast(B, s, d);
+  // the lane's own lamps between the masts: low posts on the strips throwing pools across it
+  for (const [s, d] of [[1, 30], [-1, 38], [1, 92], [-1, 116], [1, 140]]) {
+    const x = s * (WALK - 0.15), z = -d;
+    B.dark.box(x - 0.08, 0, z - 0.08, x + 0.08, 6.2, z + 0.08, col(0x5a6068), 'pz px nx');
+    B.dark.box(Math.min(x, x - s * 1.4), 6.05, z - 0.06, Math.max(x, x - s * 1.4), 6.17, z + 0.06, col(0x5a6068), 'pz py ny');
+    B.lamp.box(x - s * 1.4 - 0.3, 5.9, z - 0.16, x - s * 1.4 + 0.3, 6.04, z + 0.16, col(0xeef4ff, 6), 'ny pz');
+    const cg = new THREE.CylinderGeometry(0.25, 2.6, 5.9, 16, 1, true); cg.translate(x - s * 1.4, 2.95, z);
+    B.cone.geom(cg, col(0xdfe8ff, 0.04));
+    B.glow.flat(s * (ROAD - 1.1), 0.014, z, 6.4, 8, 0, col(0xcfe0ff, 0.4));
+  }
+  portQuay(B);
+  buildBarricade(B);
+  for (const k of PORT_KEYS) if (B[k].v) B[k].mesh(M[k], k === 'glow' ? 3 : k === 'cone' ? 4 : 0, root);
+  for (const b of city.blocks) {
+    if (!b.own) continue;
+    b.group = new THREE.Group(); root.add(b.group);
+    b.own.box.mesh(M.box, 0, b.group);
+    if (b.own.lamp.v) b.own.lamp.mesh(MAT.lamp, 0, b.group);
+    delete b.own;
+    b.hp = b.max = b.h > 10 ? 4 : 3;
+  }
+  port = { root, M, ...buildPortCrane(root, M), hang: portHang(root, M), rain: portRain(root, M, perches) };
+  resetPort();
+}
+// a floodlight mast in a gap between the stacks: a tall pole, a frame of lamps at the top turned on the lane, their beams in the
+// haze and their light pooled on the concrete
+function portMast(B, side, d) {
+  const x = side * (WALK + 2.6), z = -d, top = 24;
+  B.dark.box(x - 0.24, 0, z - 0.24, x + 0.24, top, z + 0.24, col(0x6a7078), 'pz px nx');
+  B.dark.box(x - 1.4, top, z - 0.8, x + 1.4, top + 0.35, z + 0.8, col(0x4a5058), 'pz py ny px nx');
+  for (const ox of [-1, -0.35, 0.35, 1]) B.lamp.box(x + ox - 0.24, top - 0.12, z + 0.3, x + ox + 0.24, top + 0.02, z + 0.8, col(0xe8f0ff, 7), 'ny pz');
+  for (const [tx, tz] of [[side * 0.4, d - 9], [side * -1.5, d + 6]]) {
+    const from = P3(x, top - 0.1, z), to = P3(tx, 0, -tz), dir = to.clone().sub(from), L = dir.length();
+    const cg = new THREE.CylinderGeometry(0.5, 5, L, 20, 1, true);
+    cg.translate(0, -L / 2, 0);
+    cg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(P3(0, -1, 0), dir.clone().normalize()));
+    cg.translate(from.x, from.y, from.z);
+    B.cone.geom(cg, col(0xdfe8ff, 0.03));
+  }
+  B.glow.flat(side * 1.2, 0.015, -(d - 6), 12, 18, 0, col(0xcfe0ff, 0.36));
+  B.glow.flat(side * 3.6, 0.016, z, 6, 6, 0, col(0xcfe0ff, 0.3));
+}
+// the far end: the open quay, its edge striped, bollards; two ship-to-shore cranes standing astride it, their legs and their
+// portal beams (the rest of them goes up over the HUD); the ship at her berth beyond: her hull, the stacks on her deck, her
+// bridge with its windows lit and her funnel; the water between
+function portQuay(B) {
+  const ZQ = 150, ZS = 153.5, deck = 10.5;
+  B.conc.box(-70, 0, -ZQ - 0.5, 70, 0.3, -ZQ, col(0x9a9ca4), 'pz py');
+  for (let x = -66; x <= 66; x += 4) B.dark.box(x, 0.3, -ZQ - 0.02, x + 2, 0.31, -ZQ + 0.01, col(0xd8a020), 'py');
+  for (let x = -60; x <= 60; x += 12) B.dark.box(x - 0.3, 0.3, -ZQ - 0.4, x + 0.3, 0.9, -ZQ + 0.0, col(0x2a2c30), 'pz px nx py');
+  B.far.quad(P3(-300, -1.6, -ZQ - 0.5), P3(300, -1.6, -ZQ - 0.5), P3(300, -1.6, -400), P3(-300, -1.6, -400), [0, 0, 1, 1], col(0x0a121a));
+  // the cranes: four legs each, braced, a portal beam over them, red lamps
+  for (const cx of [-14, 16]) {
+    for (const lx of [-8.5, 8.5]) for (const lz of [138, 151]) {
+      B.far.box(cx + lx - 0.65, 0, -lz - 0.65, cx + lx + 0.65, 16.5, -lz + 0.65, col(0x6a8cb8), 'pz px nx');
+      B.far.box(cx + lx - 0.9, 0, -lz - 1.2, cx + lx + 0.9, 0.9, -lz + 1.2, col(0x3a4a5a), 'pz px nx py');
+    }
+    B.far.box(cx - 9.2, 15.2, -152, cx + 9.2, 17.4, -137, col(0x5a7ca8), 'pz ny');
+    for (const lx of [-8.5, 8.5]) portBar(B.far, P3(cx + lx, 1.5, -138), P3(cx + lx, 14.5, -151), 0.5, col(0x5a7ca8));
+    portBar(B.far, P3(cx - 8, 15.2, -137.6), P3(cx + 8, 11, -137.6), 0.45, col(0x5a7ca8));
+    B.lampFar.box(cx - 9.3, 17.4, -137.2, cx - 8.9, 17.7, -136.9, col(0xff2a1a, 6), 'pz py');
+    B.lampFar.box(cx + 8.9, 17.4, -137.2, cx + 9.3, 17.7, -136.9, col(0xff2a1a, 6), 'pz py');
+    for (const lx of [-4, 4]) B.lampFar.box(cx + lx - 0.5, 15.0, -137.5, cx + lx + 0.5, 15.2, -136.9, col(0xeef4ff, 6), 'ny pz');
+  }
+  // the ship: her hull from her stern at -40 out past what the screen shows, her name on it
+  B.hull.box(-40, -2, -186, 64, deck, -ZS, WHITE, 'pz py', f => f === 'pz' ? [0, 0, 1, 1] : [0.99, 0.99, 1, 1]);
+  // the stacks on her deck, bay after bay, their long sides to us
+  for (let x = -8; x < 64; x += BOX.L + 0.5) {
+    const n = pick([3, 4, 4, 5, 5, 6]);
+    for (let k = 0; k < n; k++) {
+      const v = pick(BOX_PICK), t = boxTint(v).multiplyScalar(0.9);
+      B.boxFar.box(x, deck + k * BOX.H, -ZS - 3, x + BOX.L, deck + k * BOX.H + BOX.H - 0.04, -ZS - 1.2, t, 'pz', () => BOX_UV.side[v]);
+    }
+    B.dark.box(x + BOX.L, deck, -ZS - 3, x + BOX.L + 0.5, deck + n * BOX.H + 1.2, -ZS - 1.4, col(0x3a3e46), 'pz');   // a lashing bridge
+  }
+  // her bridge aft: white decks with their windows lit, the wheelhouse's wings, her funnel with the line's red band
+  const bx0 = -26, bx1 = -13, bz0 = -ZS - 8, bz1 = -ZS - 2;
+  B.far.box(bx0, deck, bz0, bx1, deck + 20, bz1, col(0xc8c8c0), 'pz px nx');
+  B.far.box(bx0 - 3, deck + 20, bz0, bx1 + 3, deck + 22.5, bz1 + 0.6, col(0xc8c8c0), 'pz px nx ny');
+  for (let f = 0; f < 6; f++) for (let x = bx0 + 0.8; x < bx1 - 0.8; x += 1.6) if (Math.random() < 0.6) B.lampFar.box(x, deck + 1.4 + f * 3, bz1 + 0.01, x + 0.9, deck + 2.3 + f * 3, bz1 + 0.02, col(pick([0xffe0a8, 0xfff0d8, 0xcfe0ff]), 2.4), 'pz');
+  for (let x = bx0 - 2.6; x < bx1 + 2.6; x += 1.2) B.lampFar.box(x, deck + 20.9, bz1 + 0.61, x + 0.9, deck + 21.9, bz1 + 0.62, col(0xbfd8ff, 1.6), 'pz');
+  B.far.box(bx0 + 3, deck + 22.5, bz0 - 4, bx0 + 8, deck + 31, bz0 + 1, col(0x2a2a2e), 'pz px nx');
+  B.far.box(bx0 + 3, deck + 27, bz0 + 1.01, bx0 + 8, deck + 29, bz0 + 1.02, col(0xa82c24), 'pz');
+  // her mooring lines, her deck lights
+  for (const x of [-32, 40]) portBar(B.dark, P3(x, deck - 1, -ZS), P3(x + 5, 0.7, -ZQ + 0.2), 0.06, col(0x2a2a2e));
+  for (let x = -6; x < 60; x += 9) B.lampFar.box(x, deck + 0.2, -ZS - 0.3, x + 0.4, deck + 0.5, -ZS + 0.01, col(0xffd890, 3), 'pz');
+}
+// the gantry crane straddling the lane: on each side a sill along the rail on its bogies, two legs up from it, braces; the girder
+// across the top with the port's name on its face, the trolley on it, the driver's cab hung under it, floodlights under it on the
+// lane. All but the sills in a group hinged at the foot of the near legs, to come down forward across the lane when they buckle
+// (76-port.js); the sills stay on the rails. The hoist's cables are a mesh of their own (they snap)
+function buildPortCrane(root, M) {
+  const C = CRANE, Bd = new GeoBuf(), Bs = new GeoBuf(), Lm = new GeoBuf(), Sg = new GeoBuf(), Cn = new GeoBuf(), Gl = new GeoBuf(), Cb = new GeoBuf();
+  const Y = col(0xe0a428), Y2 = col(0xb07c1c), K = col(0x1c1a1e), ST = col(0x3a3c44);
+  const zn = -C.z, zf = -C.zb;
+  for (const s of [-1, 1]) {
+    const x = s * C.x;
+    Bs.box(x - 0.5, 0.42, zf - 1.0, x + 0.5, 1.0, zn + 1.0, Y2, 'pz py px nx');
+    for (const z of [zn + 0.5, zf - 0.5]) Bs.box(x - 0.34, 0, z - 0.42, x + 0.34, 0.42, z + 0.42, K, 'pz px nx');
+    for (const k of [0, 1, 2]) Bs.box(x - 0.44 + k * 0.33, 0.44, zn + 1.0, x - 0.28 + k * 0.33, 0.98, zn + 1.01, K, 'pz');
+    for (const z of [zn, zf]) Bd.box(x - C.leg, 1.0, z - C.leg, x + C.leg, C.gird, z + C.leg, Y, 'pz px nx');
+    portBar(Bd, P3(x, 1.3, zn), P3(x, C.gird - 0.5, zf), 0.2, Y2);
+    portBar(Bd, P3(x - s * 0.2, C.gird - 2.0, zn), P3(x - s * 2.0, C.gird, zn), 0.28, Y);
+    // a ladder up the near leg, a lamp on top of it
+    for (let y = 1.4; y < C.gird - 0.3; y += 0.4) Bd.box(x - s * C.leg - s * 0.24 - 0.2, y, zn + C.leg - 0.02, x - s * C.leg - s * 0.24 + 0.2, y + 0.05, zn + C.leg + 0.18, ST, 'pz py');
+  }
+  Bd.box(-6.8, C.gird, zf - 0.5, 6.8, C.girdTop, zn + 0.5, Y, 'py ny px nx');
+  Sg.box(-6.8, C.gird, zn + 0.5, 6.8, C.girdTop, zn + 0.51, WHITE, 'pz', () => PORT_UV.gird);
+  Bd.box(-1.4, C.gird - 0.6, -C.hz - 1.2, 1.4, C.gird, -C.hz + 1.2, Y2, 'pz px nx ny');
+  Bd.box(-1.1, C.gird - 0.5, -C.hz + 1.2, 1.1, C.gird - 0.2, -C.hz + 1.21, K, 'pz');
+  Bd.box(-5.1, C.gird - 1.5, zn - 0.2, -3.4, C.gird, zn + 1.0, col(0xd8d4c8), 'pz px nx ny');
+  Lm.box(-4.95, C.gird - 1.05, zn + 1.0, -3.55, C.gird - 0.35, zn + 1.01, col(0xbfe0ff, 2.2), 'pz');
+  for (const x of [-3.0, 3.0]) {
+    Bd.box(x - 0.45, C.gird - 0.3, zn - 0.1, x + 0.45, C.gird, zn + 0.5, ST, 'pz px nx ny');
+    Lm.box(x - 0.38, C.gird - 0.31, zn - 0.02, x + 0.38, C.gird - 0.3, zn + 0.42, col(0xeef4ff, 7), 'ny');
+    const from = P3(x, C.gird - 0.3, zn + 0.2), to = P3(x * 0.5, 0, zn + 5), dir = to.clone().sub(from), L = dir.length();
+    const cg = new THREE.CylinderGeometry(0.4, 3.2, L, 18, 1, true);
+    cg.translate(0, -L / 2, 0);
+    cg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(P3(0, -1, 0), dir.clone().normalize()));
+    cg.translate(from.x, from.y, from.z);
+    Cn.geom(cg, col(0xe4eeff, 0.045));
+  }
+  Gl.flat(0, 0.017, zn + 4.5, 11, 10, 0, col(0xdfeaff, 0.5));
+  // the hoist's cables down to the spreader
+  for (const x of [-1.2, 1.2]) for (const dz of [-0.8, 0.8]) Cb.box(x - 0.035, C.hang + BOX.H + 0.3, -C.hz + dz - 0.035, x + 0.035, C.gird - 0.6, -C.hz + dz + 0.035, col(0x2a2a30), 'pz px nx');
+  Bs.mesh(M.crane, 0, root);
+  const g = new THREE.Group(), pv = P3(0, 1.0, zn + C.leg);
+  g.position.copy(pv); root.add(g);
+  const add = (buf, mat, order = 0) => { const m = buf.mesh(mat, order, g); m.geometry.translate(-pv.x, -pv.y, -pv.z); m.geometry.computeBoundingSphere(); return m; };
+  add(Bd, M.crane); add(Sg, M.gird);
+  const lamps = add(Lm, MAT.lamp), cones = add(Cn, MAT.cone, 4), cables = add(Cb, MAT.dark), pool = Gl.mesh(MAT.glow, 3, root);
+  return { g, lamps, cones, cables, pool };
+}
+// the 20-foot container on the crane's hook, under the spreader that holds it
+function portHang(root, M) {
+  const g = new THREE.Group(); root.add(g);
+  const box = boxGeo(true, 0, col(0xffffff, 0.95)).mesh(M.box, 0, g); box.matrixAutoUpdate = true;
+  const sp = new GeoBuf(), hl = BOX.S / 2 + 0.1, top = BOX.H / 2;
+  sp.box(-hl, top, -1.3, hl, top + 0.3, 1.3, col(0xc89020), 'pz nz px nx py ny');
+  for (const x of [-hl + 0.3, hl - 0.3]) sp.box(x - 0.15, top + 0.3, -0.5, x + 0.15, top + 0.5, 0.5, col(0x3a3c44), 'pz px nx py');
+  sp.mesh(M.crane, 0, g);
+  return { g, tint: new THREE.Color(BOX_SHORT[0].c), len: BOX.S, q: new THREE.Quaternion(), w: new THREE.Vector3() };
+}
+// the loose containers on the stacks near the crane (on their front rows, or the ones behind), four a side, nearest it first
+function portRain(root, M, perches) {
+  perches.sort((a, b) => Math.abs(a.z - CRANE.hz) + a.r * 6 - Math.abs(b.z - CRANE.hz) - b.r * 6);
+  const pickd = [];
+  for (const s of [-1, 1]) pickd.push(...perches.filter(p => p.side === s).slice(0, 4));
+  pickd.sort((a, b) => Math.abs(a.z - CRANE.hz) - Math.abs(b.z - CRANE.hz));
+  return pickd.map((p, i) => {
+    const v = pick([0, 1, 2, 3, 5, 4]), t = boxTint(v), m = boxGeo(false, v, t).mesh(M.box, 0, root);
+    m.matrixAutoUpdate = true;
+    const q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2 + rand(-0.05, 0.05), 0));
+    return { i, m, len: BOX.L, tint: new THREE.Color(BOX_VARS[v].c).multiply(t), x0: p.x, z0: p.z, h0: p.h + BOX.H / 2, q0, q: q0.clone(), w: new THREE.Vector3() };
+  });
+}
+// what a stack comes down to (72-big.js buildRuin): its containers heaped where it stood, crumpled and tipped every way, one
+// spilled out over the strip toward the lane, sides and doors torn off them lying about. Gives back how high the heap stands
+function boxRuin(b, put) {
+  const s = b.side, X = s * b.xf, zc = (b.z0 + b.z1) / 2, C = () => pick(b.cols).clone().multiplyScalar(rand(0.35, 0.7));
+  for (const [dx, dz] of [[1.25, 0], [3.8, 0.4]]) put(X + s * dx, BOX.H / 2 - 0.15, zc + dz + rand(-0.6, 0.6), BOX.W * 0.95, BOX.H * rand(0.75, 0.9), BOX.L * rand(0.88, 0.98), rand(-0.04, 0.04), rand(-0.12, 0.12), s * rand(-0.06, 0.06), C());
+  put(X + s * 2.4, BOX.H + 0.7, zc + rand(-1.5, 1.5), BOX.W * 0.92, BOX.H * 0.85, BOX.L * rand(0.8, 0.95), rand(-0.1, 0.1), rand(-0.2, 0.2), -s * rand(0.3, 0.55), C());
+  if (b.h > 8) put(X + s * 4.6, BOX.H + 1.2, zc + rand(-2, 2), BOX.W * 0.92, BOX.H * 0.8, BOX.L * rand(0.7, 0.9), rand(-0.25, 0.25), rand(-0.3, 0.3), s * rand(0.2, 0.5), C());
+  put(X - s * 0.9, BOX.W / 2, b.z0 + rand(2, 4), BOX.H * 0.9, BOX.W * 0.95, BOX.S * rand(0.9, 1.1), rand(-0.1, 0.1), rand(0.25, 0.5) * (Math.random() < 0.5 ? 1 : -1), 0, C());
+  for (let i = 0; i < 10; i++) put(X + s * rand(-1.2, 4), rand(0.05, 0.4), rand(b.z0, b.z1), rand(0.8, 2.2), 0.06, rand(0.8, 2), rand(-0.3, 0.3), rand(0, 3), rand(-0.3, 0.3), C());
+  return b.h > 8 ? 4.2 : 3.6;
 }
 
 // ===== 30-fx.js
@@ -8263,7 +8787,7 @@ function reset() {
   fireCD = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetSword(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetSurprise();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetSword(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetPort(); resetSurprise();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -8884,6 +9408,7 @@ function start() {
   initAudio();
   reset(); resetShare(); planSurprises(); autoNextStop(); playerInput = false; running = true;
   progStart();   // CrazyGames: the stage's 合格点 (80-stage.js)
+  achStart();   // and the 実績: the weapon played, the days in a row (82-ach.js)
   track('game_start', { weapon, stage: stageId, lang: LANG, sur: surKinds.join(',') || 'none', streak: streakN });
   rankStart();
   for (const z of [10.5, 13, 16, 19.5, 23]) spawnWave(z);   // a street already full of them
@@ -8935,6 +9460,7 @@ function finish() {
   settleMissions();
   surResult();
   progEnd();   // CrazyGames: stage cleared, or how far short (80-stage.js)
+  achEnd();   // the round's 実績, and a lap's 称号 (82-ach.js)
   setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: lbDown ? jaEn('ラストボス撃破', 'Final boss down') : bossKilled ? bossLabel() : '', badges, weapon });
   track('game_end', { weapon, rank: RANKS[i].r, score, stage: stageId, lang: LANG });
   rankSubmit(score, kills);
@@ -9019,12 +9545,13 @@ function update(dt, raw) {
     if (hap2At && elapsed >= hap2At) secondHappening();   // 20-second rounds (76-happen.js)
     surpriseTick(dt);
     checkMissions();
+    checkAch();
     if (elapsed >= DURATION) timeUp();
   } else if (endT > 0) {
     finaleTick(raw);
     endT -= raw;
     if (endT <= 0) {
-      if (bossBusy() || shipBusy() || parkBusy() || festBusy() || hwyBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, the festival's last fireworks, the overpass coming down, get there before the results come up
+      if (bossBusy() || shipBusy() || parkBusy() || festBusy() || hwyBusy() || portBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, the festival's last fireworks, the overpass or the crane and its containers coming down, get there before the results come up
       else if (moonBroken && !moonWait && moonBreakT < 1.6) { moonWait = true; endT = 1.6 - moonBreakT; }   // and the moon is seen breaking
       else finish();
     }
@@ -9057,6 +9584,7 @@ function update(dt, raw) {
   updatePark(dt);
   updateFest(dt);
   updateHwy(dt);
+  updatePort(dt);
   updateGims(dt, raw);
   updateBuildings(dt);
   updateBoss(dt, raw);
@@ -9260,7 +9788,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawSword(raw); drawMeteors(); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawPort(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawSword(raw); drawMeteors(); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -9344,7 +9872,7 @@ async function boot() {
   }
 }
 async function bootInner() {
-  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?%+-,.~…' + CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + GIM_GLYPHS + SUR_GLYPHS + missionGlyphs()), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?%+-,.~…' + CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + PORT_GLYPHS + GIM_GLYPHS + SUR_GLYPHS + missionGlyphs() + (ACH_ON ? ACH_GLYPHS : '')), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   buildWorld(firstStage()); initZombieMeshes(); initBoneMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); loadZukan(); renderZukan(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); prebuildLater();
@@ -9370,6 +9898,8 @@ async function bootInner() {
       st: () => park && { stage: stageId, wheel: park.wheel.state, hp: +park.wheel.hp.toFixed(1), fly: park.wheel.fly, train: park.train.state, z: +park.train.z.toFixed(1), gon: park.wheel.gon.map(g => g.state[0]).join('') } };
     window.__hwy = { light: () => onHwy() && lightOver(newChain(), false, 0), zc: () => onHwy() && spawnZcar(), noZc: () => { zcPlan = []; }, empty: () => { zombies = zombies.filter(z => z.ride); },
       st: () => hwy && { stage: stageId, over: hwy.state, hp: hwy.hp, th: +hwy.th.toFixed(3), jam: hwy.jam.map(J => J.state[0]).join(''), tank: !!hwy.tank, zc: cars.filter(c => c.zc).map(c => c.state + ':' + c.z.toFixed(1) + ':' + c.riders.filter(r => r.state === 'hang').length).join(' '), down: zcDown, plan: zcPlan.map(v => +v.toFixed(1)).join(','), big: cars.filter(c => c.big).map(c => c.kind + ':' + c.state).join(' ') } };
+    window.__port = { light: () => onPort() && lightCrane(newChain(), false), empty: () => { zombies = []; },
+      st: () => port && { stage: stageId, crane: port.state, hp: +port.hp.toFixed(1), th: +port.th.toFixed(3), hang: port.hang.state, rain: port.rain.map(R => R.state[0]).join(''), n: port.rain.length } };
     window.__fest = { light: () => onFest() && lightRack(newChain()), st: () => fest && { stage: stageId, rack: fest.state, hp: fest.hp, shells: fest.shells.length, big: fest.big ? fest.big.state : '', sky: fest.sky.length } };
     window.__noStrike = v => { noStrike = v; };
     // the street's contraptions: place('ball,wire') puts those up now (and every round after, until place('')), go(k) sets one off as our shot would
@@ -9448,6 +9978,7 @@ async function bootInner() {
     tilt: +look.tilt.toFixed(3),
     park: onPark() ? (() => { const Wh = park.wheel, T = park.train, c = T.cars[0], w = toScreen(0, WHEEL.z - WHEEL.foot, WHEEL.h), t = toScreen(c.x, c.z, c.h + 0.8); return { wheel: Wh.state, hp: +Wh.hp.toFixed(1), wx: w.X, wy: w.Y, train: T.state, tz: +c.z.toFixed(1), tx: t.X, ty: t.Y }; })() : null,
     hwy: onHwy() ? (() => { const s = toScreen(0, HWY.z - HWY.hz, HWY.top + 0.6); return { over: hwy.state, hp: hwy.hp, ox: s.X, oy: s.Y, zcDown, zc: cars.filter(c => c.zc && c.state === 'roll').map(c => { const p = toScreen(c.x, c.z, 0.8); return { x: p.X, y: p.Y, z: +c.z.toFixed(1) }; }) }; })() : null,
+    port: onPort() ? (() => { const s = toScreen(0, CRANE.hz - BOX.W / 2, CRANE.hang + BOX.H * 0.6); return { crane: port.state, hp: port.hp, cx: s.X, cy: s.Y, rain: port.rain.filter(R => R.state === 'gone').length }; })() : null,
     fest: onFest() ? (() => { const s = toScreen(0, RACK.z, RACK.deck + 0.55); return { rack: fest.state, hp: fest.hp, rx: s.X, ry: s.Y, shells: fest.shells.length, big: fest.big ? fest.big.state : '' }; })() : null,
     ship: ship ? (() => { const s = toScreen(ship.x, ship.z, ship.h); return { x: s.X, y: s.Y, z: +ship.z.toFixed(1), h: +ship.h.toFixed(1), state: ship.state, hp: ship.hp, hang: ship.hangers.filter(z => z.state === 'hang').length, hy: ship.hangers.filter(z => z.state === 'hang').map(z => toScreen(z.x, z.z, z.h + 1).Y | 0) }; })() : null,
     gims: gimState(),
@@ -9729,13 +10260,13 @@ function collapseBlock(b) {
     if (o.state !== 'walk' || o.type === 'boss' || o.x * b.side < -0.1 || o.z < b.z0 - 1.5 || o.z > b.z1 + 1.5) continue;
     killZombie(o, { dx: out * 0.5, dz: 0.4, d: 0.7, f: 0.45, power: 0.75, ch: b.ch }); k++;
   }
-  if (k) registerKills(k, X + out * 2, midZ, jaEn('ビルの下敷き!', 'CRUSHED!'), true, b.ch);
+  if (k) registerKills(k, X + out * 2, midZ, b.box ? jaEn('コンテナの下敷き!', 'CRUSHED!') : jaEn('ビルの下敷き!', 'CRUSHED!'), true, b.ch);
   for (const c of cars) if (c.x * b.side > 0 && c.z > b.z0 - 2 && c.z < b.z1 + 2) carBoom(c, rand(0.15, 0.5), b.ch);
   if (running) {
     score += BONUS.block; addFever(12); bldDown++;
-    const f = floaters.find(o => o.bld), sp = toScreen(X, midZ, 4);
-    if (f) { f.n++; f.life = 1.5; f.text = jaEn(`ビル倒壊!! ×${f.n}`, `BUILDING DOWN!! ×${f.n}`); f.sub = `+${(BONUS.block * f.n).toLocaleString()}`; }
-    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: jaEn('ビル倒壊!!', 'BUILDING DOWN!!'), sub: `+${BONUS.block.toLocaleString()}`, life: 1.5, big: true });
+    const f = floaters.find(o => o.bld), sp = toScreen(X, midZ, 4), nm = b.box ? jaEn('コンテナ崩落!!', 'STACK DOWN!!') : jaEn('ビル倒壊!!', 'BUILDING DOWN!!');
+    if (f) { f.n++; f.life = 1.5; f.text = `${nm} ×${f.n}`; f.sub = `+${(BONUS.block * f.n).toLocaleString()}`; }
+    else floaters.push({ bld: true, n: 1, screen: true, x: clamp(sp.X, 120, W - 120), y: H * 0.3, text: nm, sub: `+${BONUS.block.toLocaleString()}`, life: 1.5, big: true });
     say('incredible', 3);
   }
 }
@@ -9750,18 +10281,19 @@ function buildRuin(b) {
   };
   const burnt = b.tint.clone().multiplyScalar(0.35);
   let top = 0;
-  for (let z = za; z < zb - 0.2;) {
+  if (b.box) top = boxRuin(b, put);
+  else for (let z = za; z < zb - 0.2;) {
     const w = Math.min(zb - z, rand(0.8, 2.2)), hh = rand(0.6, 4);
     top = Math.max(top, hh);
     put(X + s * 0.3, hh / 2, z + w / 2, 0.6, hh, w, 0, 0, rand(-0.06, 0.06), Math.random() < 0.5 ? burnt : pick(RUBBLE).clone().multiplyScalar(0.6));
     z += w;
   }
-  for (let i = 0; i < 36; i++) {
+  if (!b.box) for (let i = 0; i < 36; i++) {
     const u = Math.random(), size = rand(0.35, 1.5) * (1 - u * 0.5), x = X + s * (rand(-1.8, 2.8) * (0.4 + 0.6 * u));
     const y = Math.max(0, 1.3 - Math.abs(x - X) * 0.5) * rand(0.2, 1);
     put(x, y, rand(za, zb), size * rand(0.8, 1.6), size * rand(0.3, 0.8), size * rand(0.8, 1.6), rand(-0.6, 0.6), rand(0, 3), rand(-0.6, 0.6), Math.random() < 0.25 ? burnt : pick(RUBBLE));
   }
-  for (let i = 0; i < 9; i++) put(X + s * rand(-0.4, 0.6), rand(0.8, 2.6), rand(za, zb), 0.05, rand(1, 2.6), 0.05, rand(-0.8, 0.8), 0, rand(-0.8, 0.8), col(0x2a2026));
+  if (!b.box) for (let i = 0; i < 9; i++) put(X + s * rand(-0.4, 0.6), rand(0.8, 2.6), rand(za, zb), 0.05, rand(1, 2.6), 0.05, rand(-0.8, 0.8), 0, rand(-0.8, 0.8), col(0x2a2026));
   b.ruin = G.mesh(MAT.rubble, 0);
   b.ruin.matrixAutoUpdate = true; b.ruin.scale.y = 0.01;
   b.ruinH = Math.min(top, 3);
@@ -12021,7 +12553,7 @@ function drawWire(raw) {
 
 // ---------- the gas holder ----------
 const TANK_R = 2.1, TANK_LEG = 1.4, TANK_HP = 36, TANK_WAVE = 23, TANK_REACH = 34;
-const TANK_AT = { avenue: [4.4, 36.5], hwy: [-4.4, 37], park: [-4.4, 37], fest: [-4.4, 37] };
+const TANK_AT = { avenue: [4.4, 36.5], hwy: [-4.4, 37], park: [-4.4, 37], fest: [-4.4, 37], port: [4.4, 36.5] };
 let gtank = null;
 function makeGasTankTex() {
   const S = 1024, [c, g] = canvas(S, S / 2);
@@ -13245,12 +13777,13 @@ function drawPark(raw) {
 }
 // ===== what the weapons ask =====
 // the first thing of the park's on the ray: a car of the train, or the wheel. These calls serve the festival's launch stand and
-// the expressway's overpass too (76-fest.js, 76-hwy.js), so the weapons need not know which stage they are on
+// the expressway's overpass and the port's crane too (76-fest.js, 76-hwy.js, 76-port.js), so the weapons need not know which stage they are on
 // (the street's contraptions, 76-gim.js, stand in front of these: rayPark, parkNear, hitPark, parkBlast, parkWave and
 // parkFinale there ask them first, then these)
 function rayPark0(O, D) {
   if (onFest()) return rayFest(O, D);
   if (onHwy()) return rayHwy(O, D);
+  if (onPort()) return rayPort(O, D);
   if (!onPark()) return null;
   let best = null;
   const Wh = park.wheel, T = park.train;
@@ -13269,6 +13802,7 @@ function rayPark0(O, D) {
 function parkNear0(x, h, z, r) {
   if (onFest()) return festNear(x, h, z, r);
   if (onHwy()) return hwyNear(x, h, z, r);
+  if (onPort()) return portNear(x, h, z, r);
   if (!onPark()) return null;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') for (const c of T.cars) if (c.z < TRAIN_SEEN && Math.abs(c.x - x) < TRAIN_HW + r && Math.abs(c.z - z) < TRAIN_HL + r && h > c.h - r && h < c.h + TRAIN_TOP + r) return 'train';
@@ -13278,6 +13812,7 @@ function parkNear0(x, h, z, r) {
 function hitPark0(what, dmg, ch, x, h, z) {
   if (onFest()) { hitFest(what, dmg, ch, x, h, z); return; }
   if (onHwy()) { hitHwy(what, dmg, ch, x, h, z); return; }
+  if (onPort()) { hitPort(what, dmg, ch, x, h, z); return; }
   if (!onPark() || !what) return;
   const Wh = park.wheel, T = park.train;
   if (what === 'train' && T.state !== 'run') return;
@@ -13293,6 +13828,7 @@ function hitPark0(what, dmg, ch, x, h, z) {
 function parkBlast0(x, z, h, R, power, ch) {
   if (onFest()) { festBlast(x, z, h, R, power, ch); return; }
   if (onHwy()) { hwyBlast(x, z, h, R, power, ch); return; }
+  if (onPort()) { portBlast(x, z, h, R, power, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') {
@@ -13314,6 +13850,7 @@ function parkBeam(M, D, L, dmg, ch) {
 function parkWave0(near, ch) {
   if (onFest()) { festWave(near, ch); return; }
   if (onHwy()) { hwyWave(near, ch); return; }
+  if (onPort()) { portWave(near, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run' && T.cars.some(c => c.z < TRAIN_SEEN && near(c.x, c.z, c.h, c.h + TRAIN_TOP).d < waveReach(c.z) + 1)) derailTrain(ch);
@@ -13323,6 +13860,7 @@ function parkWave0(near, ch) {
 function parkFinale0(at) {
   if (onFest()) { festFinale(at); return; }
   if (onHwy()) { hwyFinale(at); return; }
+  if (onPort()) { portFinale(at); return; }
   if (!onPark()) return;
   if (park.train.state === 'run' && park.train.cars[0].z < TRAIN_SEEN) at(0.35, () => derailTrain(null));
   if (park.wheel.state === 'stand') at(0.5, () => toppleWheel(null));
@@ -13547,6 +14085,294 @@ function drawPipe() {
     }
   });
 }
+
+// ===== 76-port.js
+// ---------- the port's set piece (2026-11-09, kazu picked 埠頭 among the new stages: クレーン倒壊とコンテナの雨) ----------
+// クレーン倒壊: the yard's gantry crane straddles the lane at 62 m with a 20-foot container on its hook. Shoot it (a rocket, a shell,
+// a beam, or a blast beside it) and its legs buckle at their feet in sparks and fire; it creaks, the hook lets go and the container
+// comes flying down the lane end over end into the thickest of the horde; the crane comes down forward across the lane, its
+// girder slamming into the concrete. コンテナの雨: the containers left loose on the stacks beside it are flung up off them one after
+// another and come down out of the sky into the horde, each crushing flat whatever is under it, then bursting open, the zombies
+// stowed away in it thrown out. Once a round; left alone it all goes in the finale, for nothing.
+// Only on the port (the meshes are built with the stage, 24-port.js); the weapons reach the crane through the park's calls
+// (76-park.js), which hand over to these when on the port.
+const CRANE_HP = 14, CRANE_BONUS = 150000, CR_CREAK = 0.32, CR_FALL = 1.05, CR_PIVOT = CRANE.z - CRANE.leg;
+// how far it tips before its girder is on the concrete (it falls a little past upright: its legs hinge 1 m up), and where that is
+const CR_DROP = (() => { const hr = CRANE.girdTop - 1, dz = CRANE.leg - 0.5; return Math.atan2(dz, hr) + Math.acos(-1 / Math.hypot(hr, dz)); })();
+const CR_LAND = CR_PIVOT - ((CRANE.girdTop - 1) * Math.sin(CR_DROP) - (CRANE.leg - 0.5) * Math.cos(CR_DROP));
+// the loose containers: when the first goes, the gap between them, how long each is in the air; the fall's pull; how long one lies
+// where it came down before it bursts; its blast and the hook's; nearer than BOX_NEAR their blasts are softened; zombies in each
+const RAIN_T0 = 0.35, RAIN_GAP = 0.14, RAIN_FLY = [1.45, 1.7], BOX_G = 22, BOX_SLAM = 0.3, BOX_BLAST = 1.15, HANG_BLAST = 1.45, BOX_NEAR = 20, BOX_IN = 2;
+// no nearer than these for the rain and the hook: a container's burst any nearer fills the screen (kazu: no white-outs)
+const RAIN_MIN = 15, HOOK_MIN = 17;
+const CR_STEEL = new THREE.Color(0xc8922a);
+const onPort = () => !!port && stageId === 'port';
+const _po = new THREE.Vector3(), _poQ = new THREE.Quaternion(), _poE = new THREE.Euler();
+function resetPort() {
+  if (!port) return;
+  const O = port;
+  Object.assign(O, { state: 'stand', hp: CRANE_HP, t: 0, ft: 0, th: 0, ch: null, fast: false, flash: 0, jolt: 0, aimed: [], burnT: 0, rained: false });
+  O.g.rotation.set(0, 0, 0); O.cables.visible = O.lamps.visible = O.cones.visible = O.pool.visible = true;
+  const Hk = O.hang;
+  Object.assign(Hk, { state: 'hang', x: 0, z: CRANE.hz, h: CRANE.hang + BOX.H / 2, vx: 0, vz: 0, vh: 0, t: 0 });
+  Hk.q.identity(); Hk.g.visible = true; Hk.g.position.set(0, Hk.h, -Hk.z); Hk.g.quaternion.identity();
+  for (const R of O.rain) { Object.assign(R, { state: 'sit', x: R.x0, z: R.z0, h: R.h0, vx: 0, vz: 0, vh: 0, t: 0, fuse: 99 }); R.q.copy(R.q0); R.m.visible = true; R.m.position.set(R.x, R.h, -R.z); R.m.quaternion.copy(R.q); }
+}
+// set off: by our shot, or in the finale (fast, for nothing)
+function lightCrane(ch, fast) {
+  const O = port;
+  if (O.state !== 'stand') return;
+  Object.assign(O, { state: 'creak', t: 0, ft: 0, ch: ch || null, fast: !!fast, aimed: [] });
+  const gap = fast ? RAIN_GAP * 0.6 : RAIN_GAP;
+  O.rain.forEach((R, k) => { R.fuse = (fast ? RAIN_T0 * 0.6 : RAIN_T0) + k * gap; });
+  for (const s of [-1, 1]) legSnap(s * CRANE.x);
+  rumble(); clang(); craneSnd();
+  shake = Math.max(shake, 5);
+  if (running && ch) {
+    score += CRANE_BONUS;
+    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: jaEn('クレーン倒壊!!', 'CRANE COLLAPSE!!'), sub: `+${CRANE_BONUS.toLocaleString()}`, life: 1.8, big: true });
+    say('incredible', 3);
+  }
+}
+// a leg goes at its foot: fire and sparks out of the break, bolts and steel flying
+function legSnap(x) {
+  const z = CRANE.z, h = 1.1;
+  boom(1, z); blastLight(x, z, 1.5, 1);
+  addPart({ k: 'core', nf: 1, x, z, h, vx: 0, vz: 0, vh: 0, r: 1.6, life: 0.28, fade: 0.8 });
+  for (let i = 0; i < 14; i++) addPart({ k: 'fire', nf: 1, x: x + rand(-0.5, 0.5), z: z + rand(-0.6, 0.6), h: h + rand(0, 0.6), vx: rand(-3, 3), vz: rand(-3, 1), vh: rand(1, 6), r: rand(0.5, 0.9), grow: 1, drag: 2.4, life: rand(0.45, 0.8), heat: 1.2, f: 1 + (i % 2) });
+  for (let i = 0; i < 22; i++) addPart({ k: 'spark', nf: 1, x, z, h, vx: rand(-10, 10), vz: rand(-9, 3), vh: rand(1, 10), g: 12, r: rand(0.04, 0.07), life: rand(0.5, 1), streak: 0.06 });
+  for (let i = 0; i < 6; i++) addChunk({ x, z, h, vx: rand(-5, 5), vz: rand(-5, 2), vh: rand(3, 9), sx: rand(0.08, 0.2), sy: rand(0.05, 0.1), sz: rand(0.08, 0.2), c: CR_STEEL, life: rand(1.6, 2.4), hot: 0.5 });
+  for (let i = 0; i < 3; i++) addPart({ k: 'smoke', x, z, h: h + 0.5, vx: rand(-0.5, 0.5), vz: rand(-0.3, 0.3), vh: rand(1, 2), r: 1, grow: 0.9, drag: 0.6, life: rand(2, 3), a: 0.5, warm: 0.6 });
+}
+// where a container comes down: the thickest bunch of the horde not already picked, a little short of it as they keep walking, no
+// nearer than near; an empty road still gets its show
+function boxTarget(O, near) {
+  const live = zombies.filter(o => o.state === 'walk' && o.type !== 'boss' && o.z > 10 && o.z < 32);
+  let best = null, bn = -1;
+  for (const a of live) {
+    if (O.aimed.some(p => Math.abs(p.z - a.z) < 3 && Math.abs(p.x - a.x) < 4)) continue;
+    let n = 0;
+    for (const o of live) if (Math.abs(o.x - a.x) < 3 && Math.abs(o.z - a.z) < 1.8) n++;
+    if (n > bn) { bn = n; best = a; }
+  }
+  const p = best ? { x: clamp(best.x, -halfX * 1.2, halfX * 1.2), z: Math.max(near, best.z - 1.4) } : { x: rand(-1, 1) * halfX, z: rand(Math.max(near, 13), 28) };
+  O.aimed.push(p); if (O.aimed.length > 6) O.aimed.shift();
+  return p;
+}
+// off it goes, lobbed to land on p after T seconds, tumbling end over end along its way
+function lobBox(R, p, T) {
+  Object.assign(R, { state: 'fly', t: 0, vx: (p.x - R.x) / T, vz: (p.z - R.z) / T, vh: (BOX.H / 2 - R.h + 0.5 * BOX_G * T * T) / T });
+  const d = Math.hypot(R.vx, R.vz) || 1, spin = rand(2.6, 4.2) * (Math.random() < 0.5 ? 1 : -1);
+  R.w.set(-R.vz / d * spin, rand(-1.2, 1.2), -R.vx / d * spin);   // about the level line across its path (three.js z is -z)
+}
+// the hook lets go as the crane tips: the container on it comes flying down the lane at us
+function dropHook() {
+  const O = port, Hk = O.hang, p = boxTarget(O, HOOK_MIN);
+  O.cables.visible = false;
+  lobBox(Hk, p, O.fast ? 0.95 : 1.15);
+  Hk.w.multiplyScalar(0.8);
+  for (let i = 0; i < 10; i++) addPart({ k: 'spark', nf: 1, x: rand(-2.3, 2.3), z: CRANE.hz, h: CRANE.gird - rand(0, 1.5), vx: rand(-4, 4), vz: rand(-4, 2), vh: rand(-2, 4), g: 12, r: rand(0.04, 0.06), life: rand(0.4, 0.8), streak: 0.05 });
+  clang();
+}
+// a loose one flung up off its stack: it goes up out of sight and comes down out of the sky on the horde
+function flingBox(R) {
+  const O = port, p = boxTarget(O, RAIN_MIN), T = rand(RAIN_FLY[0], RAIN_FLY[1]) * (O.fast ? 0.8 : 1);
+  lobBox(R, p, T);
+  for (let i = 0; i < 8; i++) addPart({ k: 'spark', nf: 1, x: R.x, z: R.z, h: R.h - BOX.H / 2, vx: rand(-4, 4), vz: rand(-4, 2), vh: rand(0, 5), g: 12, r: rand(0.04, 0.06), life: rand(0.4, 0.8) });
+  if (!O.rained) {
+    O.rained = true;
+    if (running) floaters.push({ screen: true, x: W / 2, y: H * 0.4, text: jaEn('コンテナの雨!!', 'CONTAINER RAIN!!'), sub: '', life: 1.6, big: true });
+  }
+}
+function flyBox(R, dt) {
+  R.t += dt; R.vh -= BOX_G * dt;
+  R.x += R.vx * dt; R.z += R.vz * dt; R.h += R.vh * dt;
+  _po.copy(R.w).multiplyScalar(dt);
+  const ang = _po.length();
+  if (ang > 1e-6) R.q.premultiply(_poQ.setFromAxisAngle(_po.divideScalar(ang), ang));
+  if (Math.random() < dt * 10 && R.t > 0.1) addPart({ k: 'smoke', x: R.x, z: R.z, h: R.h, vx: 0, vz: 0, vh: rand(0.3, 0.8), r: rand(0.4, 0.6), grow: 0.9, drag: 0.8, life: rand(0.8, 1.2), a: 0.3 });
+  if ((R.vh < 0 && R.h <= BOX.H / 2) || R.z < RAIN_MIN - 2 || R.t > 4) slamBox(R);
+}
+// it comes down flat: everything under it is crushed, dust and grit blast out from under it, the concrete shakes
+function slamBox(R) {
+  const O = port, ch = O.ch;
+  R.state = 'slam'; R.t = 0; R.h = BOX.H / 2; R.z = Math.max(RAIN_MIN - 2, R.z); R.vh = 0; R.vx *= 0.2; R.vz *= 0.2;
+  // flat on the ground, turned the way it came down
+  _po.set(1, 0, 0).applyQuaternion(R.q);
+  const yaw = Math.atan2(-_po.z, _po.x), ax = Math.cos(yaw), az = Math.sin(yaw), hl = R.len / 2;
+  R.q.setFromEuler(_poE.set(0, yaw, rand(-0.06, 0.06)));
+  let k = 0;
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.type === 'boss' || o.ride) continue;
+    const dx = o.x - R.x, dz = o.z - R.z, al = dx * ax + dz * az, ac = -dx * az + dz * ax;
+    if (Math.abs(al) > hl + 0.35 || Math.abs(ac) > BOX.W / 2 + 0.45) continue;
+    killZombie(o, { dx: Math.sign(ac) * 0.4, dz: 0.3, d: 0.6, f: 0.4, power: 0.7, ch }); k++;
+  }
+  if (k && running) registerKills(k, R.x, R.z, jaEn('コンテナの下敷き!', 'CRUSHED!'), true, ch);
+  for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.abs((c.x - R.x) * ax + (c.z - R.z) * az) < hl + c.hl && Math.abs(-(c.x - R.x) * az + (c.z - R.z) * ax) < BOX.W / 2 + c.hw) carBoom(c, 0.05, ch);
+  for (let i = 0; i < 16; i++) {
+    const u = rand(-1, 1) * hl, s = Math.random() < 0.5 ? -1 : 1, x = R.x + ax * u - az * s * BOX.W / 2, z = R.z + az * u + ax * s * BOX.W / 2;
+    addPart({ k: 'dust', x, z, h: 0.3, vx: -az * s * rand(2, 6), vz: ax * s * rand(2, 6) * 0.8, vh: rand(0.3, 1.5), r: rand(0.6, 1), grow: 1.3, drag: 2, life: rand(1, 1.6), a: 0.45, f: 4 });
+  }
+  for (let i = 0; i < 10; i++) addPart({ k: 'spark', nf: 1, x: R.x + ax * rand(-hl, hl), z: R.z + az * rand(-hl, hl), h: 0.1, vx: rand(-6, 6), vz: rand(-4, 5), vh: rand(1, 5), g: 12, r: rand(0.04, 0.06), life: rand(0.4, 0.7), streak: 0.05 });
+  for (let i = 0; i < 4; i++) addChunk({ x: R.x + rand(-1, 1), z: R.z + rand(-1, 1), h: 0.4, vx: rand(-5, 5), vz: rand(-2, 5), vh: rand(6, 11), sx: 0.25, sy: 0.12, sz: 0.25, c: CH.conc, life: rand(1.8, 2.4), bounce: 0.4 });
+  const near = Math.min(1.4, 16 / R.z);
+  shake = Math.max(shake, 10 * near); boom(1.1, R.z); thud(); clang();
+  if (R.z < 20) buzz([40, 30, 60], 2);
+  if (!reduceMotion) hitstop = Math.max(hitstop, 0.04);
+}
+// then it bursts: the blast, its sides and doors flying, the zombies stowed in it thrown out
+function burstBox(R, power) {
+  const ch = port.ch, x = R.x, z = R.z;
+  R.state = 'gone';
+  fxSoft = z < BOX_NEAR; explode(x, z, power, 0.8, null, ch); fxSoft = false;
+  _po.set(1, 0, 0).applyQuaternion(R.q);
+  for (let i = 0; i < 10; i++) {
+    const u = rand(-0.5, 0.5) * R.len;
+    addChunk({ x: x + _po.x * u, z: z - _po.z * u, h: rand(0.6, 2.2), vx: rand(-7, 7), vz: rand(-2, 7), vh: rand(5, 13), sx: rand(0.7, 1.5), sy: 0.05, sz: rand(0.6, 1.2), c: R.tint, life: rand(2.2, 3), bounce: 0.2, hot: i % 3 ? 0 : 0.5 });
+  }
+  for (let i = 0; i < 2; i++) addChunk({ x, z, h: 1.3, vx: rand(-4, 4), vz: rand(2, 7), vh: rand(8, 13), sx: 1.15, sy: 0.06, sz: 1.2, c: R.tint, life: 3, bounce: 0.25 });
+  for (let i = 0; i < BOX_IN; i++) {
+    const zb = makeZombie(Math.random() < 0.3 ? 'runner' : 'walker', clamp(x + rand(-1, 1), -halfX * 1.2, halfX * 1.2), z + rand(-0.4, 0.4));
+    zombies.push(zb);
+    killZombie(zb, { dx: rand(-1, 1), dz: rand(0.2, 1), d: 1, f: rand(0.5, 0.95), power: 1.1, ch });
+  }
+  if (running) registerKills(BOX_IN, x, z, null, true, ch);
+}
+// the crane lands: the girder across the lane, dust and sparks the length of it, anything under it crushed
+function craneImpact() {
+  const O = port, ch = O.ch, z = CR_LAND;
+  O.state = 'down'; O.ft = 0;
+  for (let i = 0; i < 26; i++) addPart({ k: 'dust', x: rand(-6.8, 6.8), z: z + rand(-1.2, 1), h: rand(0.2, 1.4), vx: rand(-2, 2), vz: rand(-4, 1), vh: rand(0.5, 2), r: rand(1, 1.7), grow: 1.2, drag: 1.2, life: rand(1.8, 2.6), a: 0.5, f: 4 });
+  for (let i = 0; i < 28; i++) addPart({ k: 'spark', nf: 1, x: rand(-6.5, 6.5), z: z + rand(-1, 1), h: rand(0.2, 1.2), vx: rand(-8, 8), vz: rand(-9, 3), vh: rand(2, 9), g: 12, r: rand(0.05, 0.08), life: rand(0.5, 1), streak: 0.06 });
+  for (let i = 0; i < 8; i++) addChunk({ x: rand(-6, 6), z: z + rand(-1, 1), h: 0.6, vx: rand(-4, 4), vz: rand(-5, 2), vh: rand(4, 9), sx: rand(0.2, 0.5), sy: rand(0.15, 0.3), sz: rand(0.2, 0.5), c: CH.conc, life: rand(2, 3), bounce: 0.3 });
+  boom(2, z); rumble(); thud();
+  shake = Math.max(shake, 12); buzz([60, 40, 140], 2);
+  let k = 0;
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.type === 'boss' || Math.abs(o.z - z) > 2.2 || Math.abs(o.x) > 7) continue;
+    killZombie(o, { dx: rand(-0.5, 0.5), dz: -0.4, d: 0.7, f: 0.45, power: 0.75, ch }); k++;
+  }
+  if (k && running) registerKills(k, 0, z, jaEn('クレーンの下敷き!', 'CRUSHED!'), true, ch);
+}
+// its groan as it goes, steel tearing through it
+function craneSnd() {
+  if (!live()) return;
+  const t = actx.currentTime, f = filt('lowpass', 700);
+  const o = osc('sawtooth', 120, t), o2 = osc('sawtooth', 87, t);
+  o.frequency.exponentialRampToValueAtTime(40, t + 1.4); o2.frequency.exponentialRampToValueAtTime(29, t + 1.4);
+  o.connect(f); o2.connect(f); f.connect(gain(t, 0.2, 0.1, 1.3)).connect(master);
+  o.start(t); o2.start(t); o.stop(t + 1.5); o2.stop(t + 1.5);
+  noiseSrc(t, 1.2).connect(filt('bandpass', 1500, 7)).connect(gain(t, 0.14, 0.05, 1.1)).connect(master);
+}
+// ===== every frame =====
+function updatePort(dt) {
+  if (!onPort()) return;
+  const O = port;
+  O.flash = Math.max(0, O.flash - dt); O.jolt = Math.max(0, O.jolt - dt * 3);
+  if (O.state === 'stand') return;
+  O.t += dt;
+  for (const R of O.rain) {
+    if (R.state === 'sit' && O.t >= R.fuse) flingBox(R);
+    else if (R.state === 'fly') flyBox(R, dt);
+    else if (R.state === 'slam') slideBox(R, dt, BOX_BLAST);
+  }
+  const Hk = O.hang;
+  if (Hk.state === 'fly') flyBox(Hk, dt);
+  else if (Hk.state === 'slam') slideBox(Hk, dt, HANG_BLAST);
+  if (O.state === 'creak') {
+    O.th = 0.02 * Math.sin(O.t / CR_CREAK * Math.PI * 3) * (O.t / CR_CREAK);
+    if (O.t >= (O.fast ? CR_CREAK * 0.6 : CR_CREAK)) { O.state = 'fall'; O.ft = 0; dropHook(); }
+  } else if (O.state === 'fall') {
+    O.ft += dt;
+    const u = clamp(O.ft / (O.fast ? CR_FALL * 0.8 : CR_FALL), 0, 1);
+    O.th = CR_DROP * u * u;
+    // grit and sparks out of the buckled feet, bits of it falling away
+    for (const s of [-1, 1]) if (Math.random() < dt * 30) addPart({ k: 'spark', nf: 1, x: s * CRANE.x, z: CR_PIVOT, h: 1.1, vx: rand(-4, 4), vz: rand(-4, 2), vh: rand(0, 5), g: 12, r: rand(0.04, 0.07), life: rand(0.4, 0.8), streak: 0.06 });
+    if (Math.random() < dt * 8) addChunk({ x: rand(-6, 6), z: CR_PIVOT - Math.sin(O.th) * 7, h: 1 + Math.cos(O.th) * 7, vx: rand(-1, 1), vz: rand(-2, 0), vh: rand(-1, 1), sx: rand(0.15, 0.35), sy: rand(0.1, 0.2), sz: rand(0.15, 0.35), c: CR_STEEL, life: rand(1.6, 2.4), bounce: 0.2 });
+    if (u >= 1) craneImpact();
+  } else if (O.state === 'down') {
+    O.ft += dt;
+    O.th = CR_DROP - 0.03 * Math.exp(-O.ft * 5) * Math.abs(Math.sin(O.ft * 14));   // a bounce as it settles
+    if ((O.burnT -= dt) <= 0 && O.ft < 8) {
+      O.burnT = 0.12;
+      addPart({ k: 'smoke', x: rand(-6, 6), z: CR_LAND + rand(-1, 1), h: rand(1, 3), vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), vh: rand(1.2, 2.2), r: rand(0.9, 1.3), grow: 0.8, drag: 0.4, life: rand(2.2, 3), a: 0.4 });
+      if (Math.random() < 0.4) addPart({ k: 'fire', nf: 1, x: (Math.random() < 0.5 ? -1 : 1) * CRANE.x, z: CR_PIVOT, h: 1.1, vx: 0, vz: 0, vh: rand(1, 2), r: rand(0.4, 0.7), grow: 0.6, drag: 1.5, life: rand(0.4, 0.7), heat: 1, f: 12 });
+    }
+  }
+}
+// on the ground: it slides on a little, then bursts
+function slideBox(R, dt, power) {
+  R.t += dt;
+  const k = Math.max(0, 1 - dt * 6);
+  R.vx *= k; R.vz *= k; R.x += R.vx * dt; R.z = Math.max(RAIN_MIN - 2, R.z + R.vz * dt);
+  if (R.t >= BOX_SLAM) burstBox(R, power);
+}
+function drawPort(raw) {
+  if (!onPort()) return;
+  const O = port, now = performance.now() / 1000;
+  const shud = O.jolt * 0.004 * Math.sin(now * 57);
+  O.g.rotation.x = O.th + shud;
+  // its lamps: steady while it stands, flickering as it goes, out once it is down
+  const lit = O.state === 'stand' || O.state === 'creak' ? 1 : O.state === 'fall' ? (Math.random() < 0.5 ? 1 : 0) : 0;
+  O.lamps.visible = O.cones.visible = O.pool.visible = lit > 0;
+  // the containers: hanging under the spreader (swinging a little while it creaks), in the air, on the ground; gone once burst
+  const Hk = O.hang;
+  if (Hk.state === 'hang') {
+    Hk.g.position.set(0, Hk.h, -Hk.z);
+    Hk.g.quaternion.setFromEuler(_poE.set(O.state === 'creak' ? 0.05 * Math.sin(now * 13) : 0.008 * Math.sin(now * 1.3), 0, O.jolt * 0.01 * Math.sin(now * 40)));
+  } else if (Hk.state === 'gone') Hk.g.visible = false;
+  else { Hk.g.position.set(Hk.x, Hk.h, -Hk.z); Hk.g.quaternion.copy(Hk.q); }
+  for (const R of O.rain) {
+    if (R.state === 'gone') { R.m.visible = false; continue; }
+    R.m.position.set(R.x, R.h, -R.z); R.m.quaternion.copy(R.q);
+  }
+  // the beacons on the trolley, amber; fast and red as it goes
+  if (O.state === 'stand' || O.state === 'creak') {
+    const alarm = O.state === 'creak', on = ((now * (alarm ? 5 : 1.4)) | 0) % 2 === 0, y = CRANE.top + 0.12, z = -(CRANE.z - 0.55);
+    if (on) for (const x of [-6.3, 6.3]) ADD.push(x, y, z, 1.4, 0, 0, 0, alarm ? 2.2 : 2.2, alarm ? 0.25 : 1.1, alarm ? 0.15 : 0.2, 1);
+    if (O.flash > 0) ADD.push(0, CRANE.gird, z, 6, 0, 0, 0, 0.6, 0.4, 0.15, 0.6);
+  }
+}
+// ===== what the weapons ask =====
+// the crane is one target: its legs, its girder and trolley, the container on its hook
+function rayPort(O, D) {
+  if (!onPort() || port.state !== 'stand') return null;
+  const C = CRANE, za = -(C.zb + 0.6), zb = -(C.z - 0.6);
+  let t = rayBox(O, D, -6.8, C.gird - 0.4, za, 6.8, C.top, zb);
+  const leg = s => rayBox(O, D, s * C.x - C.leg - 0.15, 0, za, s * C.x + C.leg + 0.15, C.gird, zb);
+  const hk = rayBox(O, D, -BOX.S / 2, C.hang, -(C.hz + BOX.W / 2 + 0.1), BOX.S / 2, C.hang + BOX.H + 0.4, -(C.hz - BOX.W / 2 - 0.1));
+  for (const u of [leg(-1), leg(1), hk]) if (u > 0 && (!(t > 0) || u < t)) t = u;
+  return t > 0 ? { t, what: 'crane' } : null;
+}
+function portNear(x, h, z, r) {
+  if (!onPort() || port.state !== 'stand') return null;
+  return Math.abs(z - (CRANE.z + CRANE.zb) / 2) < 2.2 + r && Math.abs(x) < 6.8 + r && h < CRANE.top + r && (h > CRANE.hang - r || Math.abs(Math.abs(x) - CRANE.x) < 0.6 + r) ? 'crane' : null;
+}
+function hitPort(what, dmg, ch, x, h, z) {
+  if (!onPort() || what !== 'crane' || port.state !== 'stand') return;
+  const O = port;
+  for (let i = 0; i < 4 + Math.min(10, dmg); i++) addPart({ k: 'spark', nf: 1, x, z, h, vx: rand(-4, 4), vz: rand(-4, 1), vh: rand(-2, 4), g: 12, r: 0.035, life: rand(0.15, 0.45) });
+  if (Math.random() < 0.4) clang();
+  O.hp -= dmg; O.flash = 0.06; O.jolt = Math.min(1, O.jolt + dmg * 0.05);
+  if (dmg >= 8) pop(x, z, 0.9, h);
+  if (O.hp <= 0) lightCrane(ch, false);
+}
+function portBlast(x, z, h, R, power, ch) {
+  if (!onPort() || port.state !== 'stand') return;
+  const zc = (CRANE.z + CRANE.zb) / 2;
+  const d = Math.hypot(Math.max(0, Math.abs(z - zc) - 1.8), Math.max(0, Math.abs(x) - 6.8), Math.max(0, h - CRANE.top));
+  if (d < R) hitPort('crane', 14 * power * (1 - d / R) + 2, ch, clamp(x, -6.8, 6.8), clamp(h, 1, CRANE.top), clamp(z, CRANE.z, CRANE.zb));
+}
+function portWave(near, ch) {
+  if (!onPort() || port.state !== 'stand') return;
+  for (const x of [0, -3, 3, -6, 6]) if (near(x, CRANE.hz, CRANE.hang, CRANE.top).d < waveReach(CRANE.hz) + 1.5) { lightCrane(ch, false); return; }
+}
+function portFinale(at) {
+  if (onPort() && port.state === 'stand') at(0.45, () => lightCrane(null, true));
+}
+// the results wait for the crane to come down and every container to land and burst
+const portBusy = () => onPort() && (port.state === 'creak' || port.state === 'fall' || port.hang.state === 'fly' || port.hang.state === 'slam' || port.rain.some(R => R.state === 'fly' || R.state === 'slam' || (R.state === 'sit' && port.state !== 'stand')));
 
 // ===== 76-ship.js
 // ---------- the zombie airship (2026-10-26, kazu: more happenings) ----------
@@ -15183,7 +16009,8 @@ function quickGo() {
   start();
 }
 function autoNextStart() {
-  if (!CG || !playerInput) return;
+  // not on the results of a lap cleared, with its 称号 to take in (82-ach.js)
+  if (!CG || !playerInput || achTitle) return;
   autoNextLen = zukan.rounds <= 3 ? AUTO_NEXT_NEW : AUTO_NEXT;
   autoNextT = autoNextLen; autoNextShow();
 }
@@ -15310,12 +16137,14 @@ try { const s = localStorage.getItem('zb3d-stage'); if (s === 'auto' || STAGES[s
 // stage comes again (each round in a row scores a little more, 76-surprise.js, which helps). After the last stage, the lot
 // again from the first: a lap (周), every 合格点 up by LAP_K. A stage already cleared can be picked to play again, without a
 // 合格点; the ones ahead are locked. Kept in localStorage zb3d-prog: { at: the stage being played for, lap, tries at it }.
-const PROG = ['avenue', 'park', 'fest', 'hwy'];
+const PROG = ['avenue', 'park', 'fest', 'hwy', 'port'];
 // The 合格点: bot rounds of 20 s (botx.mjs, 16 a style over the four stages) score 6.9M to 14.9M tapping like a newcomer
 // (casual) and 10.4M to 16.1M firing at random (mash); and each round played straight after the last scores ×1.1 more, so the
 // k-th stage, mostly played as the k-th round in a row, needs about PASS / (1 + 0.1 (k - 1)) of its own: 5M, 7.3M, 9.2M, 10.8M.
 // The first stage is cleared by nearly anyone, the newcomer bot clears the next ones nine times in ten down to three in four.
-const PASS = { avenue: 5000000, park: 8000000, fest: 11000000, hwy: 14000000 };
+// The port, fifth (2026-11-09, 8 rounds a style): 10.0M to 14.2M by the newcomer, who never brings the crane down, and 10.5M
+// to 15.5M firing at random; 16M wants 11.4M of its own, which the newcomer gets three times in four.
+const PASS = { avenue: 5000000, park: 8000000, fest: 11000000, hwy: 14000000, port: 16000000 };
 const LAP_K = 0.3, PROG_KEY = 'zb3d-prog';
 let prog = { at: 0, lap: 0, tries: 0 }, goal = 0, goalHit = false, goalRes = null;   // this round's 合格点 (0: none), reached
 if (CG) {
@@ -15365,6 +16194,7 @@ const PROG_TIPS = {
   park: [jaEn('観覧車を撃つと倒れて群れを下敷きに', 'Shoot the Ferris wheel down onto the horde')],
   fest: [jaEn('奥の打ち上げ台を撃つと大スターマイン', 'Shoot the launch stand at the back for a huge firework show')],
   hwy: [jaEn('奥の高架を撃つと渋滞の車が群れに降る', 'Shoot the overpass at the back: the traffic jam rains down')],
+  port: [jaEn('奥のクレーンを撃つと倒れてコンテナが降ってくる', 'Shoot the crane at the back: down it comes, and containers rain')],
   all: [
     jaEn('車やドラム缶を撃つと誘爆でまとめて吹き飛ぶ', 'Shoot cars and drums: the blasts set each other off'),
     jaEn('ラストボスを倒すと +3,000,000', 'Drop the final boss for +3,000,000'),
@@ -15667,6 +16497,190 @@ $('bdNameBtn').addEventListener('click', () => { const f = $('bdEdit'); f.hidden
 $('bdEdit').addEventListener('submit', boardRename);
 if (window.ZB_DEBUG) { window.__rankTok = () => rankTok; window.__rank = () => ({ rankOn, rankReady, api: RANK_API, boards: Object.keys(rankBoards), last: rankLast, run: rankRun }); }   // tests
 rankInit();
+
+// ===== 82-ach.js
+// ---------- 実績 and 称号 (2026-11-09, kazu: 「何回もプレイしてもらえるよう実績一覧を表示できるようにしたいです / また周回することで
+// 実績解除できるものが欲しいです / 後1周クリアするごとに称号のようなものを与えたいです」) ----------
+// On CrazyGames, where the stages come in laps (80-stage.js): 30 achievements in six groups, each got once and kept in this
+// browser (localStorage zb3d-ach), like the medals. One got mid-round pops the note under the HUD (drawMissionToast,
+// 77-mission.js) with 実績解除!; the results name the round's; a button on the title and the results opens the list, the ones
+// still to get showing what they take and, where it adds up, how far along. Every lap of the stages cleared gives a 称号
+// (TITLES; past the tenth it stays 爆散神), under the logo on the title, on the list, and announced on the results.
+const ACH_ON = CG;
+const ACH_KEY = 'zb3d-ach', ACH_C = '#7ad8ff';
+MEDAL_C[4] = ACH_C;   // the note's disc for an achievement
+const TITLES = [
+  jaEn('ゾンビハンター', 'Zombie Hunter'), jaEn('爆破職人', 'Blast Artisan'), jaEn('解体屋', 'Wrecking Crew'), jaEn('歩く火薬庫', 'Walking Powder Keg'),
+  jaEn('街の破壊神', 'City Destroyer'), jaEn('終末の花火師', 'Doomsday Pyro'), jaEn('鋼鉄の嵐', 'Steel Storm'), jaEn('爆炎の覇王', 'Inferno King'),
+  jaEn('滅びの化身', 'Avatar of Ruin'), jaEn('爆散神', 'God of Bakusan'),
+];
+const titleFor = lap => lap > 0 ? TITLES[Math.min(lap, TITLES.length) - 1] : '';
+// got: id → the day it came; kills: every round's added up; weps: the weapons played a round with; days: days in a row played,
+// day: the last of them, best: the most in a row
+let ach = { got: {}, kills: 0, weps: [], days: 0, best: 0, day: '' };
+// this round's, got mid-round or at its end; achLive: a round on, its kills not yet in ach.kills (the ones of a round's own
+// count only while it runs, before the finale blows up whatever is left; its kills and score count with it); achTitle: a 称号
+// won this round (its lap), which keeps the next round from starting by itself (79-cg.js)
+let achNow = [], achLive = false, achTitle = 0;
+const ACH_GROUPS = [['lap', jaEn('周回', 'Laps')], ['stage', jaEn('ステージの仕掛け', 'Set pieces')], ['total', jaEn('積み重ね', 'Totals')],
+  ['round', jaEn('1回の記録', 'In one round')], ['boss', jaEn('ボスとサプライズ', 'Bosses & surprises')], ['more', jaEn('やりこみ', 'Dedication')]];
+const stagesDone = () => prog.lap * PROG.length + prog.at;   // the stages cleared, lap after lap
+const ALL_W = ['rocket', 'tank', ...UNLOCKS.map(u => u.w)];
+const killsAll = () => ach.kills + (achLive ? kills : 0);
+// [id, group, icon, name, what it takes, done (checked through a round and at its end), how far along: [now, of]]. The bars of
+// one round's come from bot rounds of 20 s (2026-11-09, 56 over the five stages): one shot of 250 one round in ten, 1,200
+// kills one in four, 100 m hardly ever but a giant can go further, 20,000,000 needs the score of rounds in a row
+const ACHS = [
+  ...[1, 2, 3, 5, 10].map(n => ['lap' + n, 'lap', n >= 10 ? '👑' : n >= 5 ? '🏆' : '🏁', jaEn(`${n}周クリア`, n > 1 ? `Clear ${n} laps` : 'Clear a lap'),
+    jaEn(`全${PROG.length}ステージを${n > 1 ? n + '周' : ''}合格する`, n > 1 ? `Clear all ${PROG.length} stages ${n} times over` : `Clear all ${PROG.length} stages`),
+    () => prog.lap >= n, () => [stagesDone(), n * PROG.length]]),
+  ['wheel', 'stage', '🎡', jaEn('観覧車を倒す', 'Topple the Ferris wheel'), jaEn('夜の遊園地で観覧車を撃つ', 'Shoot the wheel at the theme park'), () => running && onPark() && park.wheel.state !== 'stand'],
+  ['coaster', 'stage', '🎢', jaEn('コースターを脱線させる', 'Derail the coaster'), jaEn('夜の遊園地で走るコースターを撃つ', 'Shoot the coaster as it runs'), () => running && onPark() && park.train.state === 'derail'],
+  ['mine', 'stage', '🎆', jaEn('大スターマインを上げる', 'Set off the big fireworks'), jaEn('夏祭りで奥の打ち上げ台を撃つ', 'Shoot the launch stand at the festival'), () => running && onFest() && fest.state !== 'ready'],
+  ['over', 'stage', '🌉', jaEn('高架を崩落させる', 'Bring down the overpass'), jaEn('高速道路で奥の高架を撃つ', 'Shoot the overpass on the highway'), () => running && onHwy() && hwy.state !== 'stand'],
+  ['crane', 'stage', '🏗️', jaEn('クレーンを倒す', 'Topple the crane'), jaEn('埠頭で奥のクレーンを撃つ', 'Shoot the crane at the port'), () => running && onPort() && port.state !== 'stand'],
+  ['bld5', 'stage', '🏢', jaEn('1回でビルを5棟倒す', '5 buildings in a round'), jaEn('ビルは撃ち続けると崩れる', 'Keep shooting a building and down it comes'), () => running && bldDown >= 5],
+  ...[[5000, '💀'], [30000, '☠️'], [100000, '⚰️']].map(([n, ic]) => ['kills' + n, 'total', ic, jaEn(`累計${(n / 10000 >= 1 ? n / 10000 + '万' : n.toLocaleString())}体`, `${n.toLocaleString('en-US')} kills in all`),
+    jaEn('倒した数は回をまたいで積み上がる', 'Kills add up round after round'), () => killsAll() >= n, () => [killsAll(), n]]),
+  ['chain250', 'round', '💥', jaEn('1発で250体', '250 with one shot'), jaEn('群れの真ん中や車を狙う', 'Aim for the thick of the horde or a car'), () => running && bestChain >= 250],
+  ['kill1200', 'round', '🔥', jaEn('1回で1,200体', '1,200 kills in a round'), jaEn('休まず撃ち続ける', 'Never stop shooting'), () => achLive && kills >= 1200],
+  ['fly100', 'round', '🚀', jaEn('100m吹っ飛ばす', 'Blast one 100 m'), jaEn('巨大ゾンビや近くのゾンビを真下から', 'Hit giants and near ones from below'), () => running && longestFlight >= 100],
+  ['strike600', 'round', '✈️', jaEn('空爆で600体', '600 kills by air strike'), jaEn('倒し続けて空爆を何度も呼ぶ', 'Keep killing to call strike after strike'), () => running && strikeKills >= 600],
+  ['score2000', 'round', '💯', jaEn('1回で2,000万点', 'Score 20M in a round'), jaEn('すぐもう一回遊ぶと連戦でスコアが上がる', 'Rounds played in a row score more'), () => achLive && score >= 20000000],
+  ['moon', 'boss', '🌕', jaEn('巨大ゾンビで月を割る', 'Break the moon'), jaEn('巨大ゾンビを月まで吹っ飛ばす', 'Blast a giant up to the moon'), () => running && moonBroken],
+  ['star', 'boss', '✨', jaEn('巨大ゾンビをキラーン', 'Make a giant twinkle'), jaEn('月が割れたあとも巨大ゾンビを空へ', 'Send a giant skyward once the moon is gone'), () => running && bossStars > 0],
+  ['last', 'boss', '👹', jaEn('ラストボスを倒す', 'Drop the final boss'), jaEn('後半に出る大ボスに撃ち込む', 'Pour it into the big one late in the round'), () => running && lbDown],
+  ['ufo', 'boss', '🛸', jaEn('UFOを撃ち落とす', 'Shoot down a UFO'), jaEn('サプライズでUFOが来たら撃つ', 'When a UFO turns up, shoot it'), () => running && !!heli && !!heli.ufo && heli.state === 'crash'],
+  ['goldgiant', 'boss', '🥇', jaEn('金ピカ巨大ゾンビを倒す', 'Drop a golden giant'), jaEn('サプライズで出る金色の巨大ゾンビ', 'A surprise: the giant comes in gold'), () => running && goldBoss && bossKilled],
+  ['allw', 'more', '🔓', jaEn('全武器を解放', 'Unlock every weapon'), jaEn('お題のメダルを集める', 'Collect medals from the challenges'), () => mis.medals >= UNLOCKS[UNLOCKS.length - 1].medals, () => [mis.medals, UNLOCKS[UNLOCKS.length - 1].medals]],
+  ['allplay', 'more', '🎯', jaEn('全武器で遊ぶ', 'Play every weapon'), jaEn(`${ALL_W.length}種類の武器で1回ずつ`, `A round with each of the ${ALL_W.length}`), () => ALL_W.every(w => ach.weps.includes(w)), () => [ALL_W.filter(w => ach.weps.includes(w)).length, ALL_W.length]],
+  ['zukan', 'more', '📖', jaEn('サプライズ図鑑コンプ', 'Complete the surprises'), jaEn('サプライズを全種類見る', 'See every kind of surprise'), () => zukan.seen.length >= SUR_KEYS.length, () => [zukan.seen.length, SUR_KEYS.length]],
+  ['row10', 'more', '⚡', jaEn('10連戦', '10 rounds in a row'), jaEn('終わってすぐもう一回を10回続ける', 'Go again straight away, ten times running'), () => streakN >= 10, () => [Math.min(10, streakN), 10]],
+  ...[3, 7].map(n => ['days' + n, 'more', n > 3 ? '🗓️' : '📅', jaEn(`${n}日続けて遊ぶ`, `Play ${n} days in a row`), jaEn('毎日1回は遊ぶ', 'Play at least once a day'), () => ach.best >= n, () => [Math.min(n, ach.days), n]]),
+].map(([id, grp, icon, name, how, done, far]) => ({ id, grp, icon, name, how, done, far }));
+const ACH_N = ACHS.length;
+const ACH_GLYPHS = '実績解除称号獲得!' + ACHS.map(a => a.name).join('') + TITLES.join('');
+const achGot = () => ACHS.filter(a => ach.got[a.id]).length;
+const dayNum = s => { const [y, m, d] = String(s).split('-').map(Number); return y ? Math.round(Date.UTC(y, m - 1, d) / 864e5) : 0; };
+function loadAch() {
+  try {
+    const o = JSON.parse(localStorage.getItem(ACH_KEY) || 'null');
+    if (o && typeof o.got === 'object' && o.got) ach = { got: o.got, kills: Math.max(0, +o.kills || 0), weps: Array.isArray(o.weps) ? o.weps : [], days: o.days | 0, best: o.best | 0, day: String(o.day || '') };
+  } catch (e) {}
+}
+function saveAch() { try { localStorage.setItem(ACH_KEY, JSON.stringify(ach)); } catch (e) {} }
+// one done: kept at once; mid-round the note under the HUD, at the end of it the results name it
+function gotAch(a, quiet) {
+  ach.got[a.id] = dayNum(localDay());
+  achNow.push(a.id);
+  saveAch();
+  track('achievement', { id: a.id, n: achGot() });
+  if (quiet) return;
+  misToast.push({ head: jaEn('実績解除!', 'ACHIEVEMENT!'), text: a.name, tier: 4, life: 2.6, max: 2.6 });
+  medalSnd(4); buzz([20, 40, 20], 1);
+}
+function checkAch(quiet) {
+  if (!ACH_ON) return;
+  for (const a of ACHS) if (!ach.got[a.id] && a.done()) gotAch(a, quiet);
+}
+// a round starts: the weapon it is played with, and the days in a row
+function achStart() {
+  if (!ACH_ON) return;
+  achNow = []; achTitle = 0; achLive = true;
+  if (!ach.weps.includes(weapon)) ach.weps.push(weapon);
+  const today = localDay();
+  if (ach.day !== today) {
+    ach.days = dayNum(today) - dayNum(ach.day) === 1 ? ach.days + 1 : 1;
+    ach.day = today; ach.best = Math.max(ach.best, ach.days);
+  }
+  saveAch();
+  checkAch();
+}
+// the results (after progEnd has moved the stages on): the round's kills into the total, a lap cleared gives its 称号, and what
+// came this round under the badges
+function achEnd() {
+  if (!ACH_ON) return;
+  checkAch(true);   // the round's kills and score with the finale's, before they go into the total
+  ach.kills += kills; achLive = false;
+  saveAch();
+  if (goalRes && goalRes.clear && goalRes.last) {
+    achTitle = prog.lap;
+    track('title', { lap: prog.lap });
+    setTimeout(() => { if (!$('result').hidden) { medalSnd(4); sparkleSnd(); buzz([40, 60, 40, 60, 90], 2); say('legendary', 3); } }, 450);
+  }
+  achResult();
+  achTitleShow();
+}
+function achResult() {
+  const el = $('resAch');
+  if (!el) return;
+  el.hidden = !ACH_ON;
+  if (!ACH_ON) return;
+  // a 称号 goes in the stage line at the top of the results (80-stage.js progEnd), under 全ステージ制覇!!, where a short screen
+  // shows it without scrolling
+  const pr = $('resProg'), sub = pr && pr.querySelector('span');
+  if (achTitle && sub) sub.insertAdjacentHTML('beforebegin', `<i class="ttl-in"><small>${jaEn('称号獲得!', 'NEW TITLE!')}</small>${titleFor(achTitle)}</i>`);
+  let h = '';
+  const got = achNow.map(id => ACHS.find(a => a.id === id)).filter(Boolean);
+  if (got.length) h += `<p class="ach-got"><b>${jaEn('実績解除!', 'Achievements!')}</b>${got.map(a => `<span>${a.icon} ${a.name}</span>`).join('')}</p>`;
+  h += `<button class="achb" type="button" data-ach>${achBtnHtml()}</button>`;
+  el.innerHTML = h;
+  el.querySelector('[data-ach]').addEventListener('click', () => openAch('result'));
+}
+const achBtnHtml = () => `<span aria-hidden="true">🏅</span> ${jaEn('実績', 'Achievements')} <b>${achGot()}/${ACH_N}</b><span class="go" aria-hidden="true">›</span>`;
+// under the logo on the title: the 称号, or the one the first lap gives; and the button for the list
+function achTitleShow() {
+  const el = $('achMe');
+  if (!el) return;
+  el.hidden = !ACH_ON;
+  if (!ACH_ON) return;
+  const t = titleFor(prog.lap);
+  $('ttlT').innerHTML = t ? `<span class="k">${jaEn('称号', 'Title')}</span><b>${t}</b><small>${jaEn(`${prog.lap}周クリア`, prog.lap > 1 ? `${prog.lap} laps cleared` : '1 lap cleared')}</small>`
+    : `<span class="k">${jaEn('称号', 'Title')}</span><small>${jaEn(`1周クリアで「${TITLES[0]}」`, `Clear a lap to become ${TITLES[0]}`)}</small>`;
+  $('achBtn').innerHTML = achBtnHtml();
+}
+// the list: the 称号 got and to come, then each group, got ones lit with the day, the rest with what they take
+function achDraw() {
+  const t = titleFor(prog.lap);
+  $('achSub').textContent = jaEn(`${achGot()}/${ACH_N} 解除`, `${achGot()} of ${ACH_N} unlocked`) + (t ? jaEn(` ・ 称号「${t}」`, ` · Title: ${t}`) : '');
+  $('achTtls').innerHTML = `<h3>${jaEn('称号（1周クリアごと）', 'Titles (one a lap)')}</h3><ol>` + TITLES.map((n, i) => {
+    const on = prog.lap > i, next = prog.lap === i;
+    return `<li class="${on ? 'on' : next ? 'next' : ''}"><small>${jaEn(`${i + 1}周`, `Lap ${i + 1}`)}</small><span>${on || next ? n : '？？？'}</span></li>`;
+  }).join('') + '</ol>';
+  $('achList').innerHTML = ACH_GROUPS.map(([g, gn]) => {
+    const as = ACHS.filter(a => a.grp === g);
+    return `<section><h3>${gn}<small>${as.filter(a => ach.got[a.id]).length}/${as.length}</small></h3><ul>` + as.map(a => {
+      const on = !!ach.got[a.id], p = !on && a.far ? a.far() : null;
+      const bar = p ? `<i class="bar"><i style="width:${Math.max(3, Math.min(100, p[0] / p[1] * 100)).toFixed(1)}%"></i></i><small class="pn">${Math.min(p[0], p[1]).toLocaleString()}/${p[1].toLocaleString()}</small>` : '';
+      return `<li class="${on ? 'on' : 'lk'}${achNow.includes(a.id) ? ' new' : ''}"><span class="ic" aria-hidden="true">${on ? a.icon : '🔒'}</span><span class="tx"><b>${a.name}</b><small>${on ? jaEn('解除済み', 'Unlocked') : a.how}</small>${bar}</span>${on ? '<span class="ok" aria-hidden="true">✓</span>' : ''}</li>`;
+    }).join('') + '</ul></section>';
+  }).join('');
+}
+function openAch(from) {
+  if (!ACH_ON) return;
+  achDraw();
+  $('ach').hidden = false;
+  $('ach').scrollTop = 0;
+  track('achievements_open', { from, n: achGot() });
+  try { $('achClose').focus({ preventScroll: true }); } catch (e) {}
+}
+function closeAch() {
+  $('ach').hidden = true;
+  const r = $('result'), b = r.hidden ? $('achBtn') : r.querySelector('[data-ach]');
+  try { if (b) b.focus({ preventScroll: true }); } catch (e) {}
+}
+$('achBtn').addEventListener('click', () => openAch('title'));
+$('achClose').addEventListener('click', closeAch);
+$('ach').addEventListener('keydown', e => { if (e.key === 'Escape') closeAch(); });
+$('ach').addEventListener('click', e => { if (e.target === $('ach')) closeAch(); });
+loadAch();
+achTitleShow();
+// tests (ach.mjs): where it stands, and set it
+if (window.ZB_DEBUG) window.__ach = {
+  st: () => ({ got: Object.keys(ach.got), n: achGot(), kills: ach.kills, weps: ach.weps.slice(), days: ach.days, best: ach.best, now: achNow.slice(), title: achTitle, toast: misToast.map(t => t.text) }),
+  set: o => { Object.assign(ach, o); saveAch(); achTitleShow(); },
+  open: () => openAch('test'),
+};
 
 boot();
 </script>
