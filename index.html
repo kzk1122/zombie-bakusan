@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ゾンビ爆散</title>
-<meta name="description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
+<meta name="description" content="迫り来るゾンビの大群をロケランや戦車、10の武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
 <meta name="theme-color" content="#1d1426">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
 <link rel="canonical" href="https://zombie-bakusan.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="ゾンビ爆散">
-<meta property="og:description" content="迫り来るゾンビの大群をロケランや戦車、9つの武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
+<meta property="og:description" content="迫り来るゾンビの大群をロケランや戦車、10の武器で吹き飛ばす、10秒1本勝負の3Dブラウザゲーム。世界ランキングつき。巨大ゾンビは月まで飛ばせ。">
 <meta property="og:url" content="https://zombie-bakusan.pages.dev/">
 <meta property="og:image" content="https://zombie-bakusan.pages.dev/screenshot.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -98,6 +98,9 @@ canvas { display: block; width: 100%; height: 100%; }
 .ammo i.ms.on { background: linear-gradient(180deg, #ff4a3d 0 26%, #f3e9dc 26% 76%, #ffb04a 76%); }
 .ammo i.bt { width: 12px; height: 20px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(50% 0, 100% 45%, 50% 100%, 0 45%); }
 .ammo i.bt.on { background: radial-gradient(circle at 50% 42%, #ffffff 0 16%, #ff8ae6 30%, #c81aa0 80%); }
+/* the holy sword: a blade, a crossguard and a pommel */
+.ammo i.sw { width: 12px; height: 22px; border: none; border-radius: 0; background: var(--bone); clip-path: polygon(50% 0, 64% 12%, 64% 64%, 100% 64%, 100% 72%, 60% 72%, 60% 88%, 70% 92%, 70% 100%, 30% 100%, 30% 92%, 40% 88%, 40% 72%, 0 72%, 0 64%, 36% 64%, 36% 12%); }
+.ammo i.sw.on { background: linear-gradient(180deg, #ffffff 0 30%, #fff1b8 46%, #ffd25a 64%, #e0a030 72%, #6a4a20 88%, #f0c040); }
 .wv b { background: linear-gradient(90deg, #1b3594, #4f8dff); }
 .wv.ready b { background: linear-gradient(90deg, #2f63e8, #8fd8ff, #ffffff); box-shadow: 0 0 8px #6fb8ff; }
 .wv.fire b { background: linear-gradient(90deg, #8fd8ff, #ffffff); animation: blink .12s steps(2) infinite; }
@@ -247,6 +250,9 @@ canvas { display: block; width: 100%; height: 100%; }
 /* the bits: four pods standing round a pink glow */
 .pk.bt { border-color: color-mix(in srgb, #ff6ad8 65%, transparent); background: radial-gradient(circle at 10% 28%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 90% 24%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 7% 76%, #ff9ae8 0 2px, transparent 3px), radial-gradient(circle at 93% 80%, #ff9ae8 0 2px, transparent 3px), radial-gradient(ellipse at 50% 140%, #6e1260, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
 .pk.bt[aria-pressed="true"] { background: radial-gradient(circle at 10% 28%, #fff 0 2px, transparent 3px), radial-gradient(circle at 90% 24%, #fff 0 2px, transparent 3px), radial-gradient(circle at 7% 76%, #fff 0 2px, transparent 3px), radial-gradient(circle at 93% 80%, #fff 0 2px, transparent 3px), radial-gradient(ellipse at 50% 120%, #ffd6f6 4%, #ff5ad2 30%, #b0148e 62%, #4a0640); color: #fff; border-color: #ffd6f6; box-shadow: 0 4px 0 #7a1066; text-shadow: 0 1px 2px #40063a; }
+/* the holy sword: a stroke of light across the button */
+.pk.sw { border-color: color-mix(in srgb, #ffd25a 70%, transparent); background: linear-gradient(172deg, transparent 47%, color-mix(in srgb, #fff1b8 55%, transparent) 50%, transparent 53%), radial-gradient(ellipse at 50% 140%, #6a4a10, color-mix(in srgb, var(--ink) 70%, transparent) 72%); }
+.pk.sw[aria-pressed="true"] { background: linear-gradient(172deg, transparent 44%, #ffffff 49%, #ffffff 51%, transparent 56%), radial-gradient(ellipse at 50% 120%, #fff6d0 4%, #ffd25a 32%, #c88a18 64%, #4a3008); color: #fff; border-color: #fff1c0; box-shadow: 0 4px 0 #7a5410; text-shadow: 0 1px 2px #3a2604; }
 .pk.locked { opacity: .62; border-style: dashed; border-color: color-mix(in srgb, var(--bone) 35%, transparent); background: color-mix(in srgb, var(--ink) 55%, transparent); cursor: not-allowed; }
 .pk.nope { animation: nope .35s; }
 @keyframes nope { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -398,6 +404,26 @@ canvas { display: block; width: 100%; height: 100%; }
    rest, today's marked), and on the result what the round brought and what playing on brings */
 .mulb { margin-left: 6px; font-family: var(--display); font-weight: 400; font-size: 12px; letter-spacing: 0; color: var(--ink); background: linear-gradient(90deg, #ff7a5a, #ffd25e); padding: 0 6px; border-radius: 5px; opacity: 1; }
 .stat .k .mulb { opacity: 1; }
+/* CrazyGames: the stage's 合格点 under the score, a bar filling up to it, gold once it is reached (80-stage.js) */
+.goal { flex-basis: 100%; position: relative; height: 18px; margin-top: -3px; border-radius: 9px; overflow: hidden; background: color-mix(in srgb, var(--ink) 62%, transparent); border: 1.5px solid color-mix(in srgb, var(--bone) 30%, transparent); }
+.goal[hidden] { display: none; }
+.goal i { position: absolute; inset: 0 auto 0 0; width: calc(var(--g, 0) * 100%); background: linear-gradient(90deg, var(--ember), var(--flare)); }
+.goal span { position: relative; display: block; text-align: center; font-size: 11.5px; font-weight: 800; line-height: 15px; letter-spacing: .04em; color: var(--bone); text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.goal.hit { border-color: #fff1c0; box-shadow: 0 0 12px var(--flare); animation: goalHit .5s ease-out; }
+.goal.hit i { background: linear-gradient(90deg, var(--flare), #fff6d0, var(--flare)); }
+.goal.hit span { color: var(--ink); text-shadow: none; }
+@keyframes goalHit { 0% { transform: scale(1.06); } 100% { transform: scale(1); } }
+/* and on the results: cleared and what is next, or how far short with a tip */
+.prog { width: 100%; max-width: 360px; margin: 0; display: grid; gap: 2px; text-align: center; border-radius: 10px; padding: 7px 12px 6px; background: color-mix(in srgb, var(--bone) 9%, transparent); border: 1.5px solid color-mix(in srgb, var(--bone) 24%, transparent); }
+.prog[hidden] { display: none; }
+.prog b { font-family: var(--display); font-weight: 400; font-size: 17px; letter-spacing: .02em; }
+.prog span { font-size: 12.5px; font-weight: 700; opacity: .85; line-height: 1.4; }
+.prog.ok { background: linear-gradient(180deg, color-mix(in srgb, var(--flare) 30%, transparent), color-mix(in srgb, var(--ember) 16%, transparent)); border-color: var(--flare); box-shadow: 0 0 18px color-mix(in srgb, var(--flare) 40%, transparent); }
+.prog.ok b { font-size: 24px; color: var(--flare); text-shadow: 0 2px 0 #7a3a10; }
+/* the stage chips on CrazyGames: cleared, the one being played for, locked */
+.sg.now { border-color: var(--flare); }
+.sg.lk { opacity: .45; cursor: default; padding: 4px 7px; }
+.sg.lk:hover { transform: none; }
 .zk { width: 100%; max-width: 360px; background: color-mix(in srgb, var(--bone) 9%, transparent); border-radius: 10px; padding: 8px 12px 7px; text-align: left; }
 .zk-row { display: flex; gap: 6px; margin-top: 6px; }
 .zk-t { position: relative; flex: 1; height: 36px; border-radius: 8px; display: grid; place-items: center; background: color-mix(in srgb, var(--bone) 7%, transparent); font-size: 19px; line-height: 1; }
@@ -472,6 +498,7 @@ canvas { display: block; width: 100%; height: 100%; }
     <div class="stat"><span class="k" id="ammoLabel">ロケット</span><span class="ammo" id="ammo"></span></div>
     <span class="spacer"></span>
     <button class="mute" id="mute" type="button" data-en="SOUND: ON">音: ON</button>
+    <div class="goal" id="goal" hidden><i></i><span id="goalT"></span></div>
   </div>
 
   <div class="sp" id="spMeter" hidden aria-hidden="true"><span class="t" id="spText" data-en="STRIKE">空爆</span></div>
@@ -499,6 +526,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <button class="pk zp locked" type="button" data-w="shock" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Shock Gun">電撃砲</span><span class="d" data-en="50 medals to unlock">メダル50枚で解放</span></button>
         <button class="pk ms locked" type="button" data-w="missile" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Missiles">ミサイル</span><span class="d" data-en="60 medals to unlock">メダル60枚で解放</span></button>
         <button class="pk bt locked" type="button" data-w="bits" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Bits">ビット</span><span class="d" data-en="70 medals to unlock">メダル70枚で解放</span></button>
+        <button class="pk sw locked" type="button" data-w="sword" aria-pressed="false" aria-disabled="true" hidden><span class="t" data-en="Holy Sword">聖剣</span><span class="d" data-en="80 medals to unlock">メダル80枚で解放</span></button>
       </div>
       <div class="stg" role="group" aria-label="ステージを選ぶ" data-en-label="Choose a stage"></div>
       <button class="btn" id="startBtn" type="button" disabled>
@@ -517,6 +545,7 @@ canvas { display: block; width: 100%; height: 100%; }
         <div class="mis-h"><span data-en="SURPRISES">サプライズ図鑑</span><span class="mis-m" id="zkN"></span></div>
         <div class="zk-row" id="zkRow"></div>
         <p class="zk-today" id="zkToday"></p>
+        <p class="zk-today" id="zkBonus" hidden></p>
       </div>
       </div>
       <p class="how" data-en-html="<span>Drums and cars go up big,</span> <span>buildings fall when you shoot them.</span><br><span>Keep killing and an air strike rolls in.</span> <span>Send the giant to the moon.</span><br>On a PC, click or press Space to fire the <span id=&quot;ctlPc&quot;>Rocket</span>."><span>ドラム缶と車は大爆発、</span><span>ビルは撃てば崩れる。</span><br><span>倒し続けると空爆が飛んでくる。</span><span>巨大ゾンビは月まで飛ばせ。</span><br>PCはクリックかスペースで<span id="ctlPc">ロケット</span>。</p>
@@ -527,6 +556,7 @@ canvas { display: block; width: 100%; height: 100%; }
   <div class="overlay" id="result" hidden>
     <div class="card">
       <div class="col col-a">
+      <p class="prog" id="resProg" hidden></p>
       <div class="hero" id="resHero">
         <canvas id="bestCv" aria-hidden="true"></canvas>
         <p class="rank" id="resRank">A</p>
@@ -563,6 +593,7 @@ canvas { display: block; width: 100%; height: 100%; }
           <button class="pk zp" type="button" data-w="shock" aria-pressed="false" hidden><span class="t" data-en="Shock Gun">電撃砲</span></button>
           <button class="pk ms" type="button" data-w="missile" aria-pressed="false" hidden><span class="t" data-en="Missiles">ミサイル</span></button>
           <button class="pk bt" type="button" data-w="bits" aria-pressed="false" hidden><span class="t" data-en="Bits">ビット</span></button>
+          <button class="pk sw" type="button" data-w="sword" aria-pressed="false" hidden><span class="t" data-en="Holy Sword">聖剣</span></button>
         </div>
         <button class="btn small" id="again" type="button"><span class="t" data-en="PLAY AGAIN">もう一回</span><span class="an" id="againN" hidden aria-hidden="true"></span></button>
       </div>
@@ -4442,7 +4473,8 @@ function makeGib(z, group, v, spin) {
     ours: !!z.ch,   // a head off a zombie we did not kill (the giant's stomps) flies past for nothing
   };
   gibs.push(g);
-  if (gibs.length > 110) gibs.splice(0, gibs.length - 110);
+  const cap = weapon === 'sword' ? 150 : 110;   // the sword leaves two halves of everyone it cuts
+  if (gibs.length > cap) gibs.splice(0, gibs.length - cap);
   return g;
 }
 const _gm = (x, y, z, flip, sx = 1, sy = 1) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(flip ? Math.PI : 0, 0, 0)), new THREE.Vector3(sx, sy, sx));
@@ -4975,6 +5007,16 @@ function buildArms() {
     for (const o of [pods, eyes, tails]) { o.frustumCulled = false; g.add(o); }
     ARM.bits = { g, tip: [0, 0, 0.27], pods: [pods, eyes, tails] };
   }
+  // 聖剣: the holy sword (its shapes: buildSwordArm, 59-sword.js), on a pivot at the grip that the swing turns, with a point
+  // at its tip and one at its hilt for the trail of light a swing leaves
+  {
+    const g = new THREE.Group(), pivot = new THREE.Group(), add = armKit(pivot);
+    const core = buildSwordArm(add, M, glow);
+    add.done(); g.add(pivot);
+    const tipObj = new THREE.Object3D(), hiltObj = new THREE.Object3D();
+    tipObj.position.set(0, 0, 1.02); hiltObj.position.set(0, 0, 0.14); pivot.add(tipObj, hiltObj);
+    ARM.sword = { g, pivot, core, tipObj, hiltObj, hiltW: new THREE.Vector3(), tip: [0, 0, 1.02] };
+  }
   for (const k in ARM) { ARM[k].g.visible = false; gunKick.add(ARM[k].g); }
 }
 // the one in hand shows, its mouth is where the shots come from
@@ -5006,7 +5048,7 @@ function poseArms(dt) {
   else if (weapon === 'bits') {
     const n = squadCD <= 0 ? 6 : 0;
     for (const o of A.pods) o.count = tubeRecoil > 0.4 ? Math.max(0, n - 3) : n;
-  }
+  } else if (weapon === 'sword') poseSwordArm(A, dt);
 }
 
 // ===== 52-tank.js
@@ -5016,8 +5058,8 @@ function poseArms(dt) {
 // blows up where it lands.
 let weapon = 'rocket';
 // what the tap fires, as the HUD and the title name it
-const WEAPON_NAME = EN ? { rocket: 'Rocket', tank: 'Cannon', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits' }
-  : { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット' };
+const WEAPON_NAME = EN ? { rocket: 'Rocket', tank: 'Cannon', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits', sword: 'Holy Sword' }
+  : { rocket: 'ロケット', tank: '主砲', hole: 'ブラックホール', rail: 'レールガン', wave: '波動砲', flame: '火炎放射器', shock: '電撃砲', missile: 'ミサイル', bits: 'ビット', sword: '聖剣' };
 try { const w = localStorage.getItem('zb3d-weapon'); if (WEAPON_NAME[w]) weapon = w; } catch (e) {}   // the ones the medals unlock only once they have (setWeapon)
 // (2026-10-24, kazu: a thicker gun and a harder hit per shot: the blast went from 1.5 to 2.1, a rocket's is 1.25; the reload
 // went from 0.95 to 0.75 s when the machine gun went, 2026-10-31: firing blind, the main gun alone scored about a fifth less)
@@ -5098,17 +5140,17 @@ for (const b of document.querySelectorAll('.pk')) b.addEventListener('click', ()
   setWeapon(b.dataset.w);
 });
 // a tap (a click, a right click, the space bar) fires the weapon; held down, it fires again every HOLD_GAP while it can
-const HOLD_GAP = { rocket: 0.2, tank: 0.1, hole: 0.3, rail: 0.22, wave: 0.1, flame: 0.1, shock: 0.25, missile: 0.4, bits: 0.45 };
+const HOLD_GAP = { rocket: 0.2, tank: 0.1, hole: 0.3, rail: 0.22, wave: 0.1, flame: 0.1, shock: 0.25, missile: 0.4, bits: 0.45, sword: 0.3 };
 const HOLD_SAYS = { flame: jaEn('出しっぱなし', 'Keep burning') };
 // how long until the weapon in hand can fire again (0: now, or it is held back by something other than its cooldown)
 function weaponCD() {
   switch (weapon) {
     case 'rocket': return rocketCD; case 'tank': return cannonT; case 'hole': return holeCD; case 'rail': return railCD;
-    case 'shock': return shockCD; case 'missile': return salvoCD; case 'bits': return squadCD; default: return 0;
+    case 'shock': return shockCD; case 'missile': return salvoCD; case 'bits': return squadCD; case 'sword': return swordCD; default: return 0;
   }
 }
 function tapFire() {
-  ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits }[weapon] || tryRocket)();
+  ({ tank: tryCannon, hole: tryHole, rail: tryRail, wave: tryWave, flame: tryFlame, shock: tryShock, missile: tryMissile, bits: tryBits, sword: trySword }[weapon] || tryRocket)();
   if (meteorOn) meteorTap();   // the meteor shower: a meteor where we aim as well (76-surprise.js)
 }
 function tryCannon() {
@@ -7021,6 +7063,333 @@ function bitAimSnd() {
   o.connect(gain(t, 0.07, BIT_AIM * 0.8, 0.08)).connect(master); o.start(t); o.stop(t + BIT_AIM + 0.1);
 }
 
+// ===== 59-sword.js
+
+// ---------- 聖剣, the holy sword (2026-11-09: kazu asked for a weapon out of fantasy, as most of the others are real ones, and
+// picked 「聖剣の斬撃」 on the card: a blade of light running across the street in one stroke, cutting zombies in two) ----------
+// Tap: the sword in hand swings across, and a blade of light runs across the street from kerb to kerb (SW_X) at the reticle's
+// distance, at waist height (SW_H), in SW_RUN. Whoever stands within SW_BAND of it is cut through the waist as it goes by:
+// they stop dead with a line of light across them for SW_DELAY (the cut reaching each in the order the blade ran) and then come
+// apart, the top half thrown up and away spinning with its guts trailing, the legs left to topple where they stood, blood
+// fountaining out of both. Cars on the line go up, a giant takes SW_BOSS, a body in the air on the line comes apart too, and
+// what the blade touches on its way (the gas main, the contraptions, the stands) goes as a blast there would set it off. Aimed
+// at something up off the street (the helicopter, the airship, a stand, a wall) the blade runs across at that height instead,
+// over the horde's heads, and a wall it is aimed at takes a gash. Two strokes a tap, back and forth, the second SW_TWIN further
+// down the street, as one chain; three through FEVER. It opens at 80 medals (45 on CrazyGames; UNLOCKS, 77-mission.js).
+const SW_CD = 0.3, SW_FEVER_CD = 0.2, SW_RUN = 0.13, SW_DELAY = 0.17, SW_GAP = 0.08, SW_TWIN = 2.4, SW_BAND = 1.0, SW_H = 1.0;
+const SW_X = ROAD + 1.3, SW_BOSS = 55, SW_SET = 25, SW_LIFE = 0.6, SW_FAR = 34, SW_PAY = 1, SW_SWING = 0.08, SW_BACK = 0.2;
+const SW_CORE = [3.6, 3.2, 2.2], SW_GLOW = [1.6, 1.05, 0.3], SW_SPARK = [6, 4.6, 1.6], SW_CUT = [4.2, 3.6, 2.2], SW_GLINT = [5, 4.4, 2.6];
+const SW_TOP = [['torso', 0], ['neck', 0], ['head', 0], ['jaw', 0], ['uarm', 0], ['farm', 0], ['hand', 0], ['uarm', 1], ['farm', 1], ['hand', 1]];
+const SW_LEGS = [['pelvis', 0], ['thigh', 0], ['shin', 0], ['foot', 0], ['thigh', 1], ['shin', 1], ['foot', 1]];
+const SW_TXT = jaEn(['シャキーン!!', 'ズバァッ!!', '斬!!'], ['SHING!!', 'SLASH!!', 'SLICE!!']);
+let swordCD = 0, strokes = [], swordSide = 1, swing = null, swordCuts = 0, swordSndT = 0;
+function resetSword() {
+  swordCD = 0; swing = null; swordCuts = 0;
+  for (const S of strokes) if (S.beam) swFree(S.beam);
+  strokes = [];
+}
+function trySword() {
+  if (!running || swordCD > 0) return;
+  swordCD = feverT > 0 ? SW_FEVER_CD : SW_CD;
+  const A = aimHit(aim.x, aim.y, aim.touch ? 60 : 40), ch = newChain();
+  if (SW_PAY !== 1) ch.pay = SW_PAY;
+  // how far down the street: the body under the reticle, or what it covers; at the sky, the middle of the street
+  const zb = A.kind === 'zombie' ? A.hit.z : null;
+  let zc = zb ? zb.z : -A.p.z, hc = SW_H;
+  if (A.kind === 'sky' || !(zc > 0)) zc = 24;
+  zc = clamp(zc, Z_WALL + 0.9, SW_FAR);
+  // up off the street: the blade goes across at that height
+  if (A.kind === 'heli' || A.kind === 'ship' || A.kind === 'facade' || (A.kind === 'park' && A.p.y > 2.2) || (zb && zb.state !== 'walk')) hc = clamp(A.p.y, 0.6, 16);
+  swordSide = -swordSide;
+  const offs = feverT > 0 ? [0, SW_TWIN, -SW_TWIN] : [0, SW_TWIN];
+  offs.forEach((o, i) => {
+    const z = clamp(zc + o, Z_WALL + 0.9, SW_FAR + SW_TWIN), dir = i % 2 ? -swordSide : swordSide;
+    strokes.push({ zc: z, hc, dir, t: -i * SW_GAP, ch, beam: null, boss: [], air: [], cars: [], A: i === 0 ? A : null, n: 0, cutSnd: false });
+  });
+  swing = { t: 0, dir: swordSide, n: offs.length };
+  swordSnd(); buzz(25);
+  if (running) {
+    tubeTip.getWorldPosition(_wp);
+    const s = toScreen(_wp.x, -_wp.z, _wp.y);
+    floaters.push({ sfx: true, x: clamp(s.X + rand(-40, 0), 70, W - 70), y: clamp(s.Y - rand(70, 110), hudH + 40, H - 50), text: pick(SW_TXT), rot: rand(-0.2, 0.2), life: 0.55, max: 0.55, size: 42 });
+  }
+}
+// the stroke goes: what it will cut, and when the blade reaches each
+function strokeFire(S) {
+  S.beam = takeBeam(); S.beam.mesh.material.depthTest = false;   // drawn over the bodies in front: across a packed horde they would hide all but snatches of it
+  const { zc, hc, dir, ch } = S, x0 = -dir * SW_X, span = 2 * SW_X, when = x => SW_RUN * clamp((x - x0) * dir / span, 0, 1);
+  S.x0 = x0; S.x1 = dir * SW_X;
+  // aimed at a wall: the blade runs into it
+  if (S.A && S.A.kind === 'facade' && S.A.block && !S.A.block.ruined) { S.wall = S.A.block; S.x1 = S.A.side * S.A.block.xf; S.x0 = -S.x1 * 0.7; S.dir = Math.sign(S.x1 - S.x0); }
+  for (const zb of zombies) {
+    if (zb.gone || zb.held || zb.cut) continue;
+    if (zb.type === 'boss') {
+      if (zb.state !== 'walk') continue;
+      const r = (zb.dog ? 1.0 : 0.55) * zb.size;
+      if (Math.abs(zb.z - zc) < SW_BAND + r && hc < ZOMBIE_H * zb.size * 1.1 + 0.5) S.boss.push({ zb, at: when(zb.x) });
+      continue;
+    }
+    if (zb.state === 'walk') {
+      if (zb.rise > 0 || Math.abs(zb.x) > SW_X + 0.3 || Math.abs(zb.z - zc) > SW_BAND * Math.max(1, zb.size * 0.85)) continue;
+      if (hc > ZOMBIE_H * zb.size + 0.15) continue;   // over its head
+      const mark = when(zb.x);
+      zb.cut = { t: 0, mark, at: mark + SW_DELAY * rand(0.85, 1.15), ch, dir: S.dir, lit: false, S };
+      S.n++;
+    } else if (zb.state === 'fly' && zb.z > 2.6 && Math.abs(zb.z - zc) < SW_BAND * 1.4 && Math.abs(zb.h + 0.8 * zb.size - hc) < 1.1 * zb.size) S.air.push({ zb, at: when(zb.x) });
+  }
+  // a car on the line is cut through too: a line of light across it as the blade goes by, and it goes up once the bodies
+  // around it have come apart (blown at once, it threw them all away before the cut could show)
+  for (const c of cars) {
+    if (c.state !== 'park' && c.state !== 'roll') continue;
+    if (Math.abs(c.z - zc) > SW_BAND + c.hl || Math.abs(c.x) - c.hw > SW_X || hc > (c.ht || 1.4) + 0.6) continue;
+    S.cars.push({ c, mark: when(c.x), at: when(c.x) + SW_DELAY + 0.08 });
+  }
+  // what the blade itself runs into on its way across (as a beam would: the stands, the contraptions, the airship and its
+  // ropes, the UFO, the helicopter), and a cover of the gas main in the road under it
+  _swA.set(S.x0, hc, -zc); _swB.set(S.dir, 0, 0);
+  const L = Math.abs(S.x1 - S.x0);
+  parkBeam(_swA, _swB, L, SW_SET, ch);
+  shipBeam(_swA, _swB, L, SW_SET, ch);
+  const th = rayHeli(_swA, _swB);
+  if (th > 0 && th < L) downHeli(ch);
+  if (hc < 2) for (let x = -ROAD; x <= ROAD + 0.01; x += 1.4) pipeBlast(x, zc, 0.9, ch);
+  const A = S.A;
+  if (A) {
+    if (A.kind === 'heli') downHeli(ch);
+    else if (A.kind === 'ship') hitShip(SW_SET, ch, A.p.x, A.p.y, -A.p.z);
+    else if (A.kind === 'park') hitPark(A.solid.park, SW_SET, ch, A.p.x, A.p.y, -A.p.z);
+    else if (A.kind === 'car' && A.car && !S.cars.some(B => B.c === A.car)) S.cars.push({ c: A.car, mark: 0.02, at: SW_DELAY + 0.1 });
+  }
+}
+function swFree(b) { b.mesh.material.depthTest = true; freeBeam(b); }
+function updateSword(dt) {
+  if (running && weapon === 'sword') swordCD = Math.max(0, swordCD - dt);
+  if (swing) { swing.t += dt; if (swing.t > swing.n * SW_SWING + SW_BACK) swing = null; }
+  for (const S of strokes) {
+    const was = S.t;
+    S.t += dt;
+    if (S.t < 0) continue;
+    if (!S.fired) { S.fired = true; strokeFire(S); }
+    const run = clamp(S.t / SW_RUN, 0, 1), runWas = clamp(was / SW_RUN, 0, 1);
+    if (runWas < 1) {
+      // the head of the blade: a flare, sparks thrown on ahead of it and glitter left hanging where it passed
+      const X = S.x0 + (S.x1 - S.x0) * run, k = parts.length > 1900 * LOD ? 0.5 : 1;
+      if ((S.f = (S.f || 0) + 1) % 2) addPart({ k: 'glow', x: X, z: S.zc, h: S.hc, vx: 0, vz: 0, vh: 0, r: 0.24, life: 0.07, c: SW_GLOW, a: 0.8 });
+      for (let i = 0; i < 3 * k; i++) addPart({ k: 'spark', x: X, z: S.zc, h: S.hc, vx: S.dir * rand(6, 14), vz: rand(-3, 3), vh: rand(-1, 5), g: 9, drag: 0.8, r: rand(0.025, 0.04), life: rand(0.2, 0.45), c: SW_SPARK, streak: 0.03 });
+      for (let i = 0; i < 4 * k; i++) {
+        const xx = S.x0 + (S.x1 - S.x0) * rand(runWas, run);
+        addPart({ k: 'glitter', x: xx, z: S.zc + rand(-0.15, 0.15), h: S.hc + rand(-0.12, 0.12), vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), vh: rand(0.2, 1.0), r: rand(0.03, 0.055), life: rand(0.45, 0.9), c: SW_GLINT });
+      }
+      if (run >= 1) strokeEnd(S);
+    }
+    for (const B of S.boss) if (!B.done && S.t >= B.at) { B.done = true; bossCut(S, B.zb); }
+    for (const B of S.air) if (!B.done && S.t >= B.at) { B.done = true; airCut(S, B.zb); }
+    for (const B of S.cars) {
+      if (!B.lit && S.t >= B.mark) { B.lit = true; carCut(S, B.c); }
+      if (!B.done && S.t >= B.at) { B.done = true; carBoom(B.c, 0.01, S.ch); }
+    }
+    if (S.t >= SW_LIFE) { if (S.beam) swFree(S.beam); S.beam = null; S.done = true; }
+  }
+  strokes = strokes.filter(S => !S.done);
+}
+// the blade runs out at the far side: a burst of light there, and into the wall if it was aimed at one
+function strokeEnd(S) {
+  addPart({ k: 'ring', x: S.x1, z: S.zc, h: S.hc, vx: 0, vz: 0, vh: 0, r: 0.2, grow: 3, life: 0.25, c: SW_GLOW, a: 1 });
+  for (let i = 0; i < 8; i++) addPart({ k: 'spark', x: S.x1, z: S.zc, h: S.hc, vx: S.dir * rand(2, 8), vz: rand(-4, 4), vh: rand(-2, 7), g: 10, drag: 0.6, r: rand(0.025, 0.045), life: rand(0.25, 0.55), c: SW_SPARK });
+  const b = S.wall;
+  if (b && !b.ruined) {
+    damageBlock(b, 1.1, S.zc, S.hc, true, S.ch);
+    for (let i = 0; i < 14; i++) addPart({ k: 'spark', x: S.x1 - S.dir * 0.1, z: S.zc + rand(-0.6, 0.6), h: S.hc + rand(-0.3, 0.3), vx: -S.dir * rand(2, 9), vz: rand(-5, 5), vh: rand(-2, 7), g: 12, drag: 0.6, r: rand(0.03, 0.05), life: rand(0.3, 0.7), c: SW_SPARK });
+    for (let i = 0; i < 10; i++) addChunk({ x: S.x1 - S.dir * 0.2, z: S.zc + rand(-0.6, 0.6), h: S.hc + rand(-0.3, 0.3), vx: -S.dir * rand(1, 5), vz: rand(-1.5, 2), vh: rand(0, 5), sx: rand(0.08, 0.22), sy: rand(0.06, 0.16), sz: rand(0.08, 0.22), c: CH.conc, life: rand(1.4, 2.2) });
+    shake = Math.min(shake + 5, 18);
+  }
+}
+// one the blade has gone through, every frame instead of walking: it walks on until the blade reaches it, then stands stock
+// still with the cut glowing across it, and comes apart. (70-game.js calls this; true while it stands still)
+function cutTick(z, dt) {
+  const C = z.cut;
+  C.t += dt;
+  if (C.t < C.mark) return false;
+  if (!C.lit) {
+    C.lit = true;
+    const s = z.size, hh = 0.98 * s;
+    z.flash = 0.08;
+    addPart({ k: 'tracer', x: z.x, z: z.z - 0.2 * s, h: hh, vx: 0, vz: 0, vh: 0, r: 0.07 * s, life: C.at - C.t + 0.05, dx: 0.42 * s, dy: 0, dz: 0, c: SW_CUT });
+    for (let i = 0; i < 3; i++) addPart({ k: 'spark', x: z.x, z: z.z - 0.2, h: hh, vx: C.dir * rand(3, 8), vz: rand(-2, 1), vh: rand(0, 4), g: 10, r: 0.03, life: rand(0.15, 0.35), c: SW_SPARK });
+    for (let i = 0; i < 4; i++) addPart({ k: 'blood', x: z.x + C.dir * 0.2 * s, z: z.z, h: hh, vx: C.dir * rand(1, 3), vz: rand(-0.5, 0.5), vh: rand(0.5, 2), g: 14, r: rand(0.03, 0.06), life: 0.9, dark: Math.random() < 0.3 });
+  }
+  if (C.t >= C.at) sliceZombie(z);
+  return true;
+}
+// cut in two: the top half flies, the legs stay to fall
+function sliceZombie(zb) {
+  const C = zb.cut;
+  zb.cut = null;
+  if (zb.state !== 'walk' || zb.gone) return;
+  const ch = C.ch, s = zb.size, dir = C.dir;
+  // the fat one swells and bursts, the drum and the cylinder go up: cut, they die their own deaths
+  if (zb.type === 'fat' || zb.type === 'barrel' || zb.type === 'gas') {
+    killZombie(zb, { dx: dir * 0.4, dz: 1, d: Math.hypot(0.4, 1), f: 0.75, power: 1.05, ch });
+    registerKills(1, zb.x, zb.z, null, false, ch);
+    sliceFx(zb, C.S, false);
+    return;
+  }
+  zb.burn = null; zb.zap = null; zb.ch = ch || null; zb.atWall = false;
+  if (running && ch) kills++;
+  if (zb.type === 'gold') goldBurst(zb, ch);
+  else if (zb.type === 'gaming') gamingBurst(zb, ch);
+  if (ch) addFever(4);
+  const top = makeGib(zb, SW_TOP, { x: dir * rand(1.5, 4.5) + rand(-1, 1), y: rand(7, 12.5), z: rand(2.5, 7) }, rand(9, 17));
+  makeGib(zb, SW_LEGS, { x: dir * rand(0.2, 0.9), y: rand(1.2, 3), z: rand(0.2, 1.4) }, rand(2.5, 5.5));
+  if (top) top.life = Math.max(top.life, 5);
+  if (Math.random() < 0.5) gutGib(zb, { x: dir * rand(1, 3), y: rand(5, 9), z: rand(1, 4) });
+  if (Math.random() < 0.35) deathGurgle(zb);
+  zb.state = 'fly'; zb.hp = 0; zb.gone = true;
+  sliceFx(zb, C.S, true);
+  registerKills(1, zb.x, zb.z, null, false, ch);
+}
+// the blood, the light and the sound of it
+function sliceFx(zb, S, gush) {
+  const s = zb.size, hh = 0.98 * s, fx = parts.length > 1900 * LOD ? 0.5 : 1;
+  if (gush) {
+    for (let i = 0; i < 14 * fx; i++) addPart({ k: 'blood', x: zb.x + rand(-0.1, 0.1), z: zb.z + rand(-0.1, 0.1), h: hh, vx: rand(-1.4, 1.4), vz: rand(-0.6, 1.6), vh: rand(5, 11), g: 14, r: rand(0.04, 0.09), life: rand(1.1, 1.7), dark: Math.random() < 0.35 });
+    for (let i = 0; i < 3; i++) meatChunk(zb, 0.8);
+    addPart({ k: 'mist', x: zb.x, z: zb.z - 0.1, h: hh, vx: 0, vz: 0, vh: 0.6, r: 0.3, grow: 2.6, drag: 3, life: 0.5, a: 0.6 });
+    addDecal(zb.x, zb.z, 0.9 * s, 'splat', 16);
+  }
+  if (!S || (S.cuts || 0) % 3 === 0) addPart({ k: 'glow', x: zb.x, z: zb.z - 0.2, h: hh, vx: 0, vz: 0, vh: 0, r: 0.22 * s, life: 0.08, c: SW_GLOW, a: 0.7 });
+  squelch(s > 1.2);
+  if (S) {
+    S.cuts = (S.cuts || 0) + 1;
+    if (!S.cutSnd) { S.cutSnd = true; cutSnd(zb.z, S.n); }
+    if (running && S.cuts === S.n && S.n >= 3) {
+      swordCuts = Math.max(swordCuts, S.n);
+      floaters.push({ x: zb.x, z: Math.max(zb.z, Z_WALL + 1), h: 2.6, text: S.n >= 10 ? jaEn(`一刀両断 ×${S.n}!!`, `CLEAN CUT ×${S.n}!!`) : jaEn(`${S.n}体斬り!!`, `${S.n} SLICED!!`), sub: '', life: 1.0, big: true });
+      if (S.n >= 6 && !reduceMotion) hitstop = Math.max(hitstop, 0.05);
+      shake = Math.min(shake + 2 + S.n * 0.4, 14);
+    }
+  }
+}
+// a car the blade goes through: sparks off it and the cut glowing across it until it goes up
+function carCut(S, c) {
+  if (c.state !== 'park' && c.state !== 'roll') return;
+  const hh = Math.min(S.hc, (c.ht || 1.4) * 0.7);
+  addPart({ k: 'tracer', x: c.x, z: c.z - c.hl * 0.2, h: hh, vx: 0, vz: 0, vh: 0, r: 0.09, life: SW_DELAY + 0.1, dx: c.hw + 0.1, dy: 0, dz: 0, c: SW_CUT });
+  for (let i = 0; i < 10; i++) addPart({ k: 'spark', x: c.x + rand(-c.hw, c.hw), z: c.z - c.hl * 0.3, h: hh, vx: S.dir * rand(4, 11), vz: rand(-3, 2), vh: rand(0, 6), g: 12, drag: 0.6, r: rand(0.025, 0.045), life: rand(0.2, 0.5), c: SW_SPARK, streak: 0.03 });
+}
+// a giant on the line: a deep gash and the light bursting out of it
+function bossCut(S, zb) {
+  if (zb.state !== 'walk') return;
+  damageBoss(SW_BOSS, S.ch, zb);
+  const hh = Math.max(S.hc, 1.2), zz = zb.z - (zb.dog ? 1.0 : 0.6) * zb.size * 0.5;
+  for (let i = 0; i < 16; i++) addPart({ k: 'spark', x: zb.x, z: zz, h: hh, vx: S.dir * rand(4, 12), vz: rand(-5, 2), vh: rand(-2, 6), g: 12, r: 0.035, life: rand(0.2, 0.5), c: SW_SPARK });
+  addPart({ k: 'tracer', x: zb.x, z: zz, h: hh, vx: 0, vz: 0, vh: 0, r: 0.16, life: 0.22, dx: 0.9 * zb.size * 0.5, dy: 0, dz: 0, c: SW_CUT });
+  bloodBurst(zb.x, zz, hh, 22, 7, 6);
+  addPart({ k: 'glow', x: zb.x, z: zz, h: hh, vx: 0, vz: 0, vh: 0, r: 1.2, life: 0.12, c: SW_GLOW, a: 1 });
+  if (running) floaters.push({ x: zb.x, z: Math.max(zb.z - 1, Z_WALL + 1), h: hh + 1.4, text: jaEn('斬!!', 'SLASH!!'), sub: '', life: 0.7, big: true });
+  squelch(true);
+}
+// a body in the air on the line comes apart up there
+function airCut(S, zb) {
+  if (zb.state !== 'fly' || zb.gone) return;
+  if (running && zb.ch) { score += 50; juggles++; }
+  const vx = zb.vx, vz = zb.vz, vh = zb.vh;
+  makeGib(zb, SW_TOP, { x: vx * 0.6 + S.dir * rand(1, 3), y: Math.max(vh, 0) + rand(4, 8), z: vz * 0.6 + rand(0, 3) }, rand(10, 18));
+  makeGib(zb, SW_LEGS, { x: vx * 0.6 - S.dir * rand(0.5, 2), y: Math.max(vh, 0) * 0.5 + rand(1, 3), z: vz * 0.6 }, rand(5, 10));
+  zb.gone = true;
+  for (let i = 0; i < 10; i++) addPart({ k: 'blood', x: zb.x, z: zb.z, h: zb.h + 0.8 * zb.size, vx: rand(-2, 2), vz: rand(-1, 2), vh: rand(2, 8), g: 14, r: rand(0.04, 0.08), life: 1.3, dark: Math.random() < 0.3 });
+  addPart({ k: 'glow', x: zb.x, z: zb.z, h: zb.h + 0.8 * zb.size, vx: 0, vz: 0, vh: 0, r: 0.5, life: 0.1, c: SW_GLOW, a: 1 });
+  squelch(false);
+}
+// the blade: a white-hot edge with a gold glow, growing out from where it starts as it runs across, flaring as it gets there,
+// then thinning and fading
+const _swA = new THREE.Vector3(), _swB = new THREE.Vector3();
+function drawSword(raw) {
+  for (const S of strokes) {
+    if (!S.beam) continue;
+    const run = clamp(S.t / SW_RUN, 0, 1), after = Math.max(0, S.t - SW_RUN), k = clamp(after / (SW_LIFE - SW_RUN), 0, 1);
+    const I = S.t < SW_RUN ? 1.0 : after < 0.05 ? 1.35 : 1.1 * Math.pow(1 - k, 1.6);
+    _swA.set(S.x0, S.hc, -S.zc); _swB.set(S.x1, S.hc, -S.zc);
+    setBeam(S.beam, _swA, _swB, { uK: 0.01 * (1 + 1.2 * k), uW: 0.13, uHead: Math.max(0.002, run), uNeck: 0.8, uI: I, uRing: 0.8, uFlow: 30, uHelix: 0, uTip: run < 1 ? 2.5 : 0, uFlat: 0, core: SW_CORE, glow: SW_GLOW });
+    S.beam.u.uTime.value += raw;
+  }
+}
+
+// ---------- the sword in hand (51-arms.js builds it): it swings across with each stroke, back and forth, and its blade glows ----------
+function buildSwordArm(add, M, glowMat) {
+  const gold = new THREE.MeshStandardMaterial({ color: 0xe0b040, metalness: 0.95, roughness: 0.22, envMap, envMapIntensity: 1.1 });
+  const blade = new THREE.MeshStandardMaterial({ color: 0xe8ecf4, metalness: 0.92, roughness: 0.12, envMap, envMapIntensity: 1.3, emissive: 0x6a5a30, emissiveIntensity: 0.6 });
+  const core = glowMat(0xfff0c0, 2.6), gem = glowMat(0x58a0ff, 2.4);
+  const cyl = (r0, r1, h, n = 20) => new THREE.CylinderGeometry(r0, r1, h, n, 1, false), sph = (r, a = 14, b = 10) => new THREE.SphereGeometry(r, a, b);
+  // the blade: a flat diamond in section, wide across and thin up and down, so that from behind and above we see its face
+  add(cyl(0.033, 0.047, 0.8, 4), blade, 0, 0, 0.5, AX, 0, 0, 1, 1, 0.22);
+  add(new THREE.ConeGeometry(0.033, 0.15, 4), blade, 0, 0, 0.975, AX, 0, 0, 1, 1, 0.22);
+  add(new THREE.BoxGeometry(0.013, 0.013, 0.86), core, 0, 0, 0.5);
+  for (const s of [1, -1]) add(new THREE.BoxGeometry(0.004, 0.005, 0.8), core, s * 0.04, 0, 0.5, 0, -s * 0.0175, 0);
+  // a gold crossguard swept a little forward at its ends, a blue stone in its heart
+  add(new THREE.BoxGeometry(0.22, 0.028, 0.04), gold, 0, 0, 0.08);
+  for (const s of [1, -1]) { add(new THREE.BoxGeometry(0.05, 0.024, 0.036), gold, s * 0.125, 0, 0.1, 0, s * 0.5, 0); add(sph(0.02), gold, s * 0.148, 0, 0.12); }
+  add(sph(0.02), gem, 0, 0.016, 0.08); add(sph(0.016), gem, 0, 0, 0.056);
+  // the grip, bound, between two gold rings, and the pommel
+  add(cyl(0.021, 0.024, 0.16, 12), M.dark, 0, 0, -0.02, AX);
+  for (const z of [0.058, -0.098]) add(cyl(0.027, 0.027, 0.014, 14), gold, 0, 0, z, AX);
+  add(sph(0.031), gold, 0, 0, -0.13); add(sph(0.012), gem, 0, 0, -0.16);
+  return core;
+}
+// rest: held out along the line to the reticle, the tip a little up; each stroke swings it across that way (+x is on our left:
+// a stroke running to our right swings the tip from left to right), then it comes back. Its tip leaves a trail of light
+const _swT = new THREE.Vector3();
+function poseSwordArm(A, dt) {
+  const P = A.pivot, fev = feverT > 0;
+  let ry = 0, rz = 0, rx = -0.1;
+  if (swing) {
+    const T = swing.t, i = Math.floor(T / SW_SWING);
+    if (i < swing.n) {
+      const u = (T - i * SW_SWING) / SW_SWING, e = u * u * (3 - 2 * u), d = i % 2 ? -swing.dir : swing.dir;
+      ry = d * (1.25 - 2.5 * e); rz = d * 1.2; rx = -0.05;
+      if (A.tipObj) {
+        A.tipObj.getWorldPosition(_swT);
+        for (const f of [1, 0.75, 0.5]) {
+          const x = _swT.x * f + A.hiltW.x * (1 - f), y = _swT.y * f + A.hiltW.y * (1 - f), z = _swT.z * f + A.hiltW.z * (1 - f);
+          addPart({ k: 'glow', x, z: -z, h: y, vx: 0, vz: 0, vh: 0, r: 0.035 * f + 0.01, life: 0.12, c: SW_GLOW, a: 0.9 });
+        }
+      }
+    } else {
+      // back to rest from the side the last stroke ended on
+      const last = (swing.n - 1) % 2 ? -swing.dir : swing.dir, u = clamp((T - swing.n * SW_SWING) / SW_BACK, 0, 1), e = 1 - (1 - u) * (1 - u);
+      ry = -last * 1.25 * (1 - e); rz = last * 1.2 * (1 - e); rx = -0.05 - 0.05 * e;
+    }
+  }
+  P.rotation.set(rx, ry, rz);
+  if (A.tipObj) A.hiltObj.getWorldPosition(A.hiltW);
+  const k = (fev ? 1.6 : 1) * (0.85 + 0.15 * Math.sin(armClock * 7)) * (swing ? 1.5 : 1);
+  A.core.color.setRGB(2.6 * k, 2.35 * k, 1.9 * k);
+}
+
+// ---------- the sword's sounds ----------
+// the swing: a rush of air and the blade ringing out (シャキーン)
+function swordSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  const bp = filt('bandpass', 900, 1.4); bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(4200, t + 0.12);
+  noiseSrc(t, 0.18).connect(bp).connect(gain(t, 0.4, 0.01, 0.16)).connect(master);
+  for (const [f, p, d] of [[2950, 0.12, 0.7], [4410, 0.07, 0.5], [6220, 0.04, 0.35]]) {
+    const o = osc('sine', f * 0.96, t + 0.02); o.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+    o.connect(gain(t + 0.02, p, 0.004, d)).connect(master); o.start(t + 0.02); o.stop(t + 0.05 + d);
+  }
+}
+// the cut going through: a sharp slice and a heavy wet thump under it, harder the more it cut (ズバッ)
+function cutSnd(z, n) {
+  if (!live() || actx.currentTime - swordSndT < 0.05) return;
+  swordSndT = actx.currentTime;
+  const t = actx.currentTime, k = clamp(14 / Math.max(6, z), 0.45, 1) * (0.7 + 0.3 * Math.min(1, n / 8));
+  noiseSrc(t, 0.1).connect(filt('highpass', 2200)).connect(gain(t, 0.7 * k, 0.001, 0.08)).connect(master);
+  const lp = filt('lowpass', 3000, 1); lp.frequency.setValueAtTime(3000, t); lp.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+  noiseSrc(t, 0.3).connect(lp).connect(gain(t, 0.55 * k, 0.003, 0.25)).connect(master);
+  const o = osc('sine', 150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.2);
+  o.connect(gain(t, 0.8 * k, 0.002, 0.2)).connect(master); o.start(t); o.stop(t + 0.24);
+}
+
 // ===== 60-audio.js
 
 // ---------- audio: same synth and voices as the 2D game ----------
@@ -7385,6 +7754,24 @@ function sting() {
     const o = osc(type, f, t); o.frequency.exponentialRampToValueAtTime(f * 4, t + 0.5);
     o.connect(filt('lowpass', 3200)).connect(gain(t, 0.16, 0.02, 0.6)).connect(master); o.start(t); o.stop(t + 0.7);
   }
+}
+// the last boss coming (72-big.js): a two-tone alarm, three times over
+function alarmSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  for (let i = 0; i < 6; i++) {
+    const tt = t + i * 0.2, o = osc('square', i % 2 ? 587 : 784, tt);
+    o.connect(filt('lowpass', 2400)).connect(gain(tt, 0.085, 0.01, 0.19)).connect(master); o.start(tt); o.stop(tt + 0.21);
+  }
+}
+// and down to its last fifth: two quick rising blips
+function almostSnd() {
+  if (!live()) return;
+  const t = actx.currentTime;
+  [0, 0.11].forEach((d, i) => {
+    const tt = t + d, o = osc('square', 660 * (i ? 1.5 : 1), tt); o.frequency.exponentialRampToValueAtTime(1320 * (i ? 1.5 : 1), tt + 0.09);
+    o.connect(filt('lowpass', 3600)).connect(gain(tt, 0.1, 0.004, 0.1)).connect(master); o.start(tt); o.stop(tt + 0.12);
+  });
 }
 function comboSting() {
   if (!live()) return;
@@ -7818,7 +8205,10 @@ function buzz(p, lv = 1) {
 // ===== 70-game.js
 
 // ---------- state ----------
-const DURATION = 10, FEVER_TIME = 4.5;   // 10 s since 2026-11-03 (kazu: with the world ranking); 15 before, 30 at first
+// 10 s since 2026-11-03 (kazu: with the world ranking); 15 before, 30 at first. On CrazyGames 20 s (2026-11-09, kazu chose it
+// on the card: CrazyGames scores a game on how long a visit plays and on how many play a minute or more), with a timetable of
+// its own (LONG_ROUND: the giant later, a second happening after it, the second gold zombie later, more zombie cars)
+const DURATION = CG ? 20 : 10, FEVER_TIME = 4.5, LONG_ROUND = DURATION > 15;
 // what the set pieces pay on top of the kills they take with them (2026-10-25: a block coming down paid what three zombies
 // did, so nobody aimed at one)
 const BONUS = { car: 10000, block: 50000, boss: 100000, moon: 100000, gold: 50000, twin: 100000, star: 100000 };
@@ -7830,7 +8220,11 @@ const PLOUGHED = { walker: 1, runner: 1, tank: 1 };
 // slower than the bots, so S to SS; SSS for the best rounds only; doing nothing is C
 // 10-second rounds (2026-11-03): the 15-second lines (SSS 9.2M, SS 7.8M, S 6.0M, A 4.0M, B 1.2M) times 0.69, the bots' median
 // against the 15-second one; SSS in 28% of the bots' rounds (24% before)
-const RANKS = [{ r: 'SSS', min: 6400000 }, { r: 'SS', min: 5400000 }, { r: 'S', min: 4200000 }, { r: 'A', min: 2800000 }, { r: 'B', min: 800000 }, { r: 'C', min: 0 }];
+// 20-second rounds (CrazyGames, 2026-11-09): 48 bot rounds of each length in the CrazyGames frame, median 11.2 million against
+// 6.1 million (x1.85); SSS and SS at the same shares of the bots' rounds as in 10 s (31%, 96%), the rest x1.85
+// (20 s, 2026-11-09 v9: SSS at the same share of bot rounds as before, which now takes the last boss's 3,000,000; the rest as they were)
+const LINES10 = [6400000, 5400000, 4200000, 2800000, 800000], LINES20 = [14600000, 10000000, 7800000, 5200000, 1500000];
+const RANKS = (LONG_ROUND ? LINES20 : LINES10).map((min, i) => ({ r: ['SSS', 'SS', 'S', 'A', 'B'][i], min })).concat({ r: 'C', min: 0 });
 let running = false, endT = 0;
 let explosionsQ = [], floaters = [], bannerObj = null;
 let elapsed = 0, kills = 0, score = 0, spawnTimer = 0, manholeT = 0;
@@ -7869,7 +8263,7 @@ function reset() {
   fireCD = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetSurprise();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetSword(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetSurprise();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -7950,8 +8344,8 @@ function addFever(v) {
 }
 // what FEVER does to the tap
 // (every weapon fires without a limit since 2026-11-02: FEVER makes them faster, or more at once)
-const FEVER_TAP = EN ? { rocket: 'Six rockets a shot', tank: 'Rapid cannon', hole: 'Rapid black holes', rail: 'Rapid railgun', wave: 'Rapid wave cannon', flame: 'Four flames', shock: 'Rapid shock gun', missile: '28 missiles a salvo', bits: '16 bits a squad' }
-  : { rocket: 'ロケット6連', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎4連', shock: '電撃砲連射', missile: 'ミサイル28連', bits: 'ビット16機' };
+const FEVER_TAP = EN ? { rocket: 'Six rockets a shot', tank: 'Rapid cannon', hole: 'Rapid black holes', rail: 'Rapid railgun', wave: 'Rapid wave cannon', flame: 'Four flames', shock: 'Rapid shock gun', missile: '28 missiles a salvo', bits: '16 bits a squad', sword: 'Three strokes a swing' }
+  : { rocket: 'ロケット6連', tank: '主砲連射', hole: 'ブラックホール連射', rail: 'レールガン連射', wave: '波動砲連射', flame: '火炎4連', shock: '電撃砲連射', missile: 'ミサイル28連', bits: 'ビット16機', sword: '聖剣三連斬' };
 function startFever() {
   feverT = FEVER_TIME; fever = 100; rocketsLeft = MAX_ROCKETS; cannonT = 0;
   showBanner('FEVER!!', FEVER_TAP[weapon], C.flare, 1.4);
@@ -7964,7 +8358,7 @@ function showOn() { return bossFlying() || (moonBroken && moonBreakT < 2.2); }
 function showBanner(text, sub, color, dur, force, low) {
   if (!running && !force) return;   // after time-up only FINISH and the giant's own banners
   if (!force && showOn()) return;
-  if (!force && bannerObj && bannerObj.prio && bannerObj.max - bannerObj.life < 1.1) return;   // a surprise's own banner is read first (76-surprise.js)
+  if (!force && bannerObj && bannerObj.prio && bannerObj.max - bannerObj.life < (bannerObj.prioT || 1.1)) return;   // a surprise's own banner is read first (76-surprise.js), the last boss's too (72-big.js)
   bannerObj = { text, sub: sub && mulSub(sub), color, life: dur, max: dur, low };
 }
 function bloodBurst(x, z, h, n, sp, up) {
@@ -7995,7 +8389,7 @@ function popHead(zb, shot) {
 }
 function killZombie(zb, o) {
   if (zb.state !== 'walk' || zb.type === 'boss') return;
-  zb.burn = null; zb.zap = null;
+  zb.burn = null; zb.zap = null; zb.cut = null;
   if (zb.type === 'fat') { swellZombie(zb, o); return; }
   const s = zb.size;
   zb.state = 'fly'; zb.bounces = 0; zb.hp = 0; zb.launchX = zb.x; zb.launchZ = zb.z; zb.h = 0.4 * s; zb.atWall = false;
@@ -8489,6 +8883,7 @@ function start() {
   useStage(stageForRound()); roundsPlayed++;
   initAudio();
   reset(); resetShare(); planSurprises(); autoNextStop(); playerInput = false; running = true;
+  progStart();   // CrazyGames: the stage's 合格点 (80-stage.js)
   track('game_start', { weapon, stage: stageId, lang: LANG, sur: surKinds.join(',') || 'none', streak: streakN });
   rankStart();
   for (const z of [10.5, 13, 16, 19.5, 23]) spawnWave(z);   // a street already full of them
@@ -8523,6 +8918,7 @@ function finish() {
   for (const k of hapDone) badges.push(HAPS[k].name.replace('!!', ''));
   for (const k of gimDone) badges.push(GIMS[k].name.replace('!!', ''));
   if (strikeKills) badges.push(jaEn(`空爆で${strikeKills}体`, `${strikeKills} by air strike`));
+  if (lbDown) badges.push(jaEn('ラストボス撃破', 'Final boss down'));
   if (bossKilled) badges.push(bossLabel());
   if (bossStars) badges.push(jaEn('キラーン', 'Twinkle'));
   if (moonBroken) badges.push(jaEn('月を破壊', 'Moon destroyed'));
@@ -8538,12 +8934,13 @@ function finish() {
   $('resBadges').innerHTML = badges.map(b => `<span>${b}</span>`).join('');
   settleMissions();
   surResult();
-  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: bossKilled ? bossLabel() : '', badges, weapon });
+  progEnd();   // CrazyGames: stage cleared, or how far short (80-stage.js)
+  setupShare({ score, rank: RANKS[i].r, kills, combo: maxCombo, flight: longestFlight | 0, moon: moonBroken, boss: lbDown ? jaEn('ラストボス撃破', 'Final boss down') : bossKilled ? bossLabel() : '', badges, weapon });
   track('game_end', { weapon, rank: RANKS[i].r, score, stage: stageId, lang: LANG });
   rankSubmit(score, kills);
   let best = '';
   try {
-    const bestKey = weapon === 'tank' ? 'zb3d-best10-tank' : 'zb3d-best10',   // 10-second rounds' own (15 s: zb3d-best)
+    const bestKey = `zb3d-best${DURATION}${weapon === 'tank' ? '-tank' : ''}`,   // each length its own: zb3d-best10, zb3d-best20 on CrazyGames (15 s: zb3d-best)
       prev = JSON.parse(localStorage.getItem(bestKey) || 'null');
     if (!prev || score > prev.score) {
       localStorage.setItem(bestKey, JSON.stringify({ score }));
@@ -8617,7 +9014,9 @@ function update(dt, raw) {
       if (cd > 0) fireCD = cd; else { fireCD = HOLD_GAP[weapon] || 0.2; holdShot = true; tapFire(); holdShot = false; }
     }
     if (!bossSpawned && elapsed >= bossAt) spawnBoss();
+    if (elapsed >= lbAt) spawnLast();   // 20-second rounds (72-big.js)
     if (hapKind && elapsed >= hapAt) { startHappening(hapKind); hapKind = ''; }
+    if (hap2At && elapsed >= hap2At) secondHappening();   // 20-second rounds (76-happen.js)
     surpriseTick(dt);
     checkMissions();
     if (elapsed >= DURATION) timeUp();
@@ -8649,6 +9048,7 @@ function update(dt, raw) {
   updateShock(dt);
   updateMissiles(dt);
   updateBits(dt);
+  updateSword(dt);
   updateStrike(dt);
   updateCars(dt);
   updateHeli(dt);
@@ -8673,6 +9073,7 @@ function update(dt, raw) {
       continue;
     }
     if (z.state === 'walk' && z.zap) { zapTick(z, dt); continue; }   // fried where it stands (57-shock.js)
+    if (z.state === 'walk' && z.cut && cutTick(z, dt)) continue;   // cut by the sword: stock still until it comes apart (59-sword.js)
     if (z.state === 'walk') {
       const slow = z.stagger > 0 ? 0.25 : 1;
       z.stagger = Math.max(0, z.stagger - dt);
@@ -8804,7 +9205,7 @@ let hudKey = '';
 function hud() {
   if (!running && endT <= 0) return;
   const tv = Math.max(0, DURATION - elapsed);
-  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', bt = weapon === 'bits';
+  const tank = weapon === 'tank', hole = weapon === 'hole', rail = weapon === 'rail', wv = weapon === 'wave', fl = weapon === 'flame', zp = weapon === 'shock', ms = weapon === 'missile', bt = weapon === 'bits', sw = weapon === 'sword';
   const ammoKey = weapon;
   const key = [tv.toFixed(1), score, ammoKey, feverT > 0 ? 'F' + (fever | 0) : spReady ? 'R' : fever | 0, scoreMul].join('|');
   if (key === hudKey) return;
@@ -8813,8 +9214,9 @@ function hud() {
   $('time').classList.toggle('warn', tv < 5);
   $('score').textContent = score.toLocaleString();
   const mb = $('mulB'); mb.hidden = scoreMul <= 1; if (scoreMul > 1) mb.textContent = mulTxt(scoreMul);
+  if (goal) { goalTick(); goalBar(); }   // CrazyGames: the bar up to the stage's 合格点 (80-stage.js)
   // no limit on any of them (2026-11-02, kazu): the weapon's mark and ∞ where the rounds left were
-  $('ammo').innerHTML = (tank || wv ? '' : `<i class="${hole ? 'bh' : rail ? 'rl' : fl ? 'fl' : zp ? 'zp' : ms ? 'ms' : bt ? 'bt' : ''} on"></i>`) + '<b class="inf">∞</b>';
+  $('ammo').innerHTML = (tank || wv ? '' : `<i class="${hole ? 'bh' : rail ? 'rl' : fl ? 'fl' : zp ? 'zp' : ms ? 'ms' : bt ? 'bt' : sw ? 'sw' : ''} on"></i>`) + '<b class="inf">∞</b>';
   // the strike meter: its ring fills as we kill, glows while a full one waits out the giant's show, and drains through FEVER
   const sp = $('spMeter');
   sp.style.setProperty('--p', fever.toFixed(1));
@@ -8858,7 +9260,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawMeteors(); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawSword(raw); drawMeteors(); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -8974,7 +9376,10 @@ async function bootInner() {
     window.__gim = { place: g => { forceGim = g ? String(g).split(',') : null; resetGims(); return gimOn; }, st: () => gimState(),
       go: k => { const ch = newChain(); if (k === 'ball') dropBall(ch); else if (k === 'wire') snapWires(ch, 0, 0); else if (k === 'tank') blowGasTank(ch); } };
     window.__noBoss = () => { bossSpawned = true; };
-    window.__noHap = () => { hapAt = 99; };
+    window.__lbHp = n => { lbForceHp = n || 0; };   // the last boss's health, from now on (0: as the game sets it)
+    window.__lb = () => { if (lbAt < 99) { elapsed = Math.max(elapsed, lbAt); spawnLast(); } };
+    window.__noLb = () => { lbAt = 99; };
+    window.__noHap = () => { hapAt = 99; hap2At = 0; };
     window.__retype = (from, to) => { let n = 0; for (const z of zombies) if (z.type === from && z.state === 'walk') { z.type = to; n++; } return n; };   // a look at one weapon without the drums going up
     window.__aimHit = (x, y) => { const A = aimHit(x, y, 40); return { kind: A.kind, p: A.p && A.p.toArray().map(v => +v.toFixed(2)), z: A.hit && A.hit.z.state }; };
     window.__pipeLight = i => lightPipe(i, newChain());
@@ -9037,7 +9442,8 @@ async function bootInner() {
     ufo: heli && heli.ufo ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: +heli.z.toFixed(1), h: +heli.h.toFixed(1), state: heli.state, caught: heli.caught.length }; })() : null,
     gamingZ: (() => { const g = zombies.find(z => z.type === 'gaming' && z.state === 'walk'); if (!g) return null; const s = toScreen(g.x, g.z, 1.1 * g.size); return { x: s.X, y: s.Y, z: +g.z.toFixed(1) }; })(),
     moonBroken, moonHits, bldDown, bestChain, carsBlown, spReady, strikes, strikeKills, fever, goldKills, hapAt, bossAt, lastHap, hapDone,
-    longestFlight, juggles, bossKilled, bossKillT, fatPops, bombesShot, weapon, holesLeft, railsLeft, waveLoad, rocketsLeft, flamesLeft, shocksLeft, salvosLeft, squadsLeft, cannonT, firing, flameOn: !!flame, holes: holes.map(H => ({ x: H.x, z: H.z, t: H.t, held: zombies.filter(z => z.held === H).length, sw: H.sw.length })), mis: { act: mis.act.slice(), now: misNow.slice(), medals: mis.medals },
+    lb: lbBoss ? { kind: lbKind, at: +lbT0.toFixed(2), hp: +lbBoss.hp.toFixed(1), max: lbBoss.maxHp, state: lbBoss.state, down: lbDown, killT: +lbKillT.toFixed(2), rate: +lbRate.toFixed(1), bDmg: +bDmg.toFixed(1), bOn: +bOn.toFixed(2), bOff: +bOff.toFixed(2), land: +bossLandT.toFixed(2) } : null, lbAt,
+    longestFlight, juggles, bossKilled, bossKillT, fatPops, bombesShot, weapon, holesLeft, railsLeft, waveLoad, rocketsLeft, flamesLeft, shocksLeft, salvosLeft, squadsLeft, strokes: strokes.length, swordCuts, cannonT, firing, flameOn: !!flame, holes: holes.map(H => ({ x: H.x, z: H.z, t: H.t, held: zombies.filter(z => z.held === H).length, sw: H.sw.length })), mis: { act: mis.act.slice(), now: misNow.slice(), medals: mis.medals },
     heli: heli ? (() => { const s = toScreen(heli.x, heli.z, heli.h); return { x: s.X, y: s.Y, z: heli.z, state: heli.state }; })() : null,
     tilt: +look.tilt.toFixed(3),
     park: onPark() ? (() => { const Wh = park.wheel, T = park.train, c = T.cars[0], w = toScreen(0, WHEEL.z - WHEEL.foot, WHEEL.h), t = toScreen(c.x, c.z, c.h + 0.8); return { wheel: Wh.state, hp: +Wh.hp.toFixed(1), wx: w.X, wy: w.Y, train: T.state, tz: +c.z.toFixed(1), tx: t.X, ty: t.Y }; })() : null,
@@ -9054,7 +9460,7 @@ async function bootInner() {
     const bad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m); bad.position.set(0, 1.5, -12); scene.add(bad);
   }
   booted = true;
-  $('startBtn').disabled = false; $('startSub').textContent = jaEn('10秒アタック', '10-second attack'); zbDiag('load', null);
+  $('startBtn').disabled = false; $('startSub').textContent = jaEn(`${DURATION}秒アタック`, `${DURATION}-second attack`); zbDiag('load', null);
   quickInit();
   requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 }
@@ -9070,7 +9476,7 @@ const SWELL_T = 0.42, FAT_R = 3.0;
 const COIN_C = new THREE.Color(2.6, 1.75, 0.35), BILL_C = new THREE.Color('#d8caa0'), BILL_C2 = new THREE.Color('#b8c8a8');
 let goldAt = [], goldKills = 0, bombes = [];
 function resetSpecials() {
-  goldAt = [rand(1.6, 3.0), rand(5.4, 7.0)];   // 10-second rounds (15 s: 2.2-4.5 and 8.5-11)
+  goldAt = LONG_ROUND ? [rand(1.8, 3.4), rand(9.8, 12.2)] : [rand(1.6, 3.0), rand(5.4, 7.0)];   // 10-second rounds (15 s: 2.2-4.5 and 8.5-11); 20 s: the second before the last boss
   goldKills = 0; bombes = [];
 }
 function spawnGold() {
@@ -9452,6 +9858,18 @@ const BOSS_KINDS = ['one', 'twins', 'dog'];
 let bossAt = 6.5;   // a different moment every round (76-happen.js)
 let bossKind = 'one', lastBoss = '', forceBoss = '', bosses = [], bossRigs = [], dogRig = null, bossTex = null, twinkles = [];
 let bossSpawned = false, bossKilled = false, bossKills = 0, bossStars = 0, bossLandT = 0, bossKillT = 99;   // 「着地から◯秒で倒す」
+// ----- the last boss (2026-11-09, kazu: 「20秒を長く感じさせないため後半の時間にBOSSゾンビを追加」, then 「ギリギリ倒せるか倒せない
+// 感がいいですね / 倒せたらスコアを大幅に追加したいです」): 20-second rounds only (CrazyGames). Late in the round a second giant
+// comes, of another kind than the round's first (the dog after the giant or the twins, the giant after the dog), bigger and
+// glowing red. Its health comes from how fast this player brought the first one down (bDmg over the time from the first hit
+// on it, bOn, to its fall, bOff), so that it goes down only just in time about half the time, whoever plays and with whatever weapon; down, it pays
+// LB_BONUS. Left standing, the finale blows it apart like any giant. lbAt is set with the round's plan (76-happen.js)
+const LB_BONUS = 3000000, LB_SIZE = { one: 3.2, dog: 2.85 }, LB_HP = [320, 6000], LB_K = 1, LB_RATE0 = 150;
+// by weapon: some do far more or far less to a giant late in the round than their first giant's fall suggests (bot rounds,
+// 2026-11-09, the factor each needed for half the rounds pulled toward 1 as only a few rounds stood behind it; the black
+// hole's, 0.6 at first, still let none of 4 down)
+const LB_WK = { missile: 1.5, tank: 1.2, flame: 1.1, wave: 0.7, bits: 0.7, hole: 0.4 };
+let lbAt = 99, lbKind = '', lbBoss = null, lbDown = false, lbKillT = 0, lbAlmost = false, lbForceHp = 0, lbRate = 0, lbT0 = 0, bDmg = 0, bOn = 0, bOff = 0;
 // a rig's own uniforms: how much fog it takes (none on the way up), and a glow added on top (white when hit, fire-orange
 // on the way up). All the rigs share the one shader program; only these values differ
 // gold: the golden giant (76-surprise.js), 0 or 1; gt: the time, for the sheen running over it
@@ -9723,6 +10141,7 @@ function resetBoss() {
   for (const z of bosses) z.gone = true;
   bosses = []; twinkles = []; bossSpawned = false; bossKilled = false; bossKills = 0; bossStars = 0; bossLandT = 0; bossKillT = 99;
   bossKind = forceBoss || pick(BOSS_KINDS.filter(k => k !== lastBoss)); lastBoss = bossKind;
+  lbKind = bossKind === 'dog' ? 'one' : 'dog'; lbBoss = null; lbDown = false; lbKillT = 0; lbAlmost = false; lbRate = 0; bDmg = 0; bOn = 0; bOff = 0;
   for (const r of allRigs()) { r.U.fogK.value = 1; r.U.flash.value.setRGB(0, 0, 0); r.R.root.visible = false; }
 }
 // the giants stand taller than the long lens shows: while one is on its feet the camera tilts up to keep its head in view
@@ -9766,6 +10185,43 @@ function spawnDog() {
   else showBanner('WARNING!!', jaEn('巨大ゾンビ犬接近', 'GIANT ZOMBIE DOG INCOMING'), C.blood, 1.6);
   say('warning', 4); howlSnd(false, 0.55);   // far off down the avenue
 }
+function spawnLast() {
+  lbAt = 99; lbT0 = elapsed;
+  const dog = lbKind === 'dog', z = makeZombie('boss', 0, dog ? Z_FAR + 13 : Z_FAR - 7);
+  z.lb = true; z.size = LB_SIZE[lbKind]; z.mir = 1; z.wait = 0; z.yaw = 0;
+  if (dog) { z.dog = true; z.rig = dogRig; z.wv = rand(0, 6.28); z.x = dogWeave(z) * Math.sin(z.wv); z.top = 1.6 * z.size; z.topZ = z.z; }
+  else { z.state = 'drop'; z.h = 70; z.vh = -25; z.whoosh = false; z.rig = bossRigs.find(r => !bosses.some(o => !o.gone && o.rig === r)) || bossRigs[0]; }
+  z.rig.U.gold.value = 0;
+  z.hp = z.maxHp = lbHealth();
+  bosses.push(z); zombies.push(z); lbBoss = z;
+  showBanner(jaEn('ラストボス出現!!', 'FINAL BOSS!!'), 'WARNING!!', C.blood, 1.8, true); if (bannerObj) { bannerObj.prio = true; bannerObj.prioT = 1.6; }   // read before the fever's or a chain's
+  say('warning', 4); alarmSnd(); shake = Math.max(shake, 10); buzz([70, 50, 70, 50, 70], 2);
+  if (dog) howlSnd(false, 0.7);
+}
+// its health: what this player did to the first giant in a second (from the first hit on it to its fall), over the seconds
+// the last one is there to be shot (the giant drops for about 1.35 s first), give or take 15 %. A first one hardly touched
+// leaves the usual rate
+function lbHealth() {
+  const t = bOn ? Math.max(0.3, (bOff || elapsed) - bOn) : 0;
+  lbRate = t && bDmg > 20 ? bDmg / t : LB_RATE0;
+  if (lbForceHp) return lbForceHp;
+  const win = DURATION - elapsed - (lbKind === 'one' ? 1.35 : 0.6);
+  return Math.round(clamp(lbRate * win * LB_K * (LB_WK[weapon] || 1) * rand(0.85, 1.15), LB_HP[0], LB_HP[1]));
+}
+// down to its last fifth: say so, once
+function lbAlmostThere(z) {
+  lbAlmost = true;
+  const s = toScreen(z.x, z.z + (z.dog ? 0.5 * z.size : 0), (z.dog ? 1.5 : 2.1) * z.size);
+  floaters.push({ screen: true, x: clamp(s.X, 110, W - 110), y: clamp(s.Y, hudH + 70, H * 0.45), text: jaEn('あと少し!!', 'ALMOST!!'), sub: '', life: 1.1, big: true });
+  almostSnd();
+}
+// time ran out with the last boss nearly done: say how close it was (the finale blows it apart all the same)
+function lbSoClose(z) {
+  const k = Math.max(0, z.hp) / z.maxHp, pct = Math.max(1, Math.round(k * 100));
+  if (k > 0.35) return;
+  const s = toScreen(z.x, z.z + (z.dog ? 0.5 * z.size : 0), (z.dog ? 1.5 : 2.1) * z.size);
+  floaters.push({ screen: true, x: clamp(s.X, 110, W - 110), y: clamp(s.Y, hudH + 70, H * 0.45), text: jaEn('惜しい!!', 'SO CLOSE!!'), sub: jaEn(`あと${pct}%`, `${pct}% to go`), life: 1.8, big: true });
+}
 function stompSnd(k = 1) {
   if (!live()) return;
   const t = actx.currentTime;
@@ -9797,7 +10253,7 @@ function bossShove(z, x0, z0, R) {
   if (k) registerKills(k, x0, z0, null, true);
 }
 function bossLand(z) {
-  if (!bossLandT) bossLandT = elapsed;
+  if (!bossLandT && !z.lb) bossLandT = elapsed;
   shake = 24; flashScreen = Math.max(flashScreen, 0.08);
   if (!reduceMotion) { zoom = Math.min(1.12, zoom + 0.06); hitstop = Math.max(hitstop, 0.05); }
   boom(1.4, z.z); stompSnd(1.5); roar(); buzz(130, 2);
@@ -9828,20 +10284,39 @@ function damageBoss(d, ch, z) {
   // only our own shots and what they set off hurt it: cars it stomps flat do not, so it never dies on its own
   if (!z || z.state !== 'walk' || !running || !ch) return;
   z.ch = ch;   // its death blasts belong to the shot that killed it
+  if (!z.lb) { if (!bOn) bOn = elapsed; bDmg += Math.min(d, Math.max(0, z.hp)); }
   z.hp -= d;
   if (d >= 5 || elapsed - (z.flT || -1) > 0.25) { z.flash = 0.06; z.flT = elapsed; }
+  if (z.lb && !lbAlmost && z.hp > 0 && z.hp < z.maxHp * 0.2) lbAlmostThere(z);
   if (z.hp <= 0) bossDeath(z);
 }
 function bossDeath(z) {
-  z.state = 'dying'; z.dyingT = 0; kills++; bossKills++;
-  if (!bossKilled) { bossKilled = true; bossKillT = bossLandT ? elapsed - bossLandT : 0; }   // the dog can go down before it is out of the fog
+  z.state = 'dying'; z.dyingT = 0; kills++;
+  if (!z.lb) {
+    bossKills++;
+    if (!bossKilled) { bossKilled = true; bossKillT = bossLandT ? elapsed - bossLandT : 0; }   // the dog can go down before it is out of the fog
+    if (!bosses.some(o => !o.lb && o.state === 'walk')) bOff = elapsed;
+  }
   // the moon goes to the first one killed; one more, with the moon taken or already gone, is off to the stars
   z.dest = !moonBroken && !bosses.some(o => o !== z && o.dest === 'moon') ? 'moon' : 'star';
   for (let i = 0; i < 5; i++) explosionsQ.push({ x: z.x + rand(-1.4, 1.4), z: z.z + rand(-0.8, 0.3) + (z.dog ? rand(0, 1.3) * z.size : 0), t: 0.08 + i * 0.15, power: 1.0, h: rand(0.8, 3.2), ch: z.ch });
   if (!reduceMotion) slowmo = Math.max(slowmo, 1.2);
+  if (z.lb) {
+    lbDown = true; lbKillT = elapsed;
+    showBanner(jaEn('ラストボス撃破!!', 'FINAL BOSS DOWN!!'), '', C.flare, 2.2, true, true);
+    // the bonus in big figures under it, with a shower of coins
+    const bs = bannerSize(bannerObj), by = bannerY(bannerObj, bs);
+    floaters.push({ sfx: true, nudged: true, x: W / 2, y: Math.min(H - 80, by + bs * 1.05), text: `+${mulPts(LB_BONUS).toLocaleString()}`, rot: -0.05, life: 2.2, max: 2.2, size: Math.min(60, W * 0.12) });
+    score += LB_BONUS; coinSnd();
+    speedLines = 1.5; flashScreen = Math.max(flashScreen, 0.12); shake = 24;
+    if (!reduceMotion) zoom = Math.min(1.14, zoom + 0.08);
+    if (z.dog) howlSnd(true); else roar();
+    say('knockout', 4); buzz([120, 50, 120, 50, 400], 3);
+    return;
+  }
   const both = bossKind === 'twins' && bossKills === 2, pts = BONUS.boss + (both ? BONUS.twin : 0);
   score += pts;
-  if (goldBoss) goldGiantBurst(z);
+  if (goldBoss && !z.lb) goldGiantBurst(z);
   showBanner(both ? jaEn('ダブル撃破!!', 'DOUBLE KILL!!') : jaEn('BOSS撃破!!', 'BOSS DOWN!!'), `+${pts.toLocaleString()}`, C.flare, 1.4, true, true);
   speedLines = 1; if (z.dog) howlSnd(true); else roar();
   say('knockout', 4); buzz([90, 40, 280], 3);
@@ -9902,7 +10377,7 @@ function msPos(z) {
   return { p: _msP.copy(_O).addScaledVector(_D, d), s: A * d / z.ht, A, d };
 }
 function updateBoss(dt, raw) {
-  for (const z of bosses) if (!z.gone) { (z.dog ? updateDog : updateGiant)(z, dt, raw); if (goldBoss) goldGlitter(z, dt); }
+  for (const z of bosses) if (!z.gone) { (z.dog ? updateDog : updateGiant)(z, dt, raw); if (goldBoss && !z.lb) goldGlitter(z, dt); }
 }
 function updateGiant(z, dt, raw) {
   if (z.wait > 0) { z.wait -= dt; return; }   // the second twin follows the first down
@@ -10018,7 +10493,7 @@ function drawGiant(z, raw) {
   if (z.state !== 'moonshot') {
     // red eyes burning in the dark
     _eyeL.set(-0.035, -0.015, 0.13).applyMatrix4(R.S.head.matrixWorld); _eyeR.set(0.035, -0.015, 0.13).applyMatrix4(R.S.head.matrixWorld);
-    eyeGlow(0.6, 0);
+    eyeGlow(z.lb ? 0.95 : 0.6, z.lb ? 10 : 0);
     const k = z.size / 2.8;
     if (z.state === 'drop') addShadow(z.x, z.z, 1.6 * k * (0.5 + 0.5 * clamp(1 - z.h / 70, 0, 1)), 0.6 * clamp(1 - z.h / 70, 0, 1));
     else addShadow(z.x, z.z, 1.5 * k, 0.55);
@@ -10040,6 +10515,7 @@ function bossGlow(z) {
   const F = z.rig.U.flash.value;
   if (z.flash > 0) F.setRGB(0.45, 0.45, 0.45);
   else if (z.state === 'moonshot') F.setRGB(0.34, 0.11, 0.03);   // burning on its way up
+  else if (z.lb) { const p = 0.5 + 0.5 * Math.sin(performance.now() / 150); F.setRGB(0.09 + 0.09 * p, 0.005, 0.02); }   // the last boss: a red pulse
   else F.setRGB(0, 0, 0);
 }
 // the two eyes in _eyeL and _eyeR; mode 10 burns through the fog
@@ -10055,7 +10531,7 @@ function updateDog(z, dt, raw) {
   z.flash = Math.max(0, z.flash - dt);
   if (z.state !== 'walk') { bossDown(z, dt, raw); return; }
   if (!z.atWall) {
-    if (!bossLandT && z.z < Z_FAR) bossLandT = elapsed;   // 「着地から」 counts from when it comes out of the fog
+    if (!bossLandT && !z.lb && z.z < Z_FAR) bossLandT = elapsed;   // 「着地から」 counts from when it comes out of the fog
     const v = lerp(4.5, 9.5, clamp((z.z - DOG_STOP) / 14, 0, 1)), p0 = z.phase;
     z.z = Math.max(DOG_STOP, z.z - v * dt);
     z.wv += dt * 1.8;
@@ -10198,7 +10674,7 @@ function drawDog(z, raw) {
   z.top = Math.max(_dv.y + 0.15 * s, z.top - raw * 0.8); z.topZ = -_dv.z;
   // red eyes burning in the dark, through the fog while it is still far off
   _eyeL.set(-0.075, 0.075, 0.23).applyMatrix4(R.head.matrixWorld); _eyeR.set(0.075, 0.075, 0.23).applyMatrix4(R.head.matrixWorld);
-  eyeGlow(0.55, z.z > Z_FAR ? 10 : 0);
+  eyeGlow(z.lb ? 0.9 : 0.55, z.z > Z_FAR || z.lb ? 10 : 0);
   // flames licking up off its back
   if (Math.random() < raw * 40) {
     const u = Math.random();
@@ -10379,6 +10855,7 @@ function startFinale() {
   // a giant still on its feet shudders under the blasts and bursts
   for (const z of bosses) {
     if (z.state !== 'walk') continue;
+    if (z.lb) lbSoClose(z);
     bossFinal(z);
     for (const [t, h] of [[0.45, 1.6], [0.72, 3.4], [0.98, 5.2]]) at(t, () => explode(z.x + rand(-1.2, 1.2), z.z - 0.4, 1.0, h));
     at(1.2, () => bossBurst(z));
@@ -10781,8 +11258,16 @@ function drawOverlays() {
     ctx.strokeStyle = `hsla(${hue},100%,60%,.85)`; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, H - 8);
   }
   if (speedLines > 0 && !reduceMotion) drawSpeedLines(speedLines);
-  const bw = bosses.filter(z => z.state === 'walk');
-  if (bw.length && (running || endT > 0)) {
+  const bw = bosses.filter(z => z.state === 'walk'), lbw = bw.find(z => z.lb);
+  if (lbw && (running || endT > 0)) {
+    const w = Math.min(420, W - 28), x = (W - w) / 2, y = H - 34, k = Math.max(0, lbw.hp) / lbw.maxHp;
+    const blink = k < 0.2 && (performance.now() / 110 | 0) % 2;
+    ctx.fillStyle = 'rgba(18,8,14,.8)'; ctx.fillRect(x - 3, y - 3, w + 6, 20);
+    ctx.fillStyle = blink ? C.flare : '#ff2a3c'; ctx.fillRect(x, y, w * k, 14);
+    ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    outlined(lbw.dog ? jaEn('ラストボス 巨大ゾンビ犬', 'FINAL BOSS: GIANT DOG') : jaEn('ラストボス 巨大ゾンビ', 'FINAL BOSS: GIANT ZOMBIE'), x, y - 4, 16, C.flare);
+    ctx.restore();
+  } else if (bw.length && (running || endT > 0)) {
     // the giant's health along the bottom; the twins share one bar
     const w = Math.min(380, W - 32), x = (W - w) / 2, y = H - 30;
     const hp = bw.reduce((a, z) => a + Math.max(0, z.hp), 0), mx = (bossKind === 'twins' ? bosses : bw).reduce((a, z) => a + z.maxHp, 0);
@@ -11821,20 +12306,34 @@ const HAPS = {
   ship: { banner: jaEn('ゾンビ飛行船襲来!!', 'ZOMBIE AIRSHIP!!'), sub: jaEn('撃ち落とせ!!', 'Shoot it down!!'), bonus: 150000, name: jaEn('飛行船撃墜!!', 'Airship down!!') },
 };
 const BUS_LOAD = 24;
-let hapKind = '', hapAt = 99, lastHap = '', forceHap = '', hapDone = [], heli = null, hapMesh = {};
+let hapKind = '', hapAt = 99, lastHap = '', forceHap = '', hapDone = [], heli = null, hapMesh = {}, hap2At = 0;
 // the round's plan: when the giant drops, and which happening comes when
 function resetHappening() {
-  bossAt = rand(3.4, 4.8);   // 10-second rounds (15 s: 5.2-8.2, the happening before or after it)
+  bossAt = LONG_ROUND ? rand(5.5, 7.0) : rand(3.4, 4.8);   // 10-second rounds (15 s: 5.2-8.2, the happening before or after it; 20 s: 7.2-9 until the last boss)
   hapKind = forceHap || pick(Object.keys(HAPS).filter(k => k !== lastHap)); lastHap = hapKind;
   // before the giant: a lorry, a bus or the gas main needs about 5 s to play out; the airship takes 4 s to come up the
   // avenue and then wants a couple of rockets, so it comes first thing (in 10 s the bots brought it down far less often)
   hapAt = hapKind === 'ship' ? rand(1.4, 1.9) : rand(1.5, bossAt - 1.6);
+  // 20-second rounds: another one a few seconds after the giant lands, one that plays out on the street
+  hap2At = LONG_ROUND && !forceHap ? bossAt + rand(2.8, 4.0) : 0;
+  // and from 2026-11-09 (v9) the last boss at about 14 s (72-big.js), so the last few seconds have a fight of their own
+  lbAt = LONG_ROUND ? rand(13.6, 14.4) : 99;
   hapDone = [];
   for (const k of ['tanker', 'bus']) { const M = hapMesh[k]; if (M) { M.g.visible = false; M.restore(); } }
   if (hapMesh.heli) { hapMesh.heli.g.visible = false; hapMesh.heli.beam.visible = false; }
   if (hapMesh.ufo) { hapMesh.ufo.g.visible = false; hapMesh.ufo.beam.visible = false; }
   heli = null; rotorSnd(false); ufoSnd(false);
   resetPipe(); resetShip(); resetGims();
+}
+// the second happening of a 20-second round: one of the street's, never the first one again, and not a lorry or a bus while
+// the first one's is still standing in the street (the lorry would drive through the bus)
+function secondHappening() {
+  hap2At = 0;
+  const parked = cars.some(c => c.big && (c.state === 'roll' || c.state === 'park'));
+  const ks = ['tanker', 'bus', 'pipe'].filter(k => k !== lastHap && !hapDone.includes(k) && !(parked && k !== 'pipe') && !(k === 'pipe' && pipe));
+  if (!ks.length) return;
+  const k = pick(ks); lastHap = k;
+  startHappening(k);
 }
 function startHappening(kind) {
   const H = HAPS[kind];
@@ -12166,7 +12665,9 @@ const _hw = new THREE.Vector3(), _hwQ = new THREE.Quaternion(), _hwM = new THREE
 const _hwC = new THREE.Matrix4().makeTranslation(0, -0.72, 0), _hwT = new THREE.Vector3(TK_SCALE, TK_SCALE, TK_SCALE);
 let zcPlan = [], zcSeen = false, zcDown = 0;
 function resetHwy() {
-  zcPlan = [rand(1.4, 2.0), rand(3.8, 4.4), rand(5.6, 6.2)];   // 10-second rounds: the third reaches the horde at about 9 s zcSeen = false; zcDown = 0;
+  // 10-second rounds: the third reaches the horde at about 9 s; 20-second ones have three more after the giant
+  zcPlan = [rand(1.4, 2.0), rand(3.8, 4.4), rand(5.6, 6.2)].concat(LONG_ROUND ? [rand(10.0, 10.6), rand(11.6, 12.2), rand(13.0, 13.6)] : []);   // (20 s: all in before the last boss)
+  zcSeen = false; zcDown = 0;
   if (!hwy) return;
   Object.assign(hwy, { state: 'stand', hp: OVER_HP, t: 0, ft: 0, ch: null, fast: false, th: 0, flash: 0, jolt: 0, aimed: [], tank: null, tankAt: 99, burnT: 0, dust: 0 });
   for (const J of hwy.jam) {
@@ -13468,8 +13969,8 @@ function saveZukan() { try { localStorage.setItem(ZUKAN_KEY, JSON.stringify(zuka
 // the day by the player's own clock; today's surprise goes round all five, never the same two days running
 const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 const TODAY_ORDER = ['ufo', 'gaming', 'meteor', 'goldgiant', 'moon'];
-function todaySur() {
-  const d = new Date(), n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+function todaySur(ahead = 0) {
+  const d = new Date(), n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000) + ahead;
   return TODAY_ORDER[((n * 2) % 5 + 5) % 5];
 }
 function seeSur(k) {
@@ -13507,6 +14008,9 @@ function planSurprises() {
   if (pv > 0 && !(lastEndAt && now - lastEndAt < STREAK_GAP && now >= lastEndAt && streakN >= pv)) { streakN = pv; lastEndAt = now; }
   streakN = lastEndAt && now - lastEndAt < STREAK_GAP && now >= lastEndAt ? streakN + 1 : 1;
   zukan.rounds++; zukan.day = day; zukan.streak = streakN;
+  // CrazyGames: the day's first round pays double for its challenges (77-mission.js), and says so as it starts
+  dayBonus = CG && firstToday ? 2 : 1;
+  if (dayBonus > 1) misToast.push({ head: jaEn('今日のボーナス!', "TODAY'S BONUS!"), text: jaEn('お題のメダル2倍', 'Challenge medals ×2'), tier: 3, life: 2.6, max: 2.6 });
   const lv = Math.min(streakN, 5), S = STREAK[lv];
   scoreMul = streakMul(streakN);
   let kinds = [];
@@ -13542,6 +14046,7 @@ const SUR_BANNER = {
 };
 // the round's opening banner: a surprise that lasts the whole round says so here, in place of LET'S ROCK
 function startBanner() {
+  if (progBanner()) return;   // CrazyGames: the stage and its 合格点 first; a surprise's banner follows (surpriseTick)
   const k = surBanners.shift();
   if (k) { showBanner(SUR_BANNER[k][0], SUR_BANNER[k][1], C.flare, 1.5); seeSur(k); surBadge.push(SURPRISES[k].name); return; }
   const m = mulTxt(scoreMul);
@@ -14013,6 +14518,8 @@ function renderZukan() {
   $('zkRow').innerHTML = zukanTiles(null);
   const t = todaySur(), seen = zukan.seen.includes(t);
   $('zkToday').textContent = jaEn(`今日のサプライズ: ${seen ? SURPRISES[t].name : '？？？'}（出やすい）`, `Today's surprise: ${seen ? SURPRISES[t].name : '???'} (more likely)`);
+  const bz = $('zkBonus');   // CrazyGames: while today's first round is still to come
+  if (bz) { bz.hidden = !CG || zukan.day === localDay(); bz.textContent = jaEn('🎁 今日の1回目はお題のメダル2倍', "🎁 Today's first round: challenge medals ×2"); }
 }
 // the results': what the round brought (new to the 図鑑 marked), and the run of rounds, with what the next one adds
 function surResult() {
@@ -14028,6 +14535,11 @@ function surResult() {
   const nn = streakN + 1, m = mulTxt(streakMul(nn));
   const what = nn === 10 ? jaEn(`超大祭り スコア${m}`, `Mega frenzy, score ${m}`) : nn === 5 ? jaEn(`大祭り スコア${m}`, `Frenzy, score ${m}`) : nn === 3 ? jaEn(`サプライズ確定 スコア${m}`, `Sure surprise, score ${m}`) : jaEn(`スコア${m}`, `Score ${m}`);
   lines.push(`<span class="zk-l">🔥 ${jaEn(`もう一回で${nn}連戦目`, `Play again: ${nn} in a row`)}</span><span class="zk-c">${what}</span>`);
+  // CrazyGames: what tomorrow's first round brings (2026-11-09: a reason to come back the next day)
+  if (CG) {
+    const t = todaySur(1), S = SURPRISES[t], seen = zukan.seen.includes(t);
+    lines.push(`<span class="zk-l">🎁 ${jaEn('明日の1回目', "Tomorrow's 1st round")}</span><span class="zk-c">${jaEn('メダル2倍', 'Medals ×2')} + ${seen ? S.icon + ' ' + S.name : jaEn('？？？', '???')}</span>`);
+  }
   el.innerHTML = lines.map(l => `<span class="zk-r">${l}</span>`).join('');
   el.hidden = !lines.length;
 }
@@ -14040,35 +14552,43 @@ const surBadges = () => surBadge.slice();
 // mid-round pops a small note under the HUD with a chime and pays its medals (1, 2 or 3); on the result screen it flips to
 // a fresh one of the same colour. A miss costs nothing: it just waits for the next round. The medals add up across rounds
 // toward unlocks. All of it lives in this browser only (localStorage), like the best score.
+// the bars, by the round's length: 10-second rounds' (2026-11-03, the ids carry them) and the 20-second ones' on CrazyGames
+// (2026-11-09, drawn from bot rounds of their own so each passes about as often as in 10 s)
+// (2026-11-09, 48 bot rounds of each: the ones nearly every round passed scaled with the medians, the others at the same share;
+// the 80 m flight hardly grows with time, and two happenings come in 20 s)
+// (v9, the last boss in: the giant's earlier fall breaks the moon sooner, fewer bodies reach it; the score and the most kills
+// moved up with the last boss's blasts and bonus)
+const MB = LONG_ROUND ? { chain: [50, 100, 180], bld: [1, 4, 5], car: 6, moon: 12, hap: 2, strike: [430, 540], kill: [700, 1200], combo: [500, 1150], fly: 80, fat: [15, 35], gas: 20, score: 12200000 }
+  : { chain: [40, 80, 130], bld: [1, 2, 3], car: 4, moon: 10, hap: 1, strike: [200, 270], kill: [350, 620], combo: [250, 620], fly: 80, fat: [7, 15], gas: 8, score: 5800000 };
 const MISSIONS = [
   // [id, tier, line, done]: lines short enough for one line on a phone. The bars come from bot rounds (2026-10-25, redrawn
   // for the bigger horde): bronze most rounds get, silver about half, gold one round in three or rarer. (2026-10-31: the
   // headshots and the juggles in the air went with the machine gun, whose bullets made nearly all of them; 2026-11-03: drawn
   // again for 10-second rounds so each passes about as often as before, the ids renamed with the bars)
-  ['chain40', 1, jaEn('1発で40体倒す', 'Kill 40 with one shot'), () => bestChain >= 40],
-  ['chain80', 2, jaEn('1発で80体倒す', 'Kill 80 with one shot'), () => bestChain >= 80],
-  ['chain130', 3, jaEn('1発で130体倒す', 'Kill 130 with one shot'), () => bestChain >= 130],
-  ['bld1', 1, jaEn('ビルを倒す', 'Bring down a building'), () => bldDown >= 1],
-  ['bld2', 2, jaEn('ビルを2棟倒す', 'Bring down 2 buildings'), () => bldDown >= 2],
-  ['bld3', 3, jaEn('ビルを3棟倒す', 'Bring down 3 buildings'), () => bldDown >= 3],
-  ['car4', 1, jaEn('車を4台爆破', 'Blow up 4 cars'), () => carsBlown >= 4],
+  ['chain' + MB.chain[0], 1, jaEn(`1発で${MB.chain[0]}体倒す`, `Kill ${MB.chain[0]} with one shot`), () => bestChain >= MB.chain[0]],
+  ['chain' + MB.chain[1], 2, jaEn(`1発で${MB.chain[1]}体倒す`, `Kill ${MB.chain[1]} with one shot`), () => bestChain >= MB.chain[1]],
+  ['chain' + MB.chain[2], 3, jaEn(`1発で${MB.chain[2]}体倒す`, `Kill ${MB.chain[2]} with one shot`), () => bestChain >= MB.chain[2]],
+  ...MB.bld.map((n, i) => ['bld' + n, i + 1, n === 1 ? jaEn('ビルを倒す', 'Bring down a building') : jaEn(`ビルを${n}棟倒す`, `Bring down ${n} buildings`), () => bldDown >= n]),
+  ['car' + MB.car, 1, jaEn(`車を${MB.car}台爆破`, `Blow up ${MB.car} cars`), () => carsBlown >= MB.car],
   ['gold1', 1, jaEn('金ピカを倒す', 'Kill a gold zombie'), () => goldKills >= 1],
   ['gold2', 2, jaEn('金ピカを2体とも倒す', 'Kill both gold zombies'), () => goldKills >= 2],
   ['boss', 1, jaEn('巨大ゾンビを倒す', 'Kill the giant'), () => bossKilled],
   ['boss2', 2, jaEn('巨大ゾンビを着地から2秒で倒す', 'Kill the giant within 2 s of landing'), () => bossKilled && bossKillT <= 2],
-  ['moon10', 2, jaEn('月に10回当てる', 'Hit the moon 10 times'), () => moonHits >= 10],
-  ['hap', 2, jaEn('ハプニングをぶっ壊す', "Wreck this round's big event"), () => hapDone.length > 0],   // not "surprise": the 図鑑's word since 2026-11-07 (76-surprise.js)
-  ['strike200', 2, jaEn('空爆で200体', '200 kills in air strikes'), () => strikeKills >= 200],
-  ['strike270', 3, jaEn('空爆で270体', '270 kills in air strikes'), () => strikeKills >= 270],
-  ['kill350', 1, jaEn('350体倒す', 'Kill 350'), () => kills >= 350],
-  ['kill620', 3, jaEn('620体倒す', 'Kill 620'), () => kills >= 620],
-  ['combo250', 1, jaEn('250コンボ', '250 combo'), () => maxCombo >= 250],
-  ['combo620', 3, jaEn('620コンボ', '620 combo'), () => maxCombo >= 620],
-  ['fly80', 2, jaEn('80m吹っ飛ばす', 'Blast one 80 m'), () => longestFlight >= 80],
-  ['fat7', 1, jaEn('デブを7体破裂させる', 'Pop 7 bloaters'), () => fatPops >= 7],
-  ['fat15', 2, jaEn('デブを15体破裂させる', 'Pop 15 bloaters'), () => fatPops >= 15],
-  ['gas8', 1, jaEn('ボンベを8本飛ばす', 'Launch 8 gas tanks'), () => bombesShot >= 8],
-  ['score580', 3, jaEn('580万点を出す', 'Score 5,800,000'), () => score >= 5800000],
+  ...(LONG_ROUND ? [['last', 2, jaEn('ラストボスを倒す', 'Kill the final boss'), () => lbDown]] : []),
+  ['moon' + MB.moon, 2, jaEn(`月に${MB.moon}回当てる`, `Hit the moon ${MB.moon} times`), () => moonHits >= MB.moon],
+  MB.hap > 1 ? ['hap' + MB.hap, 2, jaEn(`ハプニングを${MB.hap}つぶっ壊す`, `Wreck ${MB.hap} big events`), () => hapDone.length >= MB.hap]
+    : ['hap', 2, jaEn('ハプニングをぶっ壊す', "Wreck this round's big event"), () => hapDone.length > 0],   // not "surprise": the 図鑑's word since 2026-11-07 (76-surprise.js)
+  ['strike' + MB.strike[0], 2, jaEn(`空爆で${MB.strike[0]}体`, `${MB.strike[0]} kills in air strikes`), () => strikeKills >= MB.strike[0]],
+  ['strike' + MB.strike[1], 3, jaEn(`空爆で${MB.strike[1]}体`, `${MB.strike[1]} kills in air strikes`), () => strikeKills >= MB.strike[1]],
+  ['kill' + MB.kill[0], 1, jaEn(`${MB.kill[0]}体倒す`, `Kill ${MB.kill[0]}`), () => kills >= MB.kill[0]],
+  ['kill' + MB.kill[1], 3, jaEn(`${MB.kill[1]}体倒す`, `Kill ${MB.kill[1]}`), () => kills >= MB.kill[1]],
+  ['combo' + MB.combo[0], 1, jaEn(`${MB.combo[0]}コンボ`, `${MB.combo[0]} combo`), () => maxCombo >= MB.combo[0]],
+  ['combo' + MB.combo[1], 3, jaEn(`${MB.combo[1]}コンボ`, `${MB.combo[1]} combo`), () => maxCombo >= MB.combo[1]],
+  ['fly' + MB.fly, 2, jaEn(`${MB.fly}m吹っ飛ばす`, `Blast one ${MB.fly} m`), () => longestFlight >= MB.fly],
+  ['fat' + MB.fat[0], 1, jaEn(`デブを${MB.fat[0]}体破裂させる`, `Pop ${MB.fat[0]} bloaters`), () => fatPops >= MB.fat[0]],
+  ['fat' + MB.fat[1], 2, jaEn(`デブを${MB.fat[1]}体破裂させる`, `Pop ${MB.fat[1]} bloaters`), () => fatPops >= MB.fat[1]],
+  ['gas' + MB.gas, 1, jaEn(`ボンベを${MB.gas}本飛ばす`, `Launch ${MB.gas} gas tanks`), () => bombesShot >= MB.gas],
+  ['score' + MB.score / 10000, 3, jaEn(`${MB.score / 10000}万点を出す`, `Score ${MB.score.toLocaleString('en-US')}`), () => score >= MB.score],
 ].map(([id, tier, text, done]) => ({ id, tier, text, done }));
 const MISSION_BY = Object.fromEntries(MISSIONS.map(m => [m.id, m]));
 const MEDAL_C = ['', '#d08a4e', '#d6dde4', '#ffd25e'], MEDAL_NAME = jaEn(['', '銅', '銀', '金'], ['', 'Bronze', 'Silver', 'Gold']);
@@ -14076,6 +14596,9 @@ const MKEY = 'zb3d-missions';
 // act: the three standing, slot i holding the one of tier i + 1; seen: ids already done, which come round again only
 // once their colour has run out
 let mis = { act: [], seen: [], medals: 0 }, misNow = [], misToast = [], misFlipT = 0, fatPops = 0, bombesShot = 0;
+// the day's first round on CrazyGames pays its challenges twice over (2026-11-09: a reason to come back the next day, set in
+// planSurprises, 76-surprise.js)
+let dayBonus = 1;
 // the weapons the medals open, in order (2026-10-25: kazu picked the black hole for the first, then asked for the railgun and
 // the wave gun; 2026-10-30: the flamethrower and the shock gun, so there is something to collect for past 30, then the
 // missile pod, kazu asking for the most exhilarating weapon there could be; 2026-10-31: the bits, after the funnels in Gundam).
@@ -14090,9 +14613,10 @@ const UNLOCKS = [
   { w: 'shock', medals: CG ? 21 : 50, sub: jaEn('飛び移る稲妻', 'Chain lightning') },
   { w: 'missile', medals: CG ? 28 : 60, sub: jaEn('20発の追尾ミサイル', '20 homing missiles') },
   { w: 'bits', medals: CG ? 36 : 70, sub: jaEn('浮遊ビーム砲台', 'Floating beam turrets') },
+  { w: 'sword', medals: CG ? 45 : 80, sub: jaEn('光の刃で真っ二つ', 'Cuts them in two') },   // 2026-11-09: kazu, for something out of fantasy (59-sword.js)
 ];
 const weaponOpen = w => { const u = UNLOCKS.find(o => o.w === w); return !u || mis.medals >= u.medals; };
-function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + 'お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射'; }
+function missionGlyphs() { return MISSIONS.map(m => m.text).join('') + '今日のボーナスメダル2倍お題達成新武器解放ブラックホールレールガン波動砲エネルギー充填%発射貫通バシュンギュンズキュン火炎放射器電撃砲ゴォボブ大炎上火だるま丸焼けこんがり連鎖放電×ビリバズ!ミサイル全弾命中撃ち放題シュババドバビット展開一斉射聖剣光の刃で真っ二つシャキーンズバァッ斬一刀両断体斬り三連'; }
 function drawMission(tier, not) {
   const pool = MISSIONS.filter(m => m.tier === tier && !not.includes(m.id));
   let fresh = pool.filter(m => !mis.seen.includes(m.id));
@@ -14136,8 +14660,8 @@ function checkMissions() {
     const m = MISSION_BY[id];
     if (misNow.includes(id) || !m.done()) continue;
     const was = mis.medals;
-    misNow.push(id); mis.medals += m.tier;
-    misToast.push({ head: jaEn('お題達成!', 'CHALLENGE DONE!'), text: m.text, tier: m.tier, life: 2.4, max: 2.4 });
+    misNow.push(id); mis.medals += m.tier * dayBonus;
+    misToast.push({ head: dayBonus > 1 ? jaEn('お題達成! ×2', 'CHALLENGE DONE! ×2') : jaEn('お題達成!', 'CHALLENGE DONE!'), text: m.text, tier: m.tier, life: 2.4, max: 2.4 });
     medalSnd(m.tier);
     for (const u of UNLOCKS) if (was < u.medals && mis.medals >= u.medals) misToast.push({ head: jaEn('新武器解放!', 'NEW WEAPON!'), text: WEAPON_NAME[u.w], tier: 3, life: 2.8, max: 2.8 });
   }
@@ -14145,8 +14669,8 @@ function checkMissions() {
 // the result screen: what this round did; a moment later the done ones flip to new ones and the medal count climbs
 function settleMissions() {
   checkMissions(); misToast = [];   // the card says it all now
-  const before = mis.act.slice(), done = misNow.slice(), gained = done.reduce((a, id) => a + MISSION_BY[id].tier, 0);
-  showMissions('misRes', before, done);
+  const before = mis.act.slice(), done = misNow.slice(), gained = done.reduce((a, id) => a + MISSION_BY[id].tier, 0) * dayBonus;
+  showMissions('misRes', before, done, [], dayBonus);
   $('misMedalsR').textContent = jaEn(`メダル ${mis.medals - gained}枚`, `${mis.medals - gained} medals`);
   showNextWeapon(mis.medals - gained);
   if (!done.length) return;
@@ -14154,14 +14678,19 @@ function settleMissions() {
   mis.act = before.map(id => done.includes(id) ? drawMission(MISSION_BY[id].tier, before) : id);
   saveMissions();
   clearTimeout(misFlipT);
-  const unlocked = UNLOCKS.filter(u => mis.medals - gained < u.medals && mis.medals >= u.medals).map(u => WEAPON_NAME[u.w]);
+  const opened = UNLOCKS.filter(u => mis.medals - gained < u.medals && mis.medals >= u.medals), unlocked = opened.map(u => WEAPON_NAME[u.w]);
   misFlipT = setTimeout(() => {
     showMissions('misRes', mis.act, [], mis.act.filter(id => !before.includes(id)));
-    $('misMedalsR').textContent = jaEn(`メダル ${mis.medals}枚 (+${gained})`, `${mis.medals} medals (+${gained})`);
+    const bonus = dayBonus > 1 ? jaEn('・2倍ボーナス', ', ×2 bonus') : '';
+    $('misMedalsR').textContent = jaEn(`メダル ${mis.medals}枚 (+${gained}${bonus})`, `${mis.medals} medals (+${gained}${bonus})`);
     showNextWeapon(mis.medals);
     if (unlocked.length) {
-      $('misRes').insertAdjacentHTML('beforeend', jaEn(`<p class="unlock">新武器解放! ${unlocked.join('と')}が使えます</p>`, `<p class="unlock">New weapon! ${unlocked.join(' and ')} unlocked</p>`));
+      // on CrazyGames the newest one is in hand for the next round (2026-11-09: so a new player gets to try it straight away)
+      const now = CG ? WEAPON_NAME[opened[opened.length - 1].w] : '';
+      $('misRes').insertAdjacentHTML('beforeend', now ? jaEn(`<p class="unlock">新武器解放! 次の回は${now}で出撃</p>`, `<p class="unlock">New weapon! Next round: ${now}</p>`)
+        : jaEn(`<p class="unlock">新武器解放! ${unlocked.join('と')}が使えます</p>`, `<p class="unlock">New weapon! ${unlocked.join(' and ')} unlocked</p>`));
       weaponButtons(); medalSnd(3);
+      if (now) setWeapon(opened[opened.length - 1].w);
     }
   }, 1900);
 }
@@ -14177,11 +14706,11 @@ function showNextWeapon(medals) {
   $('misNextN').textContent = jaEn(`あと${left}枚`, `${left} more`);
   $('misNextB').style.width = `${Math.max(4, (medals - from) / (u.medals - from) * 100)}%`;
 }
-function showMissions(box, ids, done = [], fresh = []) {
+function showMissions(box, ids, done = [], fresh = [], mul = 1) {
   const el = $(box), u = el.querySelector('.unlock');
   if (u) u.remove();
   el.querySelector('ol').innerHTML = ids.map(id => {
-    const m = MISSION_BY[id], st = done.includes(id) ? jaEn(`<b class="ok">達成! +${m.tier}</b>`, `<b class="ok">Done! +${m.tier}</b>`) : fresh.includes(id) ? '<b class="new">NEW</b>' : '';
+    const m = MISSION_BY[id], st = done.includes(id) ? jaEn(`<b class="ok">達成! +${m.tier * mul}</b>`, `<b class="ok">Done! +${m.tier * mul}</b>`) : fresh.includes(id) ? '<b class="new">NEW</b>' : '';
     return `<li${done.includes(id) ? ' class="done"' : fresh.includes(id) ? ' class="fresh"' : ''}><i class="md t${m.tier}" role="img" aria-label="${jaEn(MEDAL_NAME[m.tier] + 'メダル', MEDAL_NAME[m.tier] + ' medal')}"></i><span>${m.text}</span>${st}</li>`;
   }).join('');
 }
@@ -14239,7 +14768,7 @@ function resetShare() {
 // X and the share sheet (on a phone mostly used to post to X) carry the extra tags kazu asked for; LINE keeps the game's own.
 // In English the same three in English (2026-11-01), and every weapon but the rocket is named
 const TAGS = jaEn('#ゾンビ爆散', '#ZombieBakusan'), TAGS_X = jaEn('#ゾンビ爆散 #ストレス解消 #ゾンビ', '#ZombieBakusan #StressRelief #zombies');
-const SHARE_WEAPON_EN = { tank: 'Tank', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits' };
+const SHARE_WEAPON_EN = { tank: 'Tank', hole: 'Black Hole', rail: 'Railgun', wave: 'Wave Cannon', flame: 'Flamethrower', shock: 'Shock Gun', missile: 'Missiles', bits: 'Bits', sword: 'Holy Sword' };
 function shareText(o, tags = TAGS) {
   if (EN) {
     const bits = [`${o.kills} kills`, `max combo ${o.combo}`];
@@ -14624,12 +15153,19 @@ if (window.ZB_DEBUG) {
 // - the results count down to the next round by themselves. A touch anywhere on the results (choosing a weapon or a stage,
 //   reading them) stops it and leaves the button; a round with no shot fired does not go on, so nobody away from the screen
 //   is kept playing. The countdown runs on the game's frames, so a hidden tab holds it.
-const AUTO_NEXT = 6;   // seconds on the results before the next round
-let quickOn = false, autoNextT = 0, playerInput = false;
+// seconds on the results before the next round; a newcomer's first three rounds, less (2026-11-09: half of those who start
+// leave before a minute, mostly at the results)
+const AUTO_NEXT = 6, AUTO_NEXT_NEW = 4;
+let quickOn = false, autoNextT = 0, autoNextLen = AUTO_NEXT, playerInput = false;
 function firstVisit() {
   if (window.ZB_FORCE_QUICK) return true;   // the preview's first open, to show it to someone who has played (cgpreview.py)
-  try { if (localStorage.getItem('zb3d-best10') || localStorage.getItem('zb3d-best10-tank')) return false; } catch (e) {}
+  try { if (['zb3d-best10', 'zb3d-best10-tank', 'zb3d-best20', 'zb3d-best20-tank'].some(k => localStorage.getItem(k))) return false; } catch (e) {}
   return !(zukan.rounds > 0);
+}
+// the title's line says how long a round is (20 s on CrazyGames)
+if (DURATION !== 10) for (const t of document.querySelectorAll('#title .tag[data-en-html]')) {
+  t.innerHTML = t.innerHTML.replace(/10(秒| seconds)/, DURATION + '$1');
+  t.setAttribute('data-en-html', t.getAttribute('data-en-html').replace('10 seconds', DURATION + ' seconds'));
 }
 function quickInit() {
   if (!CG || !firstVisit()) return;
@@ -14637,7 +15173,7 @@ function quickInit() {
   $('title').hidden = true;
   const fine = matchMedia('(pointer: fine)').matches;
   $('quickT').textContent = fine ? jaEn('クリックで爆破!!', 'CLICK TO BLAST!!') : jaEn('タップで爆破!!', 'TAP TO BLAST!!');
-  $('quickS').textContent = jaEn('10秒でゾンビを全部ぶっ飛ばせ', 'Blow them all away in 10 seconds');
+  $('quickS').textContent = jaEn(`${DURATION}秒でゾンビを全部ぶっ飛ばせ`, `Blow them all away in ${DURATION} seconds`);
   $('quick').hidden = false;
   for (const z of [11.5, 14, 17, 20.5]) spawnWave(z);   // a street already full of them, walking at us
   aim.x = W / 2; aim.y = H * 0.5; aim.show = true;
@@ -14648,7 +15184,8 @@ function quickGo() {
 }
 function autoNextStart() {
   if (!CG || !playerInput) return;
-  autoNextT = AUTO_NEXT; autoNextShow();
+  autoNextLen = zukan.rounds <= 3 ? AUTO_NEXT_NEW : AUTO_NEXT;
+  autoNextT = autoNextLen; autoNextShow();
 }
 function autoNextStop() {
   autoNextT = 0;
@@ -14656,7 +15193,7 @@ function autoNextStop() {
 }
 function autoNextShow() {
   const b = $('again'), n = $('againN');
-  b.classList.add('auto'); b.style.setProperty('--an', (1 - autoNextT / AUTO_NEXT).toFixed(3));
+  b.classList.add('auto'); b.style.setProperty('--an', (1 - autoNextT / autoNextLen).toFixed(3));
   n.hidden = false; n.textContent = String(Math.ceil(autoNextT));
 }
 function autoNextTick(raw) {
@@ -14764,22 +15301,146 @@ function drawReplay(raw) {
 // with the next round. Stages not built yet are built one at a time while no round is running (prebuildStage).
 let stagePick = 'auto', roundsPlayed = 0;
 try { const s = localStorage.getItem('zb3d-stage'); if (s === 'auto' || STAGES[s]) stagePick = s; } catch (e) {}
-function firstStage() { return stagePick === 'auto' ? pick(stageIds()) : stagePick; }
+
+// ---------- CrazyGames: the stages in order, each with a score to clear (2026-11-09, kazu: 「CrazyGames版では得点に閾値を
+// 設けて一定点数を超えた場合次のステージに進める形式にした方がプレイ時間を増やすことに寄与することができると思います」) ----------
+// On CrazyGames the stages come one after another (PROG), each with its 合格点 (PASS). A round on the stage being played for
+// shows the 合格点 under the score, a bar filling up to it, and 「合格!!」 the moment the score gets there. The results say
+// 「ステージクリア!!」 and the next round is the next stage, or, short of it, how much more it needed with a tip, and the same
+// stage comes again (each round in a row scores a little more, 76-surprise.js, which helps). After the last stage, the lot
+// again from the first: a lap (周), every 合格点 up by LAP_K. A stage already cleared can be picked to play again, without a
+// 合格点; the ones ahead are locked. Kept in localStorage zb3d-prog: { at: the stage being played for, lap, tries at it }.
+const PROG = ['avenue', 'park', 'fest', 'hwy'];
+// The 合格点: bot rounds of 20 s (botx.mjs, 16 a style over the four stages) score 6.9M to 14.9M tapping like a newcomer
+// (casual) and 10.4M to 16.1M firing at random (mash); and each round played straight after the last scores ×1.1 more, so the
+// k-th stage, mostly played as the k-th round in a row, needs about PASS / (1 + 0.1 (k - 1)) of its own: 5M, 7.3M, 9.2M, 10.8M.
+// The first stage is cleared by nearly anyone, the newcomer bot clears the next ones nine times in ten down to three in four.
+const PASS = { avenue: 5000000, park: 8000000, fest: 11000000, hwy: 14000000 };
+const LAP_K = 0.3, PROG_KEY = 'zb3d-prog';
+let prog = { at: 0, lap: 0, tries: 0 }, goal = 0, goalHit = false, goalRes = null;   // this round's 合格点 (0: none), reached
+if (CG) {
+  try { const o = JSON.parse(localStorage.getItem(PROG_KEY) || 'null'); if (o) prog = { at: clamp(o.at | 0, 0, PROG.length - 1), lap: Math.max(0, o.lap | 0), tries: Math.max(0, o.tries | 0) }; } catch (e) {}
+  stagePick = 'prog';
+}
+const passFor = (id, lap = prog.lap) => Math.round(PASS[id] * (1 + LAP_K * lap) / 100000) * 100000;
+const progNow = () => PROG[prog.at];
+const progOpen = id => prog.lap > 0 || PROG.indexOf(id) <= prog.at;
+function saveProg() { try { localStorage.setItem(PROG_KEY, JSON.stringify(prog)); } catch (e) {} }
+// points the short way: 450万, 4.5M
+const fmtPts = v => EN ? (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + 'M' : (v / 1e4).toLocaleString() + '万';
+const stageNo = id => jaEn(`ステージ${PROG.indexOf(id) + 1}`, `Stage ${PROG.indexOf(id) + 1}`);
+// the round starts: its 合格点, when it is the stage being played for
+function progStart() {
+  goal = CG && stageId === progNow() ? passFor(stageId) : 0;
+  goalHit = false; goalRes = null;
+  goalBar();
+}
+function goalBar() {
+  const el = $('goal');
+  if (!el) return;
+  el.hidden = !goal;
+  if (!goal) return;
+  el.style.setProperty('--g', Math.min(1, score / goal).toFixed(3));
+  el.classList.toggle('hit', goalHit);
+  $('goalT').textContent = goalHit ? jaEn(`${stageNo(stageId)} 合格!!`, `${stageNo(stageId)} CLEARED!!`) : jaEn(`${stageNo(stageId)} 合格 ${fmtPts(goal)}`, `${stageNo(stageId)}: clear at ${fmtPts(goal)}`);
+}
+// every frame of the round: the moment the score gets there
+function goalTick() {
+  if (!goal || goalHit || score < goal) return;
+  goalHit = true;
+  goalBar();
+  if (!running) return;
+  showBanner(jaEn('合格!!', 'CLEARED!!'), jaEn('このままスコアを伸ばせ!', 'Keep it climbing!'), C.flare, 1.2);
+  medalSnd(3); buzz([30, 50, 70], 2);
+}
+// the opening banner of a round played for a stage: which, and its 合格点 (76-surprise.js startBanner)
+function progBanner() {
+  if (!goal) return false;
+  const lap = prog.lap ? jaEn(`${prog.lap + 1}周目 `, `Lap ${prog.lap + 1} `) : '', mul = streakN >= 2 ? jaEn(` ・ スコア${mulTxt(scoreMul)}`, ` · score ${mulTxt(scoreMul)}`) : '';
+  showBanner(EN ? `STAGE ${prog.at + 1}` : `ステージ${prog.at + 1}`, lap + jaEn(`${STAGES[stageId].name} 合格 ${fmtPts(goal)}`, `${STAGES[stageId].name}: clear at ${fmtPts(goal)}`) + mul, C.flare, 1.5);
+  return true;
+}
+// a few things worth knowing, for a round that fell short: the stage's own first
+const PROG_TIPS = {
+  park: [jaEn('観覧車を撃つと倒れて群れを下敷きに', 'Shoot the Ferris wheel down onto the horde')],
+  fest: [jaEn('奥の打ち上げ台を撃つと大スターマイン', 'Shoot the launch stand at the back for a huge firework show')],
+  hwy: [jaEn('奥の高架を撃つと渋滞の車が群れに降る', 'Shoot the overpass at the back: the traffic jam rains down')],
+  all: [
+    jaEn('車やドラム缶を撃つと誘爆でまとめて吹き飛ぶ', 'Shoot cars and drums: the blasts set each other off'),
+    jaEn('ラストボスを倒すと +3,000,000', 'Drop the final boss for +3,000,000'),
+    jaEn('すぐもう一回遊ぶと連戦でスコアが上がる', 'Play again right away: rounds in a row score more'),
+    jaEn('ビルを撃つと崩れて群れを下敷きに', 'Shoot a building to bring it down on the horde'),
+    jaEn('巨大ゾンビは月まで飛ばすと大きく加点', 'Blast the giant to the moon for big points'),
+  ],
+};
+// the results: cleared, on to the next stage; or how far short, and the same again
+function progEnd() {
+  const el = $('resProg');
+  if (!el || !CG) return;
+  $('again').querySelector('.t').textContent = jaEn('もう一回', 'PLAY AGAIN');
+  if (!goal) { el.hidden = true; return; }
+  const id = stageId, no = stageNo(id);
+  let h, sub;
+  if (score >= goal) {
+    goalHit = true;
+    const last = prog.at === PROG.length - 1;
+    if (last) { prog.at = 0; prog.lap++; } else prog.at++;
+    prog.tries = 0; stagePick = 'prog';
+    const nx = progNow(), nl = prog.lap ? jaEn(`${prog.lap + 1}周目 `, `Lap ${prog.lap + 1} `) : '';
+    h = last ? jaEn('全ステージ制覇!!', 'ALL STAGES CLEARED!!') : jaEn(`${no} クリア!!`, `${no} CLEARED!!`);
+    sub = jaEn(`次は ${nl}${stageNo(nx)} ${STAGES[nx].name}（合格 ${fmtPts(passFor(nx))}）`, `Next: ${nl}${stageNo(nx)} ${STAGES[nx].name} (clear at ${fmtPts(passFor(nx))})`);
+    goalRes = { clear: true, id, last };
+  } else {
+    prog.tries++;
+    const tips = (PROG_TIPS[id] || []).concat(PROG_TIPS.all), tip = tips[(prog.tries - 1) % tips.length];
+    h = jaEn(`${no} 合格まで あと${(goal - score).toLocaleString()}点`, `${no}: ${(goal - score).toLocaleString()} more to clear`);
+    sub = '💡 ' + tip;
+    goalRes = { clear: false, id };
+  }
+  saveProg();
+  el.className = 'prog' + (goalRes.clear ? ' ok' : '');
+  el.innerHTML = `<b>${h}</b><span>${sub}</span>`;
+  el.hidden = false;
+  $('again').querySelector('.t').textContent = goalRes.clear ? jaEn('次のステージへ', 'NEXT STAGE') : jaEn('もう一回', 'PLAY AGAIN');
+  stageButtons();
+}
+function firstStage() { return CG ? stageForRound() : stagePick === 'auto' ? pick(stageIds()) : stagePick; }
 // the stage for the round about to start; the first round plays the one behind the title
 function stageForRound() {
+  if (CG) return stagePick !== 'prog' && STAGES[stagePick] && progOpen(stagePick) ? stagePick : progNow();
   if (stagePick !== 'auto') return stagePick;
   if (!roundsPlayed) return stageId;
   const ids = stageIds().filter(k => k !== stageId);
   return ids.length ? pick(ids) : stageId;
 }
 function stageButtons() {
+  if (CG) { progButtons(); return; }
   const opts = [['auto', jaEn('おまかせ', 'Random')], ...stageIds().map(k => [k, STAGES[k].name])];
   for (const box of document.querySelectorAll('.stg')) {
     box.innerHTML = '<span class="k">' + jaEn('ステージ', 'Stage') + '</span><span class="sgs">' + opts.map(([k, t]) => `<button class="sg" type="button" data-s="${k}" aria-pressed="${k === stagePick}">${t}</button>`).join('') + '</span>';
     for (const b of box.querySelectorAll('.sg')) b.addEventListener('click', () => setStagePick(b.dataset.s));
   }
 }
+// CrazyGames: the stages in order, the cleared ones (✓) to play again, the one being played for (▶), the rest locked
+function progButtons() {
+  const lap = prog.lap ? jaEn(`${prog.lap + 1}周目 `, `Lap ${prog.lap + 1} `) : '';
+  for (const box of document.querySelectorAll('.stg')) {
+    box.innerHTML = '<span class="k">' + lap + jaEn(`ステージ ${prog.at + 1}/${PROG.length}`, `Stage ${prog.at + 1}/${PROG.length}`) + '</span><span class="sgs">' + PROG.map((k, i) => {
+      const now = k === progNow(), open = progOpen(k), on = now ? stagePick === 'prog' || stagePick === k : stagePick === k;
+      if (!open) return `<button class="sg lk" type="button" disabled aria-label="${jaEn('まだ遊べない', 'Locked')}">🔒${i + 1}</button>`;
+      return `<button class="sg${now ? ' now' : ' ok'}" type="button" data-s="${now ? 'prog' : k}" aria-pressed="${on}">${now ? '▶' : '✓'} ${STAGES[k].name}</button>`;
+    }).join('') + '</span>';
+    for (const b of box.querySelectorAll('.sg:not(.lk)')) b.addEventListener('click', () => setStagePick(b.dataset.s));
+  }
+}
 function setStagePick(s) {
+  if (CG) {
+    stagePick = s !== 'prog' && STAGES[s] && progOpen(s) && s !== progNow() ? s : 'prog';
+    for (const b of document.querySelectorAll('.sg:not(.lk)')) b.setAttribute('aria-pressed', String(b.dataset.s === stagePick));
+    const want = stageForRound();
+    if (booted && want !== stageId && !$('title').hidden) { useStage(want); reset(); }
+    return;
+  }
   stagePick = s === 'auto' || STAGES[s] ? s : 'auto';
   try { localStorage.setItem('zb3d-stage', stagePick); } catch (e) {}
   for (const b of document.querySelectorAll('.sg')) b.setAttribute('aria-pressed', String(b.dataset.s === stagePick));
@@ -14795,6 +15456,12 @@ function prebuildLater() {
   }, 2500);
 }
 stageButtons();
+// tests (cgprog.mjs): where the progression stands, set it, and a score to cross the line with
+if (window.ZB_DEBUG) window.__prog = {
+  st: () => ({ prog: Object.assign({}, prog), goal, goalHit, stagePick, stageId, bar: $('goal').hidden ? '' : $('goalT').textContent, res: $('resProg').hidden ? '' : $('resProg').textContent, again: $('again').textContent, chips: [...document.querySelectorAll('#title .sg')].map(b => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join(' | ') }),
+  set: o => { Object.assign(prog, o); saveProg(); stagePick = 'prog'; stageButtons(); },
+  score: v => { score = v; },
+};
 
 // ===== 81-rank.js
 // ---------- the world ranking (2026-11-03, kazu: 世界ランキングいきましょう) ----------
