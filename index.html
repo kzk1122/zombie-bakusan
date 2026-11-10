@@ -271,6 +271,9 @@ canvas { display: block; width: 100%; height: 100%; }
 .sgs { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
 /* おまかせ and five stages (the port in, 2026-11-09) don't fit one line: two even rows of three, not five and one left over */
 .sgs:has(> .sg:nth-child(6):last-child) { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; }
+.sgs:has(> .sg:nth-child(7):last-child) { display: grid; grid-template-columns: repeat(8, auto); justify-content: center; }
+.sgs:has(> .sg:nth-child(7):last-child) > .sg { grid-column: span 2; justify-self: center; }
+.sgs:has(> .sg:nth-child(7):last-child) > .sg:nth-child(5) { grid-column: 2 / span 2; }
 .sg {
   font: inherit; font-size: 12.5px; font-weight: 700; color: var(--bone); cursor: pointer;
   background: color-mix(in srgb, var(--ink) 55%, transparent);
@@ -2697,10 +2700,11 @@ function truckBoard(kind) {
   const K = CAR_KINDS[kind], [c, g] = canvas(256, 100), txt = K.truck;
   g.fillStyle = '#fff4dc'; g.fillRect(0, 0, 256, 100);
   g.fillStyle = K.board; g.fillRect(7, 7, 242, 86);
-  for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#ffd25e' : '#fff8e8'; g.beginPath(); g.arc(14 + i * 20.7, 94, 4, 0, 7); g.fill(); }
-  g.font = `${Math.min(56, 220 / [...txt].length * 1.05) | 0}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (K.chk) for (let i = 0; i < 16; i++) for (const y of [0, 84]) { g.fillStyle = (i + (y ? 1 : 0)) % 2 ? '#16161a' : '#f2c21a'; g.fillRect(i * 16, y, 16, 16); }
+  else for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#ffd25e' : '#fff8e8'; g.beginPath(); g.arc(14 + i * 20.7, 94, 4, 0, 7); g.fill(); }
+  g.font = `${K.chk ? 40 : Math.min(56, 220 / [...txt].length * 1.05) | 0}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.lineWidth = 7; g.strokeStyle = '#2a1018'; g.strokeText(txt, 128, 48);
-  g.fillStyle = '#fffbe8'; g.fillText(txt, 128, 48);
+  g.fillStyle = K.chk ? '#f2c21a' : '#fffbe8'; g.fillText(txt, 128, 50, 236);
   return (truckBoards[kind] = ctex(c));
 }
 
@@ -4063,6 +4067,742 @@ function boxRuin(b, put) {
   put(X - s * 0.9, BOX.W / 2, b.z0 + rand(2, 4), BOX.H * 0.9, BOX.W * 0.95, BOX.S * rand(0.9, 1.1), rand(-0.1, 0.1), rand(0.25, 0.5) * (Math.random() < 0.5 ? 1 : -1), 0, C());
   for (let i = 0; i < 10; i++) put(X + s * rand(-1.2, 4), rand(0.05, 0.4), rand(b.z0, b.z1), rand(0.8, 2.2), 0.06, rand(0.8, 2), rand(-0.3, 0.3), rand(0, 3), rand(-0.3, 0.3), C());
   return b.h > 8 ? 4.2 : 3.6;
+}
+
+// ===== 25-air.js
+// ---------- 空港, the airport at night (2026-11-09, kazu: 「ステージも2~3ステージ増やして欲しいです」, then picked 埠頭・空港・お寺; this
+// is the second of them) ----------
+// The lane is a taxiway across the apron: dark asphalt, its yellow centre line with the green lights let into it, a double yellow
+// line down each edge, blue edge lights on stalks along both sides, the shoulders striped yellow. On the left the terminal: its
+// glass concourse lit up over the baggage hall, zombies pressed against the glass, its boarding bridges reaching out over the
+// shoulder, the airport's name along it. On the right the hangars, their doors open a crack on the lit bays inside, and the
+// cargo sheds with their docks. Taxiway signs along the edges, a windsock, baggage carts, floodlight masts over the apron, a
+// FOLLOW ME car among the cars. At the far end the runway crosses, its lights in rows, and the control tower stands off to the left.
+// Taxiing in at the far end, nose on and turned a little, its taxi lights on: 爆散航空's jumbo jet, the stage's set piece
+// (76-air.js). On a phone the jet fills the far end under the HUD: its nose, its right wing with both engines out to our left,
+// its fuselage running back to its tail, the moon over its fin.
+// JET: the tip of its nose (on the ground under it) at x, z; its yaw (the tail swung out to our right); its length, its
+// fuselage's radius and the height of its axis; where its nose section breaks off (metres back from the tip); its wing's root
+// and tip [out from the middle, back from the nose to the leading edge, chord, height]; its engines [out, back to the intake,
+// height of the axis], their radius and length; its fin's top
+const JET = { x: -1.2, z: 76, yaw: 0.27, L: 44, R: 2.0, HC: 3.8, cut: 13.5,
+  root: [1.6, 15.5, 9.0, 2.75], tip: [20, 29.6, 2.6, 4.68],
+  eng: [[-11.8, 20.4, 2.5], [-6.6, 16.3, 1.82], [6.6, 16.3, 1.82], [11.8, 20.4, 2.5]], engR: 0.86, engL: 4.4,
+  finTop: 12.2 };
+const JC = Math.cos(JET.yaw), JS = Math.sin(JET.yaw);
+// a point on the jet as it stands (its own frame: x out to its left, our right; y up; s back from its nose) to the game's x, h, z
+function jetAt(lx, ly, s, o = {}) { o.x = JET.x + lx * JC + s * JS; o.h = ly; o.z = JET.z + s * JC - lx * JS; return o; }
+// and back: a game point to the jet's frame
+function jetFrom(x, h, z, o = {}) { const dx = x - JET.x, dz = z - JET.z; o.x = dx * JC - dz * JS; o.y = h; o.s = dx * JS + dz * JC; return o; }
+// the fuselage: [s back from the tip, radius, the axis raised by]: a round nose, the tail cone sweeping up
+const JET_PROF = [[0, 0.03, -0.55], [0.35, 0.78, -0.42], [1.0, 1.26, -0.28], [2.0, 1.62, -0.14], [3.2, 1.86, -0.05], [4.6, 1.98, 0], [6, 2.0, 0],
+  [31, 2.0, 0], [34, 1.92, 0.12], [37, 1.68, 0.36], [40, 1.22, 0.72], [42.4, 0.74, 1.05], [43.6, 0.36, 1.28], [44, 0.1, 1.36]];
+// the upper deck's hump over the front of it: an ellipsoid [s of its middle, half its length, its middle over the axis, half its
+// height, half its width]; it rises out of the fuselage behind the cockpit and sinks back in short of where the nose breaks off
+const HUMP = { s: 7.6, a: 6.6, y: 0.5, b: 2.15, c: 1.45 };
+const AIR_TEXT = { name: '爆散国際空港', nameE: 'BAKUSAN INTERNATIONAL AIRPORT', line: '爆散航空', lineE: 'BAKUSAN AIR', fin: '爆', cargo: '爆散カーゴ', cargoE: 'BAKUSAN CARGO' };
+// every letter the stage draws on its canvases and in its callouts, for the font to load before they are drawn (70-game.js boot)
+const AIR_GLYPHS = Object.values(AIR_TEXT).join('') + 'ジャンボ機大爆発首が突っ込むエン直撃轢かれた到着出発欠航便行先搭乗口時刻空港GATEFLIGHTCANCELLDSTOPHOLDRWYFOLWMN-0123456789→←';
+const ENV_AIR = { bg: 0x090b18, floor: 0x0a0c14, top: 0x0e1024, far: 0x30304e, near: 0x12142a, wall: 0x101226, strip: 0xeef0ff, neon: [0x2a50ff, 0x30ff70, 0xffc860, 0xeef0ff, 0xff4a3a, 0x80a0ff] };
+STAGES.air = {
+  name: jaEn('空港', 'Airport'), build: buildAir, env: ENV_AIR, fog: 0x23263f, zen: 0x05061a, glow: col(0xff8a50, 0.13),
+  hemi: [0x8c92d0, 0x1c1a26, 1.4], search: 0xffeedd, haze: '#454868', moon: { z: JET.z + JET.L * JC - 4, top: JET.finTop + 0.2 },
+  cars: ['followme', 'van', 'police', 'kei'], wreck: ['kei', -3.1, 27, 0.5], jetHi: 14,
+};
+// the taxiway: worn dark asphalt in patches, the rubber off the nose gears either side of the yellow centre line, the steel rims
+// of its lights every 8 m (their lenses are geometry), a double yellow line down each edge. Over 16 m like the port's
+function makeAirRoadTex() {
+  const w = 512, h = 1024, [c, g] = canvas(w, h), [rc, rg] = canvas(256, 512);
+  const pxm = w / (ROAD * 2), pzm = h / 16;
+  g.fillStyle = '#2a2b31'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 6; i++) { const k = rand(-9, 9) | 0; g.fillStyle = `rgba(${44 + k},${45 + k},${51 + k},.5)`; g.fillRect(rand(0, w - 100), rand(0, h - 160), rand(90, 240), rand(140, 420)); }
+  for (let i = 0; i < 70; i++) blotch(g, rand(0, w), rand(0, h), rand(20, 70), `rgba(${rand(14, 34) | 0},${rand(14, 34) | 0},${rand(18, 40) | 0},.15)`);
+  for (const lx of [-0.6, 0.6]) {
+    const x = (ROAD + lx) * pxm, gr = g.createLinearGradient(x - 34, 0, x + 34, 0);
+    gr.addColorStop(0, 'rgba(8,8,10,0)'); gr.addColorStop(0.5, 'rgba(8,8,10,.42)'); gr.addColorStop(1, 'rgba(8,8,10,0)');
+    g.fillStyle = gr; g.fillRect(x - 34, 0, 68, h);
+  }
+  for (let i = 0; i < 9; i++) blotch(g, rand(0, w), rand(0, h), rand(8, 20), 'rgba(6,6,8,.4)', 6);
+  g.strokeStyle = 'rgba(14,14,18,.65)'; g.lineWidth = 2.5;
+  for (let i = 0; i < 7; i++) { let x = rand(0, w), y = rand(0, h); g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 8; s++) { x += rand(-16, 16); y += rand(-22, 22); g.lineTo(x, y); } g.stroke(); }
+  const lw = 0.15 * pxm;
+  const line = x => {
+    g.fillStyle = 'rgba(236,182,30,.95)'; g.fillRect(x - lw / 2, 0, lw, h);
+    g.fillStyle = 'rgba(40,36,30,.35)'; for (let i = 0; i < 50; i++) g.fillRect(rand(x - lw / 2, x + lw / 2 - 3), rand(0, h), rand(2, 4), rand(2, 7));
+  };
+  line(w / 2);
+  for (const e of [0.3, 0.62]) { line(e * pxm); line(w - e * pxm); }
+  for (const z of [4, 12]) {
+    const y = z * pzm;
+    g.fillStyle = '#62646a'; g.beginPath(); g.ellipse(w / 2, y, 0.22 * pxm, 0.22 * pzm, 0, 0, 7); g.fill();
+    g.fillStyle = '#16181c'; g.beginPath(); g.ellipse(w / 2, y, 0.13 * pxm, 0.13 * pzm, 0, 0, 7); g.fill();
+  }
+  grain(g, w, h, 16, 0);
+  rg.fillStyle = '#c8c8c8'; rg.fillRect(0, 0, 256, 512);
+  for (const lx of [-0.6, 0.6]) {
+    const x = (ROAD + lx) / (ROAD * 2) * 256, gr = rg.createLinearGradient(x - 14, 0, x + 14, 0);
+    gr.addColorStop(0, 'rgba(100,100,100,0)'); gr.addColorStop(0.5, 'rgba(100,100,100,.8)'); gr.addColorStop(1, 'rgba(100,100,100,0)');
+    rg.fillStyle = gr; rg.fillRect(x - 14, 0, 28, 512);
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = rand(10, 246), y = rand(0, 512), r = rand(12, 30);
+    const gr = rg.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, '#2a2a2a'); gr.addColorStop(0.7, '#5a5a5a'); gr.addColorStop(1, 'rgba(200,200,200,0)');
+    rg.fillStyle = gr; rg.beginPath(); rg.ellipse(x, y, r * 1.2, r * 1.6, 0, 0, 7); rg.fill();
+  }
+  const map = ctex(c, true), rough = ctex(rc, true);
+  rough.colorSpace = THREE.NoColorSpace;
+  return { map, rough };
+}
+// the shoulders, out from the asphalt to the buildings (u 0 at the asphalt, 1 at 7.5 m; 8 m along): paler paving, striped across
+// at 45 degrees in yellow (not to be taxied on)
+function makeAirWalkTex() {
+  const [c, g] = canvas(256, 512), pxm = 256 / (WALK + 0.9 - ROAD), pzm = 512 / 8;
+  g.fillStyle = '#3e3f46'; g.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 26; i++) blotch(g, rand(0, 256), rand(0, 512), rand(14, 40), `rgba(${rand(20, 46) | 0},${rand(20, 44) | 0},${rand(24, 50) | 0},.2)`);
+  g.fillStyle = 'rgba(16,16,20,.7)'; g.fillRect(0, 254, 256, 3); g.fillRect(126, 0, 3, 512);
+  const run = 256 / pxm * pzm;   // how far along a stripe climbs crossing the shoulder at 45 degrees
+  for (let y = -run - 128; y < 512 + 128; y += 2 * pzm) {
+    g.fillStyle = 'rgba(224,172,30,.82)';
+    g.beginPath(); g.moveTo(0, y); g.lineTo(256, y + run); g.lineTo(256, y + run + 0.42 * pzm); g.lineTo(0, y + 0.42 * pzm); g.closePath(); g.fill();
+  }
+  g.fillStyle = 'rgba(40,36,30,.3)'; for (let i = 0; i < 260; i++) g.fillRect(rand(0, 256), rand(0, 512), rand(1, 3), rand(1, 4));
+  grain(g, 256, 512, 14, 0);
+  return ctex(c, true);
+}
+// the apron round the buildings: big pale slabs, 8 m square, their joints, stains
+function makeAirApronTex() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#34363e'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 24; i++) blotch(g, rand(0, 256), rand(0, 256), rand(14, 40), `rgba(${rand(16, 40) | 0},${rand(16, 40) | 0},${rand(20, 46) | 0},.22)`);
+  g.fillStyle = 'rgba(14,14,18,.75)'; g.fillRect(0, 0, 256, 3); g.fillRect(0, 128, 256, 3); g.fillRect(0, 0, 3, 256); g.fillRect(128, 0, 3, 256);
+  grain(g, 256, 256, 14, 0);
+  return ctex(c, true);
+}
+// the terminal's face to the taxiway, 16 m of it on 1024 px, its full height on 512 (the floors stretch a little with the block):
+// the baggage hall at the bottom behind glass bays between ribbed panels, the slab, the departures concourse in a tall curtain
+// wall (its ceiling lights, a departures board where every flight is 欠航, a gate sign, rows of seats, zombies against the
+// glass), the roof's fascia with a strip of light under it. The second map lights the glass from inside
+function makeTermTex() {
+  const W2 = 1024, H2 = 512, [c, g] = canvas(W2, H2), [ec, eg] = canvas(W2, H2);
+  const X = m => m * W2 / 16, Y = m => H2 - m * H2 / 12;   // metres along it, and up it
+  g.fillStyle = '#2c2e36'; g.fillRect(0, 0, W2, H2);
+  eg.fillStyle = '#000'; eg.fillRect(0, 0, W2, H2);
+  // a zombie's shape against the light: head, shoulders, arms up on the glass
+  const ghoul = (G, x, y, s, a) => {
+    G.fillStyle = `rgba(8,6,10,${a})`;
+    G.beginPath(); G.ellipse(x, y - 1.55 * s, 0.13 * s, 0.16 * s, 0, 0, 7); G.fill();
+    G.fillRect(x - 0.22 * s, y - 1.38 * s, 0.44 * s, 0.7 * s); G.fillRect(x - 0.18 * s, y - 0.7 * s, 0.15 * s, 0.7 * s); G.fillRect(x + 0.03 * s, y - 0.7 * s, 0.15 * s, 0.7 * s);
+    G.save(); G.translate(x - 0.2 * s, y - 1.3 * s); G.rotate(-2.6); G.fillRect(0, 0, 0.09 * s, 0.62 * s); G.restore();
+    G.save(); G.translate(x + 0.2 * s, y - 1.3 * s); G.rotate(2.5); G.fillRect(-0.09 * s, 0, 0.09 * s, 0.62 * s); G.restore();
+  };
+  // the baggage hall: glass bays 2 m wide between ribbed panels
+  for (let b = 0; b < 8; b++) {
+    const x0 = X(b * 2), glass = b % 4 !== 3;
+    if (glass) {
+      g.fillStyle = '#141820'; g.fillRect(x0 + 6, Y(4.1), X(2) - 12, Y(0.45) - Y(4.1));
+      const gr = eg.createLinearGradient(0, Y(4.1), 0, Y(0.45));
+      gr.addColorStop(0, '#cfdcf0'); gr.addColorStop(0.25, '#5a6478'); gr.addColorStop(1, '#2a2e3a');
+      eg.fillStyle = gr; eg.fillRect(x0 + 6, Y(4.1), X(2) - 12, Y(0.45) - Y(4.1));
+      // a carousel's edge, a sign over it
+      eg.fillStyle = '#14161c'; eg.fillRect(x0 + 6, Y(1.1), X(2) - 12, 8);
+      if (b % 4 === 1) { eg.fillStyle = '#ffd040'; eg.fillRect(x0 + 30, Y(3.6), 70, 14); eg.fillStyle = '#1a1406'; eg.font = `11px ${FONT}`; eg.fillText('到着 ARRIVALS', x0 + 32, Y(3.6) + 11, 66); }
+      for (let i = 0; i < 2; i++) if (Math.random() < 0.6) ghoul(eg, x0 + rand(20, X(2) - 20), Y(0.5), rand(40, 46), rand(0.75, 0.95));
+      g.fillStyle = 'rgba(40,44,52,.9)'; g.fillRect(x0 + X(1) - 2, Y(4.1), 4, Y(0.45) - Y(4.1));
+    } else {
+      g.fillStyle = '#5a5e68'; g.fillRect(x0, Y(4.2), X(2), Y(0.4) - Y(4.2));
+      for (let x = x0 + 4; x < x0 + X(2); x += 10) { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x, Y(4.2), 3, Y(0.4) - Y(4.2)); }
+    }
+  }
+  g.fillStyle = '#1c1d22'; g.fillRect(0, Y(0.4), W2, H2 - Y(0.4));
+  // the slab between the floors, a cool strip of light along its underside
+  g.fillStyle = '#9a9ca6'; g.fillRect(0, Y(4.85), W2, Y(4.2) - Y(4.85));
+  eg.fillStyle = '#9ab8ff'; eg.fillRect(0, Y(4.25) - 3, W2, 3);
+  // the concourse: one tall pane of glass after another, the hall lit inside
+  const top = Y(10.9), bot = Y(4.85);
+  const gr = eg.createLinearGradient(0, top, 0, bot);
+  gr.addColorStop(0, '#e8eeff'); gr.addColorStop(0.12, '#8a96b4'); gr.addColorStop(0.55, '#4a5268'); gr.addColorStop(1, '#6a6458');
+  eg.fillStyle = gr; eg.fillRect(0, top, W2, bot - top);
+  g.fillStyle = '#10141c'; g.fillRect(0, top, W2, bot - top);
+  // its ceiling: rows of lights
+  for (let x = 12; x < W2; x += 44) { eg.fillStyle = '#ffffff'; eg.fillRect(x, top + 6, 26, 4); eg.fillRect(x + 10, top + 22, 20, 3); }
+  // the departures board: every flight cancelled
+  const bx = X(2.6), by = Y(9.4), bw = X(4.4), bh = Y(7.6) - Y(9.4);
+  eg.fillStyle = '#05060a'; eg.fillRect(bx, by, bw, bh);
+  eg.font = `12px ${FONT}`; eg.textBaseline = 'top';
+  eg.fillStyle = '#ffd040'; eg.fillText('出発 DEPARTURES', bx + 8, by + 5, bw - 16);
+  const dest = ['ロンドン', 'パリ', 'NEW YORK', 'ソウル', 'SYDNEY', 'ホノルル'];
+  for (let i = 0; i < 5; i++) {
+    const y = by + 22 + i * 13;
+    eg.fillStyle = '#ffb030'; eg.fillText(`ZB${(404 + i * 111) % 1000}`, bx + 8, y, 44); eg.fillText(dest[i], bx + 58, y, 90);
+    eg.fillStyle = '#ff3a2a'; eg.fillText(i % 2 ? '欠航' : 'CANCELLED', bx + bw - 84, y, 76);
+  }
+  // the gate signs hanging inside, yellow on black
+  for (const [gx, n] of [[X(9.6), 21], [X(13.4), 22]]) {
+    eg.fillStyle = '#ffd040'; eg.fillRect(gx, Y(9.2), 92, 26);
+    eg.fillStyle = '#16120a'; eg.font = `17px ${FONT}`; eg.textBaseline = 'middle'; eg.fillText(`GATE ${n}`, gx + 8, Y(9.2) + 13, 78);
+  }
+  // seats, and the dead on their feet against the glass
+  for (let x = 0; x < W2; x += 8) { eg.fillStyle = 'rgba(10,10,14,.85)'; eg.fillRect(x, bot - 22, 6, 22); }
+  for (let i = 0; i < 9; i++) ghoul(eg, rand(20, W2 - 20), bot - 1, rand(50, 58), rand(0.8, 0.95));
+  // mullions and transoms
+  for (let x = 0; x <= W2; x += X(1.6)) { g.fillStyle = '#1a1c22'; g.fillRect(x - 3, top, 6, bot - top); eg.fillStyle = '#000'; eg.fillRect(x - 3, top, 6, bot - top); }
+  for (const yy of [Y(7.3), Y(9.6)]) { g.fillStyle = '#1a1c22'; g.fillRect(0, yy - 2, W2, 4); eg.fillStyle = '#000'; eg.fillRect(0, yy - 2, W2, 4); }
+  // the roof's fascia: brushed metal, its light strip
+  g.fillStyle = '#8a92a4'; g.fillRect(0, 0, W2, top);
+  for (let x = 0; x < W2; x += 64) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, 0, 2, top); }
+  eg.fillStyle = '#dfe8ff'; eg.fillRect(0, top - 4, W2, 3);
+  grain(g, W2, H2, 10, 0);
+  return { map: ctex(c, true), em: ctex(ec, true) };
+}
+// the right side's two faces, one over the other. A hangar's (its block's whole length on 1024 px, 16 m up on 512): a steel frame
+// round a door of six leaves, one pulled back on the lit bay inside, 爆散航空 high on the frame, its number in a ring. A cargo
+// shed's (16 m on 1024, 9 m up on 512): ribbed cladding, three docks with their bumpers and lamps, one open on the lit shed, the
+// line's name in lights
+function makeHangarTex() {
+  const W2 = 1024, H2 = 1024, [c, g] = canvas(W2, H2), [ec, eg] = canvas(W2, H2);
+  eg.fillStyle = '#000'; eg.fillRect(0, 0, W2, H2);
+  // the hangar, the top half
+  {
+    const Y = m => 512 - m * 32;
+    g.fillStyle = '#4a505c'; g.fillRect(0, 0, W2, 512);
+    const d0 = 40, d1 = W2 - 40, dt = Y(10.6);
+    g.fillStyle = '#7e8696'; g.fillRect(d0, dt, d1 - d0, 512 - dt);
+    const leaf = (d1 - d0) / 6, open = 2 + (Math.random() * 2 | 0);
+    for (let k = 0; k < 6; k++) {
+      const x = d0 + k * leaf;
+      if (k === open) {
+        const gr = eg.createLinearGradient(0, dt, 0, 512);
+        gr.addColorStop(0, '#fff2d8'); gr.addColorStop(0.5, '#b0a080'); gr.addColorStop(1, '#5a5040');
+        eg.fillStyle = gr; eg.fillRect(x + 4, dt + 4, leaf - 8, 508 - dt);
+        g.fillStyle = '#1a1a1e'; g.fillRect(x + 4, dt + 4, leaf - 8, 508 - dt);
+        // a tail fin and a work stand against the light inside
+        eg.fillStyle = 'rgba(30,26,22,.9)'; eg.beginPath(); eg.moveTo(x + leaf * 0.25, 508); eg.lineTo(x + leaf * 0.5, dt + 30); eg.lineTo(x + leaf * 0.72, dt + 30); eg.lineTo(x + leaf * 0.8, 508); eg.fill();
+        eg.fillRect(x + 12, Y(3.4), leaf - 24, 5); for (const lx of [x + 16, x + leaf - 20]) eg.fillRect(lx, Y(3.4), 4, Y(0) - Y(3.4));
+        for (let i = 0; i < 2; i++) { eg.fillStyle = 'rgba(14,10,12,.9)'; const zx = x + rand(20, leaf - 20), s = 34; eg.beginPath(); eg.ellipse(zx, 512 - 1.55 * s, 4, 5, 0, 0, 7); eg.fill(); eg.fillRect(zx - 7, 512 - 1.38 * s, 14, 1.38 * s); }
+      } else {
+        for (let y = dt + 30; y < 512; y += 34) { g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 4, y, leaf - 8, 3); }
+        g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x, dt, 4, 512 - dt);
+        for (let i = 0; i < 6; i++) { g.fillStyle = `rgba(${rand(90, 120) | 0},${rand(60, 80) | 0},${rand(40, 56) | 0},${rand(0.08, 0.2)})`; g.fillRect(x + rand(8, leaf - 12), dt + rand(4, 100), rand(2, 4), rand(20, 140)); }
+      }
+    }
+    g.fillStyle = '#2a2e36'; g.fillRect(d0 - 8, dt - 10, d1 - d0 + 16, 12);
+    for (let x = d0 + 30; x < d1; x += 90) { eg.fillStyle = '#ffe8c0'; eg.fillRect(x, dt - 8, 22, 6); }
+    // high on the frame: the line's name and the hangar's number (seen from afar and on a wide screen)
+    for (const G of [g, eg]) {
+      G.save(); G.fillStyle = G === g ? '#e8eaf0' : '#8a8c90'; G.textAlign = 'center'; G.textBaseline = 'middle';
+      G.font = `64px ${FONT}`; G.fillText(AIR_TEXT.line + '  ' + AIR_TEXT.lineE, W2 / 2 - 60, Y(13.2), W2 - 300);
+      G.restore();
+    }
+    g.strokeStyle = '#e8eaf0'; g.lineWidth = 8; g.beginPath(); g.arc(W2 - 110, Y(13.2), 40, 0, 7); g.stroke();
+    g.fillStyle = '#e8eaf0'; g.font = `56px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(2 + (Math.random() * 6 | 0)), W2 - 110, Y(13.2) + 3);
+  }
+  // the cargo shed, the bottom half
+  {
+    const y0 = 512, Y = m => 1024 - m * 512 / 9, X = m => m * 64;
+    g.fillStyle = '#6a7470'; g.fillRect(0, y0, W2, 512);
+    for (let x = 0; x < W2; x += 12) { g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x, y0, 4, 512); g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(x + 5, y0, 3, 512); }
+    for (let k = 0; k < 3; k++) {
+      const x = X(1.4 + k * 5), dw = X(3.2), top = Y(3.8), open = k === 1;
+      g.fillStyle = '#2a2c30'; g.fillRect(x - 8, top - 8, dw + 16, Y(0) - top + 8);
+      if (open) {
+        const gr = eg.createLinearGradient(0, top, 0, Y(1.2)); gr.addColorStop(0, '#fff0d0'); gr.addColorStop(1, '#8a7a5a');
+        eg.fillStyle = gr; eg.fillRect(x, top, dw, Y(1.2) - top);
+        g.fillStyle = '#18181a'; g.fillRect(x, top, dw, Y(1.2) - top);
+        for (let i = 0; i < 4; i++) { eg.fillStyle = 'rgba(30,24,18,.85)'; eg.fillRect(x + 10 + i * 48, Y(2.4), 40, Y(1.2) - Y(2.4)); }
+      } else {
+        g.fillStyle = '#9aa0a8'; g.fillRect(x, top, dw, Y(1.2) - top);
+        for (let y = top + 6; y < Y(1.2); y += 9) { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x, y, dw, 2); }
+      }
+      g.fillStyle = '#16161a'; g.fillRect(x - 6, Y(1.2), dw + 12, Y(0) - Y(1.2));
+      for (const bx of [x + 6, x + dw - 26]) { g.fillStyle = '#0a0a0c'; g.fillRect(bx, Y(1.25), 20, 26); }
+      eg.fillStyle = '#ffb040'; eg.fillRect(x + dw / 2 - 14, top - 26, 28, 10);
+    }
+    for (const G of [g, eg]) {
+      G.save(); G.fillStyle = G === g ? '#f0f2f4' : '#ffffff'; G.textAlign = 'center'; G.textBaseline = 'middle';
+      G.font = `54px ${FONT}`; G.fillText(AIR_TEXT.cargo, X(8), Y(6.1), X(9));
+      G.font = `24px ${FONT}`; G.fillText(AIR_TEXT.cargoE, X(8), Y(5.1), X(7));
+      G.restore();
+    }
+  }
+  grain(g, W2, H2, 10, 0);
+  return { map: ctex(c, true), em: ctex(ec, true) };
+}
+// the taxiway signs, four to a canvas: where you are (yellow on black), the way to go (black on yellow), the runway ahead (white
+// on red: hold short), the gates. AIR_SIGN holds each one's uv
+const AIR_SIGN = [];
+function makeAirSignTex() {
+  const [c, g] = canvas(512, 512);
+  const panel = (i, bg, fg, txt, border) => {
+    const y = i * 128;
+    g.fillStyle = '#16161a'; g.fillRect(0, y, 512, 128);
+    g.fillStyle = bg; g.fillRect(6, y + 6, 500, 116);
+    if (border) { g.strokeStyle = fg; g.lineWidth = 6; g.strokeRect(14, y + 14, 484, 100); }
+    g.fillStyle = fg; g.font = `76px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 256, y + 68, 470);
+    AIR_SIGN[i] = [0, 1 - (y + 128) / 512, 1, 1 - y / 512];
+  };
+  panel(0, '#0c0c0e', '#f2c21a', 'A3', true);
+  panel(1, '#f2c21a', '#101010', '←B  C→', false);
+  panel(2, '#c81a1a', '#ffffff', '34R-16L', false);
+  panel(3, '#f2c21a', '#101010', 'GATE 21→', false);
+  return ctex(c);
+}
+// the airport's name for the terminal's face, white letters on a dark band, lit
+function makeAirNameTex() {
+  const [c, g] = canvas(128, 512);
+  g.fillStyle = '#e8ecf8'; g.fillRect(0, 0, 128, 512);
+  g.fillStyle = '#0c1a4a'; g.fillRect(8, 8, 112, 496);
+  g.fillStyle = '#f4f6ff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `76px ${FONT}`;
+  [...AIR_TEXT.name].forEach((ch, i) => g.fillText(ch, 64, 50 + i * 82));
+  return ctex(c);
+}
+// the jet's paint: its fuselage round (u, starting on top and going round its right side first) and along (v, its nose at the
+// top of the canvas; 23 px a metre along it, 41 round it). White over a red line under its windows, grey under; its windows lit
+// (the second map); 爆散航空 and BAKUSAN AIR down its forward fuselage on both sides, the doors outlined, the nose cone grey
+function makeJetTex() {
+  const W2 = 512, H2 = 1024, [c, g] = canvas(W2, H2), [ec, eg] = canvas(W2, H2);
+  const U = f => f / (Math.PI * 2) * W2, V = s => s / JET.L * H2, pxs = H2 / JET.L, pxr = W2 / (Math.PI * 2 * JET.R);
+  g.fillStyle = '#eef0f2'; g.fillRect(0, 0, W2, H2);
+  eg.fillStyle = '#000'; eg.fillRect(0, 0, W2, H2);
+  // the belly grey from a little under the sides round
+  g.fillStyle = '#a8acb4'; g.fillRect(U(Math.PI * 0.62), 0, U(Math.PI * 0.76), H2);
+  // on each side: the window row (a third of a radian over the side's middle), the red line and a black one under it
+  for (const sd of [1, -1]) {
+    const mid = sd > 0 ? Math.PI * 1.5 : Math.PI * 0.5, up = sd > 0 ? 1 : -1;   // the left side (ours to see) lies at 3/2 pi
+    const fw = mid + up * 0.32, fl = mid + up * 0.16;
+    const xa = U(fl - up * 0.07), xb = U(fl + up * 0.02);
+    g.fillStyle = '#c4161c'; g.fillRect(Math.min(xa, xb), V(1.2), Math.abs(xb - xa), V(42) - V(1.2));
+    const xk = U(fl - up * 0.1);
+    g.fillStyle = '#1a1a20'; g.fillRect(xk - 2, V(1.5), 4, V(41.5) - V(1.5));
+    for (let s = 3.4; s < 40; s += 0.34) {
+      if ([5.2, 13.2, 23.8, 31.4, 37.4].some(d => Math.abs(s - d) < 0.7)) continue;
+      const x = U(fw), y = V(s), lit = Math.random() < 0.8;
+      g.fillStyle = '#20242c'; g.fillRect(x - 0.14 * pxr, y - 0.09 * pxs, 0.28 * pxr, 0.18 * pxs);
+      if (lit) { eg.fillStyle = Math.random() < 0.85 ? '#ffe2b0' : '#c8d8ff'; eg.fillRect(x - 0.12 * pxr, y - 0.08 * pxs, 0.24 * pxr, 0.16 * pxs); }
+    }
+    // the doors
+    for (const d of [5.2, 13.2, 23.8, 31.4, 37.4]) { g.strokeStyle = 'rgba(60,64,72,.8)'; g.lineWidth = 2; g.strokeRect(U(fw) - 0.6 * pxr * up, V(d - 0.45), 1.15 * pxr * up, 0.9 * pxs); }
+    // the line's name over the windows, reading from the nose back on either side
+    for (const G of [g, eg]) {
+      G.save(); G.translate(U(mid + up * 0.74), V(10.2)); G.rotate(sd > 0 ? Math.PI / 2 : -Math.PI / 2); G.scale(pxs / pxr, 1);
+      G.fillStyle = G === g ? '#c4161c' : '#2a0606'; G.textAlign = 'center'; G.textBaseline = 'middle';
+      G.font = `${(1.0 * pxr) | 0}px ${FONT}`; G.fillText(AIR_TEXT.line, 0, 0, 7 * pxr);
+      G.restore();
+      G.save(); G.translate(U(mid + up * 0.66), V(19.6)); G.rotate(sd > 0 ? Math.PI / 2 : -Math.PI / 2); G.scale(pxs / pxr, 1);
+      G.fillStyle = G === g ? '#1a1a22' : '#000'; G.textAlign = 'center'; G.textBaseline = 'middle';
+      G.font = `${(0.62 * pxr) | 0}px ${FONT}`; G.fillText(AIR_TEXT.lineE, 0, 0, 9 * pxr);
+      G.restore();
+    }
+  }
+  // the radome
+  g.fillStyle = '#5a5e66'; g.fillRect(0, 0, W2, V(0.5));
+  // panel seams
+  g.fillStyle = 'rgba(120,124,132,.25)'; for (const s of [6, 12, 18, 24, 30, 36]) g.fillRect(0, V(s), W2, 2);
+  grain(g, W2, H2, 8, 0);
+  return { map: ctex(c), em: ctex(ec) };
+}
+// its fin: deep red, the line's mark in white (a ring round 爆), its tip and its root darker. u along its root chord (0 at its leading
+// edge), v up it; drawn wider than high so the ring reads round on the fin
+function makeFinTex() {
+  const [c, g] = canvas(256, 256);
+  const gr = g.createLinearGradient(0, 256, 0, 0); gr.addColorStop(0, '#7a0a10'); gr.addColorStop(0.15, '#b8141c'); gr.addColorStop(1, '#d01c22');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  g.save(); g.translate(170, 118); g.scale(1, 1.38);
+  g.strokeStyle = '#ffffff'; g.lineWidth = 9; g.beginPath(); g.arc(0, 0, 50, 0, 7); g.stroke();
+  g.fillStyle = '#ffffff'; g.font = `64px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(AIR_TEXT.fin, 0, 4);
+  g.restore();
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 256, 6);
+  grain(g, 256, 256, 8, 0);
+  return ctex(c);
+}
+// a quad with its own four uvs
+function quadUV(B, a, b, c, d, uv, col) {
+  _e1.subVectors(b, a); _e2.subVectors(d, a); _n.crossVectors(_e1, _e2).normalize();
+  const pts = [a, b, c, d];
+  for (let i = 0; i < 4; i++) { B.p.push(pts[i].x, pts[i].y, pts[i].z); B.n.push(_n.x, _n.y, _n.z); B.uv.push(uv[i * 2], uv[i * 2 + 1]); B.c.push(col.r, col.g, col.b); }
+  const v = B.v; B.ix.push(v, v + 1, v + 2, v, v + 2, v + 3); B.v += 4;
+}
+// a slab between two quads (top a0..a3, bottom b0..b3, in the same order): its six faces turned out, whichever way round they came
+const _hC = new THREE.Vector3(), _hF = new THREE.Vector3(), _hN = new THREE.Vector3(), _hA = new THREE.Vector3(), _hB = new THREE.Vector3();
+function hull8(B, P, col, skip = '') {
+  _hC.set(0, 0, 0); for (const p of P) _hC.add(p); _hC.multiplyScalar(1 / 8);
+  const F = [[0, 1, 2, 3], [7, 6, 5, 4], [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0]];
+  F.forEach((f, i) => {
+    if (skip.includes(String(i))) return;
+    let [a, b, c, d] = f.map(k => P[k]);
+    _hF.copy(a).add(b).add(c).add(d).multiplyScalar(0.25).sub(_hC);
+    _hN.crossVectors(_hA.subVectors(b, a), _hB.subVectors(d, a));
+    if (_hN.dot(_hF) < 0) [b, d] = [d, b];
+    B.quad(a, b, c, d, [0, 0, 1, 1], col);
+  });
+}
+// a body of revolution from rings [s, r, dy], from s0 to s1, round its axis in the jet's frame (three.js: x out to its left, y
+// up, -s along): u round it from the top over its right side, v down its length; normals smooth. Closed at s1 (or s0) by a cap
+function jetTube(B, s0, s1, col, seg = 30) {
+  const at = s => {
+    for (let i = 1; i < JET_PROF.length; i++) if (s <= JET_PROF[i][0]) { const a = JET_PROF[i - 1], b = JET_PROF[i], u = (s - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; }
+    const l = JET_PROF[JET_PROF.length - 1]; return [l[1], l[2]];
+  };
+  const ss = [s0, ...JET_PROF.map(p => p[0]).filter(s => s > s0 + 0.05 && s < s1 - 0.05), s1], base = B.v;
+  for (const s of ss) {
+    const [r, dy] = at(s), dr = (at(Math.min(JET.L, s + 0.25))[0] - at(Math.max(0, s - 0.25))[0]) / 0.5;
+    for (let i = 0; i <= seg; i++) {
+      const f = i / seg * Math.PI * 2, sx = -Math.sin(f), cy = Math.cos(f), k = 1 / Math.hypot(1, dr);
+      B.p.push(sx * r, JET.HC + dy + cy * r, -s); B.n.push(sx * k, cy * k, dr * k); B.uv.push(i / seg, 1 - s / JET.L); B.c.push(col.r, col.g, col.b);
+    }
+  }
+  for (let j = 0; j < ss.length - 1; j++) for (let i = 0; i < seg; i++) {
+    const a = base + j * (seg + 1) + i, b = a + 1, c = a + seg + 1, d = c + 1;
+    B.ix.push(a, c, b, b, c, d);
+  }
+  B.v += ss.length * (seg + 1);
+}
+// the cut end of a section: a dark disc across the fuselage at s, facing back (dir 1) or forward (-1)
+function jetCap(B, s, dir, col) {
+  const r = JET.R * 0.98, cy = JET.HC, n = 20, base = B.v;
+  B.p.push(0, cy, -s); B.n.push(0, 0, -dir); B.uv.push(0, 0); B.c.push(col.r, col.g, col.b);
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; B.p.push(Math.cos(a) * r, cy + Math.sin(a) * r, -s); B.n.push(0, 0, -dir); B.uv.push(0, 0); B.c.push(col.r, col.g, col.b); }
+  for (let i = 0; i < n; i++) { const a = base + 1 + i, b = base + 1 + (i + 1) % n; if (dir > 0) B.ix.push(base, b, a); else B.ix.push(base, a, b); }
+  B.v += n + 1;
+}
+// the hump: its ellipsoid, all of it white (its uvs pinned to the top of the fuselage's paint), the cockpit's windows across its
+// front, the upper deck's windows down its sides
+function jetHump(B, L, skinCol) {
+  const g = new THREE.SphereGeometry(1, 24, 14);
+  g.scale(HUMP.c, HUMP.b, HUMP.a); g.translate(0, JET.HC + HUMP.y, -HUMP.s);
+  const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, 0.005, 1 - 8 / JET.L);
+  B.geom(g, skinCol);
+  const hw = (s, y) => { const k2 = 1 - ((s - HUMP.s) / HUMP.a) ** 2; if (k2 <= 0) return 0; const k = Math.sqrt(k2), h = HUMP.b * k, dy = y - JET.HC - HUMP.y; return HUMP.c * k * Math.sqrt(Math.max(0, 1 - (dy / h) ** 2)); };
+  // the cockpit: four panes across the front of the hump, raked back, the panel's glow in them
+  for (let k = 0; k < 4; k++) {
+    const x0 = -0.92 + k * 0.47, x1 = x0 + 0.42, ya = JET.HC + 1.6, yb = JET.HC + 1.96, sa = 2.95, sb = 3.55;
+    L.quad(P3(x0, ya, -sa + 0.03), P3(x1, ya, -sa + 0.03), P3(x1 * 0.92, yb, -sb + 0.03), P3(x0 * 0.92, yb, -sb + 0.03), [0, 0, 1, 1], col(0x5ab8b0, 0.55));
+  }
+  // the upper deck's windows
+  for (let s = 4.6; s < 11.6; s += 0.5) for (const sd of [-1, 1]) {
+    const y = JET.HC + 1.9, x = hw(s, y) + 0.03;
+    if (x < 0.5 || Math.random() < 0.15) continue;
+    L.box(sd * x - 0.02, y - 0.1, -s - 0.1, sd * x + 0.02, y + 0.1, -s + 0.1, col(0xffe0b0, 1.4), sd > 0 ? 'px' : 'nx');
+  }
+}
+// a wing out to one side (sd 1: its left, ours on the right): a slab swept back from the root at the fuselage to the tip, thinner
+// out there, raised a little (dihedral); a winglet up at its tip; the pylons down to its engines
+function jetWing(B, sd, colTop) {
+  const [rx, rs, rc, ry] = JET.root, [tx, ts, tc, ty] = JET.tip, rt = 0.3, tt = 0.1;
+  const P = [P3(sd * rx, ry + rt * 0.7, -rs), P3(sd * rx, ry + rt * 0.4, -(rs + rc)), P3(sd * tx, ty + tt * 0.5, -(ts + tc)), P3(sd * tx, ty + tt * 0.7, -ts),
+    P3(sd * rx, ry - rt * 0.5, -rs), P3(sd * rx, ry - rt * 0.4, -(rs + rc)), P3(sd * tx, ty - tt * 0.4, -(ts + tc)), P3(sd * tx, ty - tt * 0.5, -ts)];
+  hull8(B, P, colTop);
+  // the winglet
+  const w = [P3(sd * tx, ty, -ts - 0.4), P3(sd * tx, ty, -(ts + tc)), P3(sd * (tx + 0.45), ty + 1.7, -(ts + tc + 0.5)), P3(sd * (tx + 0.42), ty + 1.7, -(ts + tc - 0.5))];
+  hull8(B, [...w.map(p => p.clone().add(P3(0.05, 0, 0))), ...w.map(p => p.clone().add(P3(-0.05, 0, 0)))], colTop);
+  // pylons
+  for (const [ex, es, eh] of JET.eng) {
+    if (Math.sign(ex) !== sd) continue;
+    const u = (Math.abs(ex) - rx) / (tx - rx), wy = ry + (ty - ry) * u, le = rs + (ts - rs) * u;
+    B.box(ex - 0.12, eh + JET.engR - 0.1, -(le + 1.6), ex + 0.12, wy, -(es - 0.6), col(0xb8bcc4), 'px nx pz ny');
+  }
+}
+// an engine round its own middle, along z (its intake toward +z): the nacelle, its lip, the fan's face dark behind it with the
+// spinner, the exhaust cone out of the back
+function jetEngineGeo() {
+  const B = new GeoBuf(), L = JET.engL, R = JET.engR;
+  const n = new THREE.CylinderGeometry(R, R * 0.8, L, 20, 1, true); n.rotateX(Math.PI / 2); B.geom(n, col(0xe4e6ea));
+  const lip = new THREE.TorusGeometry(R - 0.05, 0.08, 6, 20); lip.translate(0, 0, L / 2); B.geom(lip, col(0xb4b8c0));
+  const fan = new THREE.CircleGeometry(R - 0.08, 20); fan.translate(0, 0, L / 2 - 0.25); B.geom(fan, col(0x1c1e24));
+  const sp = new THREE.ConeGeometry(0.24, 0.45, 12); sp.rotateX(Math.PI / 2); sp.translate(0, 0, L / 2 - 0.05); B.geom(sp, col(0xd0d4dc));
+  const ex = new THREE.ConeGeometry(R * 0.55, 1.0, 14); ex.rotateX(-Math.PI / 2); ex.translate(0, 0, -L / 2 - 0.45); B.geom(ex, col(0x4a4c52));
+  const back = new THREE.CircleGeometry(R * 0.8, 20); back.rotateY(Math.PI); back.translate(0, 0, -L / 2); B.geom(back, col(0x2a2c30));
+  return B;
+}
+// a cone of light from a to b (in the frame of buf), its base r wide
+function lightCone(buf, a, b, r0, r1, c) {
+  const dir = b.clone().sub(a), L = dir.length(), cg = new THREE.CylinderGeometry(r0, r1, L, 16, 1, true);
+  cg.translate(0, -L / 2, 0);
+  cg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(P3(0, -1, 0), dir.normalize()));
+  cg.translate(a.x, a.y, a.z);
+  buf.geom(cg, c);
+}
+const AIR_KEYS = ['road', 'walk', 'apron', 'term', 'hang', 'sign', 'name', 'prop', 'far', 'lampFar', 'dark', 'conc', 'lamp', 'wire', 'fsign', 'glow', 'cone'];
+let air = null;
+function buildAir(root) {
+  const road = makeAirRoadTex(), walkT = makeAirWalkTex(), apronT = makeAirApronTex(), termT = makeTermTex(), hangT = makeHangarTex();
+  const signT = makeAirSignTex(), nameT = makeAirNameTex();
+  const M = {
+    road: new THREE.MeshStandardMaterial({ map: road.map, roughnessMap: road.rough, roughness: 1, metalness: 0, envMap, envMapIntensity: 0.4 }),
+    walk: new THREE.MeshStandardMaterial({ map: walkT, roughness: 0.9, envMap, envMapIntensity: 0.25 }),
+    apron: new THREE.MeshLambertMaterial({ map: apronT }),
+    term: lessFog(new THREE.MeshLambertMaterial({ map: termT.map, emissiveMap: termT.em, emissive: 0xffffff, emissiveIntensity: 1.5, vertexColors: true }), 0.6),
+    hang: lessFog(new THREE.MeshLambertMaterial({ map: hangT.map, emissiveMap: hangT.em, emissive: 0xffffff, emissiveIntensity: 1.4, vertexColors: true }), 0.6),
+    sign: new THREE.MeshBasicMaterial({ map: signT, color: col(0xffffff, 1.6) }),
+    name: lessFog(new THREE.MeshBasicMaterial({ map: nameT, color: col(0xffffff, 1.8) }), 0.4),
+    prop: new THREE.MeshLambertMaterial({ vertexColors: true }),
+    far: lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.16, 0.45),
+    lampFar: lessFog(new THREE.MeshBasicMaterial({ vertexColors: true }), 0.12),
+    jet: lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.3, 0.3),
+    dark: MAT.dark, conc: MAT.conc, lamp: MAT.lamp, wire: MAT.wire, fsign: MAT.fsign, glow: MAT.glow, cone: MAT.cone,
+  };
+  const B = {}, ZEND = 148;
+  for (const k of AIR_KEYS) B[k] = new GeoBuf();
+  // the apron, the taxiway down the middle of it, its shoulders
+  B.apron.quad(P3(-70, -0.01, 4), P3(70, -0.01, 4), P3(70, -0.01, -ZEND - 4), P3(-70, -0.01, -ZEND - 4), [0, 0, 140 / 8, (ZEND + 8) / 8], WHITE);
+  B.road.quad(P3(-ROAD, 0, 4), P3(ROAD, 0, 4), P3(ROAD, 0, -ZEND), P3(-ROAD, 0, -ZEND), [0, -4 / 16, 1, ZEND / 16], WHITE);
+  const XO = WALK + 0.9;
+  for (const s of [-1, 1]) {
+    const x0 = s > 0 ? ROAD : -XO, x1 = s > 0 ? XO : -ROAD;
+    B.walk.quad(P3(x0, 0.004, 4), P3(x1, 0.004, 4), P3(x1, 0.004, -ZEND), P3(x0, 0.004, -ZEND), s > 0 ? [0, -0.5, 1, ZEND / 8] : [1, -0.5, 0, ZEND / 8], WHITE);
+  }
+  // the taxiway's lights: green ones let into its centre line every 8 m, blue ones on stalks down both edges every 6 m
+  for (let d = 12; d < ZEND; d += 8) {
+    B.lamp.box(-0.09, 0.004, -d - 0.07, 0.09, 0.03, -d + 0.07, col(0x30ff68, 5), 'py pz');
+    B.glow.flat(0, 0.013, -d, 0.7, 1.5, 0, col(0x30ff70, 0.32));
+  }
+  for (const s of [-1, 1]) for (let d = s < 0 ? 7 : 10; d < ZEND; d += 6) {
+    const x = s * (ROAD + 0.38), z = -d;
+    B.dark.box(x - 0.025, 0, z - 0.025, x + 0.025, 0.3, z + 0.025, col(0x8a90a0), 'pz px nx');
+    B.lamp.box(x - 0.07, 0.3, z - 0.07, x + 0.07, 0.44, z + 0.07, col(0x2a4cff, 6), 'pz px nx py');
+    B.glow.flat(x, 0.012, z, 1.1, 1.1, 0, col(0x2a48ff, 0.45));
+  }
+  // the terminal down the left (glass to the taxiway, boarding bridges out over the shoulder), the hangars and the cargo sheds down
+  // the right. The near ones, in rocket reach, get meshes of their own so each can come down alone
+  const ownBufs = () => ({ term: new GeoBuf(), hang: new GeoBuf(), dark: new GeoBuf(), lamp: new GeoBuf(), glow: new GeoBuf(), name: new GeoBuf() });
+  // the buildings stop short of the jet (AIR_OPEN): past them the apron opens out, so the jet shows whole, wings and engines
+  const bridges = [26, 44];
+  for (const side of [-1, 1]) {
+    let d = 1.2, n = 0;
+    while (d < AIR_OPEN - 6) {
+      const hang = side > 0 && n % 2 === 0, len = Math.min(AIR_OPEN - d, side < 0 ? rand(13, 18) : hang ? rand(18, 24) : rand(12, 16));
+      const hgt = side < 0 ? rand(10.5, 12.5) : hang ? rand(13.5, 16) : rand(8.5, 9.5), xf = WALK + (side < 0 ? rand(0.2, 0.45) : rand(0.4, 1.1)), depth = 16;
+      const X0 = side > 0 ? xf : -xf - depth, X1 = side > 0 ? xf + depth : -xf, Z0 = -(d + len), Z1 = -d;
+      const tint = side < 0 ? col(0xdfe4ee).multiplyScalar(rand(0.85, 1)) : hang ? col(0xc8ccd8).multiplyScalar(rand(0.85, 1)) : col(0xc8d4cc).multiplyScalar(rand(0.85, 1));
+      const own = d < BLAST_REACH && d + len > 12 ? ownBufs() : null, T = own || B;
+      const u0 = rand(0, 1);
+      if (side < 0) T.term.box(X0, 0, Z0, X1, hgt, Z1, tint, 'px pz', (f, w) => [u0, 0, u0 + w / 16, 1]);
+      else if (hang) T.hang.box(X0, 0, Z0, X1, hgt, Z1, tint, 'nx pz', f => f === 'nx' ? [0, 0.5, 1, 1] : [0.1, 0.5, 0.3, 1]);
+      else T.hang.box(X0, 0, Z0, X1, hgt, Z1, tint, 'nx pz', (f, w) => [u0, 0, u0 + w / 16, 0.5]);
+      // the light the open doors and the glass throw on the shoulder
+      if (side < 0) T.glow.flat(-xf + 1.4, 0.016, -(d + len / 2), 2.8, len * 0.9, 0, col(0x9ab0e0, 0.28));
+      else T.glow.flat(xf - 1.6, 0.016, -(d + len / 2), 3.2, len * 0.5, 0, col(0xffd8a0, 0.3));
+      // a boarding bridge out from the terminal: its tunnel on legs, the bellows at its end, a lamp under it
+      for (const bz of bridges) if (side < 0 && bz > d + 2 && bz < d + len - 2) {
+        const xa = -xf, xb = -(ROAD + 1.1), z = -bz;
+        T.dark.box(xa, 4.1, z - 1.3, xb, 6.5, z + 1.3, col(0x9aa2b0), 'pz nz py ny');
+        T.dark.box(xb - 0.5, 4.0, z - 1.5, xb, 6.6, z + 1.5, col(0x2a2c30), 'pz px nz ny py');
+        for (let x = xa + 1.2; x < xb - 0.3; x += 1.4) T.dark.box(x, 6.5, z - 1.31, x + 0.08, 6.51, z + 1.31, col(0x5a6070), 'py');
+        T.lamp.box(xb - 1.6, 5.0, z + 1.3, xb - 0.7, 5.7, z + 1.31, col(0xffe8c0, 1.6), 'pz');
+        for (const lz of [z - 0.9, z + 0.9]) T.dark.box(xb - 1.2, 0, lz - 0.1, xb - 1.0, 4.1, lz + 0.1, col(0x6a7080), 'pz px nx');
+        T.dark.box(xb - 1.5, 0, z - 1.3, xb - 0.7, 0.5, z + 1.3, col(0x2a2c32), 'pz px nx py');
+        T.lamp.box(xb - 1.4, 3.98, z - 0.3, xb - 0.8, 4.08, z + 0.3, col(0xffe0b0, 5), 'ny');
+        T.glow.flat(xb - 0.6, 0.017, z, 3.4, 3.4, 0, col(0xffd8a0, 0.4));
+      }
+      city.blocks.push({ side, x: side * xf, xf, depth, z0: d, z1: d + len, h: hgt, tint, own });
+      d += len + (side > 0 && Math.random() < 0.3 ? rand(1.5, 3) : rand(0.3, 0.8));
+      n++;
+    }
+  }
+  // the airport's name down a blade sign at the far end of the terminal, facing down the taxiway (it comes down with its block)
+  {
+    const lb = city.blocks.filter(b => b.side < 0).reduce((a, b) => b.z1 > a.z1 ? b : a), T = lb.own || B;
+    const x0 = -lb.xf, x1 = x0 + 1.3, zc = -(lb.z1 - 2.4), y0 = 2.4, y1 = 7.4;
+    T.name.box(x0, y0, zc - 0.15, x1, y1, zc + 0.15, WHITE, 'pz', () => [0, 0, 1, 1]);
+    T.dark.box(x0 - 0.02, y0 - 0.05, zc - 0.17, x1 + 0.04, y1 + 0.05, zc - 0.15, col(0x1a1c24), 'px nz py ny');
+    for (const y of [y0 + 0.8, y1 - 0.8]) T.dark.box(x0, y - 0.06, zc - 0.05, x0 + 0.02, y + 0.06, zc + 0.05, col(0x5a5e66), 'pz');
+    T.glow.flat(x0 + 1.2, 0.018, zc + 1.2, 3.2, 4, 0, col(0x9ab0ff, 0.3));
+  }
+  // the signs along the edges, lit, on their legs
+  for (const [s, d, k] of [[1, 27, 0], [-1, 47, 1], [1, 68, 3], [-1, 104, 2], [1, 124, 1]]) {
+    const x = s * (ROAD + 1.5), z = -d;
+    B.sign.box(x - 0.85, 0.3, z - 0.12, x + 0.85, 1.15, z + 0.12, WHITE, 'pz', () => AIR_SIGN[k]);
+    B.dark.box(x - 0.86, 0.3, z - 0.14, x + 0.86, 1.16, z - 0.12, col(0x1a1a1e), 'nz px nx py');
+    for (const lx of [x - 0.6, x + 0.6]) B.dark.box(lx - 0.04, 0, z - 0.04, lx + 0.04, 0.3, z + 0.04, col(0x5a5e66), 'pz px nx');
+    B.glow.flat(x, 0.015, z + 1, 2.4, 2.2, 0, k === 2 ? col(0xff4030, 0.3) : col(0xffd040, 0.3));
+  }
+  airProps(B);
+  airApron(B);
+  airFar(B);
+  buildBarricade(B);
+  for (const k of AIR_KEYS) if (B[k].v) B[k].mesh(M[k], k === 'glow' ? 3 : k === 'cone' ? 4 : 0, root);
+  for (const b of city.blocks) {
+    if (!b.own) continue;
+    b.group = new THREE.Group(); root.add(b.group);
+    for (const k of ['term', 'hang', 'dark', 'lamp', 'name']) if (b.own[k].v) b.own[k].mesh(M[k] || MAT[k], 0, b.group);
+    if (b.own.glow.v) b.own.glow.mesh(MAT.glow, 3, b.group);
+    delete b.own;
+    b.hp = b.max = b.h > 12 ? 4 : 3;
+  }
+  air = { root, M, ...buildJet(root, M) };
+  resetAir();
+}
+// along the shoulders: the floodlight masts over the apron (their beams in the haze, their pools on the taxiway), a windsock lit
+// from under it, a tug with its train of baggage carts, cones
+function airProps(B) {
+  for (const [s, d] of [[1, 34], [-1, 50]]) {
+    const x = s * (WALK - 0.25), z = -d, top = 22;
+    B.dark.box(x - 0.18, 0, z - 0.18, x + 0.18, top, z + 0.18, col(0x6a7078), 'pz px nx');
+    B.dark.box(x - 1.2, top, z - 0.6, x + 1.2, top + 0.3, z + 0.6, col(0x4a5058), 'pz py ny px nx');
+    for (const ox of [-0.8, -0.27, 0.27, 0.8]) B.lamp.box(x + ox - 0.2, top - 0.1, z + 0.2, x + ox + 0.2, top + 0.02, z + 0.6, col(0xfff0d8, 7), 'ny pz');
+    for (const [tx, tz] of [[s * 0.6, d - 8], [s * -1.6, d + 5]]) lightCone(B.cone, P3(x, top - 0.1, z), P3(tx, 0, -tz), 0.5, 5, col(0xffeedd, 0.028));
+    B.glow.flat(s * 1.0, 0.015, -(d - 6), 11, 17, 0, col(0xffe8c8, 0.34));
+  }
+  // the windsock, out on the apron on the right past the hangars
+  {
+    const x = 9.6, z = -70, top = 5.2;
+    B.dark.box(x - 0.06, 0, z - 0.06, x + 0.06, top, z + 0.06, col(0xc8ccd4), 'pz px nx');
+    for (let k = 0; k < 5; k++) {
+      const r0 = 0.5 - k * 0.07, r1 = r0 - 0.07, len = 0.62, x0 = x - 0.1 - k * len;
+      const g = new THREE.CylinderGeometry(r1, r0, len, 12, 1, true); g.rotateZ(Math.PI / 2); g.translate(x0 - len / 2, top - 0.3 - k * 0.12, z);
+      B.prop.geom(g, k % 2 ? col(0xf4f4f0) : col(0xff6a1a));
+    }
+    B.lamp.box(x - 0.2, 0.05, z - 0.2, x + 0.2, 0.25, z + 0.2, col(0xffe8c0, 3), 'py pz');
+    lightCone(B.cone, P3(x, 0.3, z), P3(x - 1.4, top, z), 0.12, 0.9, col(0xffe8c0, 0.05));
+  }
+  // a tug and its baggage carts by the terminal, bags piled on them, past the near stretch
+  {
+    const x = -(ROAD + 1.75), z0 = -36;
+    B.prop.box(x - 0.7, 0.25, z0 - 1.4, x + 0.7, 1.1, z0, col(0xe8c020), 'pz px nx py');
+    B.prop.box(x - 0.6, 1.1, z0 - 1.3, x + 0.6, 1.9, z0 - 0.6, col(0x2a2c30), 'pz px nx py');
+    for (let k = 0; k < 3; k++) {
+      const za = z0 - 1.8 - k * 2.6, zb = za - 2.2;
+      B.prop.box(x - 0.75, 0.35, zb, x + 0.75, 0.5, za, col(0x8a8e96), 'pz px nx py');
+      for (let i = 0; i < 6; i++) {
+        const bx = x + rand(-0.6, 0.35), bz = za - rand(0.2, 1.7), w = rand(0.35, 0.55), h = rand(0.5, 0.75);
+        B.prop.box(bx, 0.5, bz - 0.25, bx + w, 0.5 + h, bz, col(pick([0xc81e2a, 0x2a4ab8, 0x2a2a2e, 0xd8b020, 0x3a8a4a, 0x8a5a3a, 0xe0e0e8])), 'pz px nx py');
+      }
+      for (const wz of [za - 0.3, zb + 0.3]) for (const sd of [-1, 1]) B.dark.box(x + sd * 0.72 - 0.06, 0, wz - 0.18, x + sd * 0.72 + 0.06, 0.36, wz + 0.18, col(0x1a1a1e), sd > 0 ? 'px pz' : 'nx pz');
+    }
+    B.lamp.box(x - 0.55, 0.7, z0 + 0.001, x - 0.35, 0.85, z0 + 0.01, col(0xffe8c0, 4), 'pz');
+    B.lamp.box(x + 0.35, 0.7, z0 + 0.001, x + 0.55, 0.85, z0 + 0.01, col(0xffe8c0, 4), 'pz');
+    B.lamp.box(x - 0.1, 1.9, z0 - 1.0, x + 0.1, 2.05, z0 - 0.8, col(0xffa020, 5), 'pz py');
+  }
+  for (const [x, d] of [[ROAD + 0.9, 18], [ROAD + 1.0, 19.4], [-(ROAD + 0.9), 52], [ROAD + 1.1, 88]]) {
+    const g = new THREE.ConeGeometry(0.17, 0.62, 10); g.translate(x, 0.31, -d); B.prop.geom(g, col(0xff6a1a));
+    B.prop.box(x - 0.2, 0, -d - 0.2, x + 0.2, 0.04, -d + 0.2, col(0x1a1a1e), 'py pz');
+  }
+}
+// the apron round the jet, past the end of the buildings: its stop bar in red across the taxiway, the lead-in lines to the
+// stands, three floodlight masts out on it lighting the jet, the pier of the far gates down the left with its glass lit, a
+// maintenance hangar with its doors open on the right
+function airApron(B) {
+  for (let x = -3.6; x <= 3.61; x += 0.9) {
+    B.lamp.box(x - 0.12, 0.004, -70.06, x + 0.12, 0.05, -69.94, col(0xff2010, 6), 'py pz');
+    B.glow.flat(x, 0.014, -70, 0.9, 0.9, 0, col(0xff2a1a, 0.5));
+  }
+  const line = (x0, z0, x1, z1) => { const L = Math.hypot(x1 - x0, z1 - z0); B.prop.geom(new THREE.PlaneGeometry(0.18, L).rotateX(-Math.PI / 2).rotateY(-Math.atan2(x1 - x0, z1 - z0)).translate((x0 + x1) / 2, 0.006, -(z0 + z1) / 2), col(0xc8a020)); };
+  line(0, 66, -16, 88); line(-16, 88, -24, 118); line(0, 68, 18, 92); line(18, 92, 26, 124); line(-ROAD - 0.6, 64, -40, 74); line(ROAD + 0.6, 64, 44, 70);
+  for (const [x, d] of [[-16, 80], [20, 90], [-29, 104]]) {
+    const z = -d, top = 25, s = Math.sign(x);
+    B.dark.box(x - 0.25, 0, z - 0.25, x + 0.25, top, z + 0.25, col(0x6a7078), 'pz px nx');
+    B.dark.box(x - 1.6, top, z - 0.7, x + 1.6, top + 0.35, z + 0.7, col(0x4a5058), 'pz py ny px nx');
+    for (const ox of [-1.1, -0.37, 0.37, 1.1]) B.lamp.box(x + ox - 0.25, top - 0.12, z - 0.5, x + ox + 0.25, top + 0.02, z + 0.5, col(0xfff0d8, 7), 'ny pz');
+    for (const [lx, ss] of [[-s * 6, 16], [-s * 2, 26]]) { const t = jetAt(lx, 0, ss); lightCone(B.cone, P3(x, top - 0.1, z), P3(t.x, 0, -t.z), 0.6, 7, col(0xffeedd, 0.024)); }
+    B.glow.flat(x * 0.45, 0.015, -(d + 6), 16, 20, 0, col(0xffe8c8, 0.22));
+    B.lampFar.box(x - 0.2, top + 0.35, z - 0.2, x + 0.2, top + 0.7, z + 0.2, col(0xff2010, 5), 'pz px nx');
+  }
+  // the pier: its glass to the apron, lit, the gates' numbers over it; the far jets' fins stand at it (airFar)
+  B.term.box(-64, 0, -150, -34, 9, -92, col(0xd4dae6), 'px pz', (f, w) => [0.2, 0, 0.2 + w / 16, 1]);
+  B.dark.box(-64.5, 9, -150.5, -33.6, 9.6, -91.6, col(0x3a3e48), 'px pz py');
+  for (let z = 96; z < 148; z += 9) B.lampFar.box(-33.95, 7.4, -z - 1.6, -33.9, 8.2, -z + 1.6, col(0xffd040, 2.2), 'px');
+  // the maintenance hangar: its doors open on the bay, lit
+  B.hang.box(34, 0, -146, 64, 19, -104, col(0xc8ccd8), 'nx pz', f => f === 'nx' ? [0, 0.5, 1, 1] : [0.1, 0.5, 0.3, 1]);
+  B.glow.flat(30, 0.016, -125, 10, 30, 0, col(0xffd8a0, 0.3));
+}
+// the far end: the grass, the runway across it with its rows of lights, the approach lights off to the left, the apron's lights
+// beyond it, the control tower, the tails of jets at the far gates
+function airFar(B) {
+  const ZR = 158, RW = 9;
+  B.far.quad(P3(-400, -0.03, -ZEND_AIR - 4), P3(400, -0.03, -ZEND_AIR - 4), P3(400, -0.03, -420), P3(-400, -0.03, -420), [0, 0, 1, 1], col(0x0e1410));
+  B.far.quad(P3(-400, 0.08, -(ZR - RW)), P3(400, 0.08, -(ZR - RW)), P3(400, 0.08, -(ZR + RW)), P3(-400, 0.08, -(ZR + RW)), [0, 0, 1, 1], col(0x1c1d22));
+  for (let x = -200; x <= 200; x += 6) for (const z of [ZR - RW - 0.3, ZR + RW + 0.3]) B.lampFar.box(x - 0.1, 0, -z - 0.1, x + 0.1, 0.3, -z + 0.1, col(0xfff4e0, 5), 'pz py');
+  for (let x = -200; x <= 200; x += 15) B.lampFar.box(x - 0.08, 0, -ZR - 0.08, x + 0.08, 0.06, -ZR + 0.08, col(0xffffff, 3), 'pz py');
+  for (let x = -6; x <= 6; x += 1.5) B.lampFar.box(x - 0.1, 0, -(ZR - RW - 1.2) - 0.1, x + 0.1, 0.25, -(ZR - RW - 1.2) + 0.1, col(0xffc820, 5), 'pz py');
+  // the far apron's lights and the city's glow over the bay
+  for (let i = 0; i < 70; i++) { const x = rand(-260, 260), y = rand(0.3, 8), z = -rand(200, 320), w = rand(0.3, 1.2); B.lampFar.box(x, y, z, x + w, y + rand(0.3, 1), z + 0.1, pick([col(0xffd8a0, 4), col(0xdfe8ff, 4), col(0xff3020, 3)]), 'pz'); }
+  for (const [x, z, h] of [[-46, 176, 30], [64, 206, 22]]) {
+    // a tower: its shaft, the cab with its green glass lit, a red lamp on top
+    if (h < 25) { B.far.box(x - 3, 0, -z - 3, x + 3, h, -z + 3, col(0x4a4c58), 'pz px nx'); continue; }
+    B.far.box(x - 1.6, 0, -z - 1.6, x + 1.6, h - 5, -z + 1.6, col(0x8a8c98), 'pz px nx');
+    B.far.box(x - 3.2, h - 5, -z - 3.2, x + 3.2, h - 4.4, -z + 3.2, col(0x5a5c66), 'pz px nx py ny');
+    B.lampFar.box(x - 3.0, h - 4.4, -z + 3.0, x + 3.0, h - 1.4, -z + 3.05, col(0x6af0b0, 1.6), 'pz');
+    B.far.box(x - 3.4, h - 1.4, -z - 3.4, x + 3.4, h - 0.8, -z + 3.4, col(0x3a3c44), 'pz px nx py ny');
+    B.lampFar.box(x - 0.2, h - 0.8, -z - 0.2, x + 0.2, h + 0.6, -z + 0.2, col(0xff2010, 6), 'pz px nx');
+  }
+  // tails at the far gates, out past the terminal: their fins, lit
+  for (const [x, z, k] of [[-30, 132, 0], [-38, 152, 1], [-26, 186, 0], [34, 190, 1]]) {
+    const c = k ? col(0x2a5ab8) : col(0xc81a20);
+    hull8(B.far, [P3(x, 4, -z), P3(x, 4, -z - 7), P3(x, 10.5, -z - 6.6), P3(x, 10.5, -z - 4.4), P3(x + 0.2, 4, -z), P3(x + 0.2, 4, -z - 7), P3(x + 0.2, 10.5, -z - 6.6), P3(x + 0.2, 10.5, -z - 4.4)].map(p => p), c);
+    B.far.box(x - 1.6, 1.2, -z - 8, x + 1.8, 4.4, -z + 6, col(0xd8dce4), 'pz px nx py');
+    B.lampFar.box(x - 0.05, 10.5, -z - 6.0, x + 0.25, 10.8, -z - 5.4, col(0xff2010, 4), 'pz py');
+  }
+}
+const ZEND_AIR = 148, AIR_OPEN = 64;
+// the jet as it stands: its body (the fuselage from where the nose breaks off back to its tail, the tailplane, the main gear) in
+// one group with its two wings and its fin, each on a hinge of its own; the nose section (the nose and the hump, the cockpit, the
+// nose gear with its taxi lights) in a group of its own, and each engine its own mesh, all three kinds placed in the game's space
+// so they can fly off it (76-air.js)
+function buildJet(root, M) {
+  const jetT = makeJetTex(), finT = makeFinTex();
+  // the body and the nose section each have their own skin: the body chars when its tank goes, the nose comes at us white
+  const mkSkin = () => lessFog(new THREE.MeshLambertMaterial({ map: jetT.map, emissiveMap: jetT.em, emissive: 0xffffff, emissiveIntensity: 1.3 }), 0.3, 0.3);
+  const skin = mkSkin(), noseSkin = mkSkin();
+  const fin = lessFog(new THREE.MeshLambertMaterial({ map: finT }), 0.3, 0.55);
+  const WHITEJ = col(0xffffff), GREY = col(0xd4d8e0), DARK = col(0x2a2c32), CHAR = col(0x1a1416);
+  const g = new THREE.Group(); g.position.set(JET.x, 0, -JET.z); g.rotation.y = -JET.yaw; root.add(g);
+  // the body
+  const Bb = new GeoBuf(), Bt = new GeoBuf();
+  jetTube(Bb, JET.cut, JET.L, WHITEJ); jetCap(Bb, JET.cut, -1, CHAR);
+  for (const sd of [-1, 1]) hull8(Bt, [P3(sd * 0.8, 5.05, -37.4), P3(sd * 0.8, 4.95, -43.0), P3(sd * 8.2, 5.6, -44.2), P3(sd * 8.2, 5.65, -41.8), P3(sd * 0.8, 4.75, -37.4), P3(sd * 0.8, 4.7, -43.0), P3(sd * 8.2, 5.5, -44.2), P3(sd * 8.2, 5.52, -41.8)], GREY);
+  for (const [lx, ls] of [[-3.4, 21.4], [3.4, 21.4], [-1.3, 23.6], [1.3, 23.6]]) {
+    Bt.box(lx - 0.12, 0.45, -ls - 0.12, lx + 0.12, 2.2, -ls + 0.12, DARK, 'pz px nx');
+    for (const dz of [-0.7, 0.7]) for (const dx of [-0.32, 0.32]) { const w = new THREE.CylinderGeometry(0.48, 0.48, 0.3, 14); w.rotateZ(Math.PI / 2); w.translate(lx + dx, 0.48, -ls + dz); Bt.geom(w, col(0x141418)); }
+  }
+  const body = Bb.mesh(skin, 0, g), tail = Bt.mesh(M.jet, 0, g);
+  // the wings, hinged at their roots
+  const wings = [-1, 1].map(sd => {
+    const w = new THREE.Group(); w.position.set(sd * JET.root[0], JET.root[3], -(JET.root[1] + JET.root[2] / 2)); g.add(w);
+    const Bw = new GeoBuf(); jetWing(Bw, sd, col(0xd8dce4));
+    const m = Bw.mesh(M.jet, 0, w); m.geometry.translate(-w.position.x, -w.position.y, -w.position.z); m.geometry.computeBoundingSphere();
+    return w;
+  });
+  // the fin, hinged along its root; its faces carry the mark, the right way round on either side
+  const fg = new THREE.Group(); fg.position.set(0, 5.5, -39); g.add(fg);
+  {
+    const Bf = new GeoBuf(), Be = new GeoBuf(), y0 = 5.4, y1 = JET.finTop, sa = 34.4, sb = 43.8, ta = 40.2, tb = 43.4, t0 = 0.2, t1 = 0.08;
+    const u = s => (s - sa) / (sb - sa), F = (x, y, s) => P3(x, y - 5.5, -s + 39);
+    quadUV(Bf, F(t0, y0, sa), F(t0, y0, sb), F(t1, y1, tb), F(t1, y1, ta), [0, 0, 1, 0, u(tb), 1, u(ta), 1], WHITEJ);
+    quadUV(Bf, F(-t0, y0, sb), F(-t0, y0, sa), F(-t1, y1, ta), F(-t1, y1, tb), [1, 0, 0, 0, u(ta), 1, u(tb), 1], WHITEJ);
+    hull8(Be, [F(t1, y1, ta), F(t1, y1, tb), F(-t1, y1, tb), F(-t1, y1, ta), F(t0, y0, sa), F(t0, y0, sb), F(-t0, y0, sb), F(-t0, y0, sa)], col(0x9a1218), '24');
+    Bf.mesh(fin, 0, fg); Be.mesh(M.jet, 0, fg);
+  }
+  // the nose section, about its own middle
+  const nose = new THREE.Group(); root.add(nose);
+  const nMid = JET.cut / 2, nPiv = P3(0, JET.HC, -nMid);
+  {
+    const Bn = new GeoBuf(), Bl = new GeoBuf(), Bg = new GeoBuf(), Bc = new GeoBuf();
+    jetTube(Bn, 0, JET.cut, WHITEJ); jetCap(Bn, JET.cut, 1, CHAR); jetHump(Bn, Bl, WHITEJ);
+    // the nose gear, its taxi lights
+    Bg.box(-0.1, 0.42, -4.7, 0.1, 2.0, -4.5, DARK, 'pz px nx');
+    for (const dx of [-0.26, 0.26]) { const w = new THREE.CylinderGeometry(0.42, 0.42, 0.26, 14); w.rotateZ(Math.PI / 2); w.translate(dx, 0.42, -4.6); Bg.geom(w, col(0x141418)); }
+    for (const dx of [-0.17, 0.17]) Bl.box(dx - 0.08, 1.28, -4.42, dx + 0.08, 1.42, -4.38, col(0xffffff, 6), 'pz');
+    lightCone(Bc, P3(0, 1.35, -4.3), P3(0, 0, 9), 0.12, 2.2, col(0xfff4e0, 0.06));
+    for (const sd of [-1, 1]) lightCone(Bc, P3(sd * 2.3, 2.85, -15.6), P3(sd * 2.6, 0, 6), 0.12, 2.6, col(0xfff4e0, 0.035));
+    for (const B of [Bn, Bl, Bg, Bc]) for (let i = 0; i < B.p.length; i += 3) { B.p[i] -= nPiv.x; B.p[i + 1] -= nPiv.y; B.p[i + 2] -= nPiv.z; }
+    Bn.mesh(noseSkin, 0, nose); Bg.mesh(M.jet, 0, nose);
+    var nLamps = Bl.mesh(MAT.lamp, 0, nose), nCones = Bc.mesh(MAT.cone, 4, nose);
+  }
+  // the pool of light its taxi lights throw on the taxiway ahead of it
+  const Gp = new GeoBuf(), pp = jetAt(0, 0, -11);
+  Gp.flat(pp.x, 0.02, -pp.z, 4.4, 15, JET.yaw, col(0xfff0d8, 0.42));
+  const pool = Gp.mesh(MAT.glow, 3, root);
+  // the engines
+  // (their own material: they are off it before its tank goes, and glow hot as they fly rather than char with it)
+  const engMat = lessFog(new THREE.MeshLambertMaterial({ vertexColors: true }), 0.3, 0.3);
+  const eg = jetEngineGeo(), engs = JET.eng.map(() => { const m = eg.mesh(engMat, 0, root); m.matrixAutoUpdate = true; return m; });
+  // where its lights are, in its own frame
+  const lights = {
+    beacon: [[0, JET.HC + JET.R + 0.1, 15], [0, JET.HC - JET.R - 0.1, 17]],
+    nav: [[-(JET.tip[0] + 0.1), JET.tip[3], JET.tip[1] + 0.8, 1], [JET.tip[0] + 0.1, JET.tip[3], JET.tip[1] + 0.8, 0]],
+    strobe: [[-(JET.tip[0] + 0.1), JET.tip[3], JET.tip[1] + 1.8], [JET.tip[0] + 0.1, JET.tip[3], JET.tip[1] + 1.8], [0, JET.HC + 1.36, JET.L + 0.1]],
+    taxi: [[-0.17, 1.35, 4.35], [0.17, 1.35, 4.35]], land: [[-2.3, 2.85, 15.5], [2.3, 2.85, 15.5]], logo: [[0, 9.3, 40.8]],
+  };
+  return { g, body, tail, wings, fin: fg, nose, nMid, nLamps, nCones, pool, engs, lights, skin, noseSkin, finMat: fin, engMat, wing0: wings.map(w => w.position.clone()), fin0: fg.position.clone() };
 }
 
 // ===== 30-fx.js
@@ -8787,7 +9527,7 @@ function reset() {
   fireCD = 0; tubeRecoil = 0; bangCD = 0; thudCD = 0; firing = false;
   cannonT = 0; cannonRecoil = 0; camKick = 0; shells = [];
   pointers.clear(); endT = 0; groanT = 0.6; fin = null; over = false; moonWait = false; look.tilt = 0;
-  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetSword(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetPort(); resetSurprise();
+  resetBoss(); resetMoon(); resetBuildings(); resetStrike(); resetSpecials(); resetHappening(); resetMissions(); resetHoles(); resetRails(); resetWave(); resetFlame(); resetShock(); resetMissiles(); resetBits(); resetSword(); resetReplay(); resetPark(); resetFest(); resetHwy(); resetPort(); resetAir(); resetSurprise();
   placeCars(); seedHaze();
   aim.x = W / 2; aim.y = H * 0.55;
 }
@@ -9156,6 +9896,8 @@ const CAR_KINDS = {
   kakigori: { body: '#9ad8f0', low: '#9ad8f0', truck: 'かき氷', board: '#2a6ad8' },
   // the expressway's zombie cars, rusted and filthy (76-hwy.js)
   zcar: { body: '#5a4636', low: '#3a2c22' },
+  // the airport's follow-me car, its board black and yellow (25-air.js)
+  followme: { body: '#e8b018', low: '#e8b018', truck: 'FOLLOW ME', board: '#16161a', chk: true },
 };
 let cars = [], carRespawn = [];
 // pull the top of a box in along its length (and a little in width): a cabin with raked glass
@@ -9551,7 +10293,7 @@ function update(dt, raw) {
     finaleTick(raw);
     endT -= raw;
     if (endT <= 0) {
-      if (bossBusy() || shipBusy() || parkBusy() || festBusy() || hwyBusy() || portBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, the festival's last fireworks, the overpass or the crane and its containers coming down, get there before the results come up
+      if (bossBusy() || shipBusy() || parkBusy() || festBusy() || hwyBusy() || portBusy() || airBusy()) endT = 0.15;   // a giant on its way to the moon, an airship or the park's wheel on its way down, the festival's last fireworks, the overpass or the crane and its containers coming down, the jumbo's engines and its nose coming in, get there before the results come up
       else if (moonBroken && !moonWait && moonBreakT < 1.6) { moonWait = true; endT = 1.6 - moonBreakT; }   // and the moon is seen breaking
       else finish();
     }
@@ -9585,6 +10327,7 @@ function update(dt, raw) {
   updateFest(dt);
   updateHwy(dt);
   updatePort(dt);
+  updateAir(dt);
   updateGims(dt, raw);
   updateBuildings(dt);
   updateBoss(dt, raw);
@@ -9788,7 +10531,7 @@ function render(raw) {
   camera.updateMatrixWorld();
   aimPt.copy(aimHit(aim.x, aim.y, 0).p);
   if (weapon === 'tank') poseTank(raw); else poseGun(raw);
-  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawPort(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawSword(raw); drawMeteors(); drawParts();
+  drawZombies(); drawBoss(raw); drawChunks(); drawCars(); drawHeli(); drawPipe(); drawShip(); drawPark(raw); drawFest(raw); drawHwy(raw); drawPort(raw); drawAir(raw); drawGims(raw); ambientFx(raw); drawBuildingFx(); drawMoonFx(raw); drawJets(); drawHoles(); drawRails(raw); drawWave(raw); drawFlame(raw); drawShock(); drawMissiles(); drawBits(raw); drawSword(raw); drawMeteors(); drawParts();
   updateLights(raw);
 }
 function drawOverlay(raw = 1 / 60) {
@@ -9872,7 +10615,7 @@ async function boot() {
   }
 }
 async function bootInner() {
-  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?%+-,.~…' + CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + PORT_GLYPHS + GIM_GLYPHS + SUR_GLYPHS + missionGlyphs() + (ACH_ON ? ACH_GLYPHS : '')), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+  try { if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('40px "Dela Gothic One"', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?%+-,.~…' + CANVAS_GLYPHS + PARK_GLYPHS + FEST_GLYPHS + HWY_GLYPHS + PORT_GLYPHS + AIR_GLYPHS + GIM_GLYPHS + SUR_GLYPHS + missionGlyphs() + (ACH_ON ? ACH_GLYPHS : '')), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   buildWorld(firstStage()); initZombieMeshes(); initBoneMeshes(); buildGun(); buildHoleOrb(); buildBeamOrb(); buildTank(); buildBoss(); buildJets(); buildHappenings(); loadMissions(); loadZukan(); renderZukan(); setWeapon(weapon);
   window.addEventListener('resize', resize);
   resize(); prepBig(); reset(); prebuildLater();
@@ -9900,6 +10643,8 @@ async function bootInner() {
       st: () => hwy && { stage: stageId, over: hwy.state, hp: hwy.hp, th: +hwy.th.toFixed(3), jam: hwy.jam.map(J => J.state[0]).join(''), tank: !!hwy.tank, zc: cars.filter(c => c.zc).map(c => c.state + ':' + c.z.toFixed(1) + ':' + c.riders.filter(r => r.state === 'hang').length).join(' '), down: zcDown, plan: zcPlan.map(v => +v.toFixed(1)).join(','), big: cars.filter(c => c.big).map(c => c.kind + ':' + c.state).join(' ') } };
     window.__port = { light: () => onPort() && lightCrane(newChain(), false), empty: () => { zombies = []; },
       st: () => port && { stage: stageId, crane: port.state, hp: +port.hp.toFixed(1), th: +port.th.toFixed(3), hang: port.hang.state, rain: port.rain.map(R => R.state[0]).join(''), n: port.rain.length } };
+    window.__air = { light: () => onAir() && lightJet(newChain(), false), empty: () => { zombies = []; },
+      st: () => air && { stage: stageId, jet: air.state, hp: +air.hp.toFixed(1), t: +air.t.toFixed(2), eng: air.E.map(E => E.state[0]).join(''), nose: air.N.state, nz: +air.N.z.toFixed(1), nx: +air.N.x.toFixed(2), yaw: +air.N.yaw.toFixed(2) } };
     window.__fest = { light: () => onFest() && lightRack(newChain()), st: () => fest && { stage: stageId, rack: fest.state, hp: fest.hp, shells: fest.shells.length, big: fest.big ? fest.big.state : '', sky: fest.sky.length } };
     window.__noStrike = v => { noStrike = v; };
     // the street's contraptions: place('ball,wire') puts those up now (and every round after, until place('')), go(k) sets one off as our shot would
@@ -9979,6 +10724,7 @@ async function bootInner() {
     park: onPark() ? (() => { const Wh = park.wheel, T = park.train, c = T.cars[0], w = toScreen(0, WHEEL.z - WHEEL.foot, WHEEL.h), t = toScreen(c.x, c.z, c.h + 0.8); return { wheel: Wh.state, hp: +Wh.hp.toFixed(1), wx: w.X, wy: w.Y, train: T.state, tz: +c.z.toFixed(1), tx: t.X, ty: t.Y }; })() : null,
     hwy: onHwy() ? (() => { const s = toScreen(0, HWY.z - HWY.hz, HWY.top + 0.6); return { over: hwy.state, hp: hwy.hp, ox: s.X, oy: s.Y, zcDown, zc: cars.filter(c => c.zc && c.state === 'roll').map(c => { const p = toScreen(c.x, c.z, 0.8); return { x: p.X, y: p.Y, z: +c.z.toFixed(1) }; }) }; })() : null,
     port: onPort() ? (() => { const s = toScreen(0, CRANE.hz - BOX.W / 2, CRANE.hang + BOX.H * 0.6); return { crane: port.state, hp: port.hp, cx: s.X, cy: s.Y, rain: port.rain.filter(R => R.state === 'gone').length }; })() : null,
+    air: onAir() ? (() => { const p = jetAt(0, JET.HC, 16), s = toScreen(p.x, p.z, p.h); return { jet: air.state, hp: air.hp, jx: s.X, jy: s.Y, nose: air.N.state, eng: air.E.filter(E => E.state === 'gone').length }; })() : null,
     fest: onFest() ? (() => { const s = toScreen(0, RACK.z, RACK.deck + 0.55); return { rack: fest.state, hp: fest.hp, rx: s.X, ry: s.Y, shells: fest.shells.length, big: fest.big ? fest.big.state : '' }; })() : null,
     ship: ship ? (() => { const s = toScreen(ship.x, ship.z, ship.h); return { x: s.X, y: s.Y, z: +ship.z.toFixed(1), h: +ship.h.toFixed(1), state: ship.state, hp: ship.hp, hang: ship.hangers.filter(z => z.state === 'hang').length, hy: ship.hangers.filter(z => z.state === 'hang').map(z => toScreen(z.x, z.z, z.h + 1).Y | 0) }; })() : null,
     gims: gimState(),
@@ -11828,6 +12574,396 @@ function drawOverlays() {
   drawBanner();
 }
 
+// ===== 76-air.js
+// ---------- the airport's set piece (2026-11-09, kazu picked 空港 among the new stages: ジャンボ機の大爆発) ----------
+// 爆散航空's jumbo taxis in at the far end, nose on. Shoot it (a rocket, a shell, a beam, or a blast beside it) and it goes up in
+// stages. Its engines scream and blow one after another, each torn off its pylon and flung tumbling down the taxiway into the
+// horde, coming down on whoever is under it and going off where it lands. Then its centre tank: the biggest fireball of the
+// game, a column of fire under a black cap, the shock rolling out over the apron, the wings dropping off it burning, the fin
+// keeling over; and its nose section, broken off behind the hump, comes skidding down the taxiway at us on its belly in a
+// fountain of sparks, its taxi lights still on, mowing down the horde in its path and setting alight the ones beside it,
+// leaving its fuel burning behind it, till it slews to a stop short of the wire and blows apart, its zombie passengers thrown
+// out. Once a round; left alone it all goes in the finale, for nothing.
+// Only on the airport (the meshes are built with the stage, 25-air.js); the weapons reach it through the park's calls
+// (76-park.js), which hand over to these when on the airport.
+const JET_HP = 16, JET_BONUS = 150000;
+// the engines go at ENG_T after the hit (in ENG_ORDER, as we see them: outer left, inner right, inner left, outer right), the tank at TANK_T;
+// the finale's go faster (FAST). An engine is ENG_FLY in the air, pulled down by ENG_G, comes down no nearer than ENG_MIN, lies
+// ENG_SLAM before it goes off (ENG_BLAST; nearer than ENG_NEAR the flash is softened)
+const ENG_T = [0, 0.15, 0.3, 0.45], ENG_ORDER = [0, 2, 1, 3], TANK_T = 0.72, FAST = 0.6;
+const ENG_FLY = [1.25, 1.5], ENG_G = 20, ENG_MIN = 20, ENG_SLAM = 0.3, ENG_BLAST = 1.3, ENG_NEAR = 20;
+// the nose section: how fast it leaves, where its tip stops, how wide it mows, how far beside it the fuel catches them, how
+// long it lies there before it goes, the zombies thrown out of it
+const NOSE_V = 52, NOSE_STOP = 24, NOSE_HW = 2.3, NOSE_FIRE = 3.8, NOSE_WAIT = 0.3, NOSE_IN = 4;
+const JET_BURNT = new THREE.Color(0.24, 0.21, 0.2);
+const onAir = () => !!air && stageId === 'air';
+const _ja = {}, _jo = new THREE.Vector3(), _jd = new THREE.Vector3(), _jq = new THREE.Quaternion(), _jv = new THREE.Vector3(), _je = new THREE.Euler();
+function resetAir() {
+  if (!air) return;
+  const O = air;
+  Object.assign(O, { state: 'stand', hp: JET_HP, t: 0, ch: null, fast: false, flash: 0, jolt: 0, aimed: [], burnT: 0, smoke: [0, 0, 0, 0], tankT: 0, wU: 0, fU: 0, wDown: false });
+  O.skin.color.setRGB(1, 1, 1); O.skin.emissiveIntensity = 1.3; O.noseSkin.color.setRGB(1, 1, 1); O.noseSkin.emissiveIntensity = 1.3; O.M.jet.color.setRGB(1, 1, 1); O.finMat.color.setRGB(1, 1, 1); O.engMat.emissive.setRGB(0, 0, 0);
+  O.wings.forEach((w, i) => { w.position.copy(O.wing0[i]); w.rotation.set(0, 0, 0); });
+  O.fin.position.copy(O.fin0); O.fin.rotation.set(0, 0, 0);
+  O.nLamps.visible = O.nCones.visible = O.pool.visible = true;
+  const p = jetAt(0, JET.HC, O.nMid);
+  O.N = { state: 'on', x: p.x, z: p.z, h: JET.HC, yaw: JET.yaw, pitch: 0, roll: 0, v: 0, v0: 1, a: 0, t: 0, spin: 0, k: 0, kT: 0, done: new Set(), patch: 0, lx: p.x, lz: p.z };
+  O.nose.visible = true;
+  O.E = JET.eng.map(([ex, es, eh], i) => {
+    const c = jetAt(ex, eh, es + JET.engL / 2), E = { i, state: 'on', x: c.x, h: c.h, z: c.z, vx: 0, vh: 0, vz: 0, t: 0, q: new THREE.Quaternion().setFromEuler(_je.set(0, -JET.yaw, 0)), w: new THREE.Vector3(), len: JET.engL };
+    O.engs[i].visible = true;
+    return E;
+  });
+  drawAirParts();
+}
+// set off: by our shot, or in the finale (fast, for nothing)
+function lightJet(ch, fast) {
+  const O = air;
+  if (O.state !== 'stand') return;
+  Object.assign(O, { state: 'lit', t: 0, ch: ch || null, fast: !!fast, aimed: [] });
+  jetScream(); rumble();
+  shake = Math.max(shake, 4);
+  if (running && ch) {
+    score += JET_BONUS;
+    floaters.push({ screen: true, x: W / 2, y: H * 0.3, text: jaEn('ジャンボ機大爆発!!', 'JUMBO JET BLAST!!'), sub: `+${JET_BONUS.toLocaleString()}`, life: 2, big: true });
+    say('incredible', 3);
+  }
+}
+// where an engine comes down: the thickest bunch of the horde not already picked, a little short of it as they keep walking, no
+// nearer than ENG_MIN; an empty road still gets its show
+function engTarget(O) {
+  const live = zombies.filter(o => o.state === 'walk' && o.type !== 'boss' && o.z > 14 && o.z < 38);
+  let best = null, bn = -1;
+  for (const a of live) {
+    if (O.aimed.some(p => Math.abs(p.z - a.z) < 3 && Math.abs(p.x - a.x) < 3)) continue;
+    let n = 0;
+    for (const o of live) if (Math.abs(o.x - a.x) < 2.6 && Math.abs(o.z - a.z) < 2.2) n++;
+    if (n > bn) { bn = n; best = a; }
+  }
+  const p = best ? { x: clamp(best.x, -halfX * 1.2, halfX * 1.2), z: Math.max(ENG_MIN, best.z - 1.2) } : { x: rand(-1, 1) * halfX, z: rand(ENG_MIN, 32) };
+  O.aimed.push(p); if (O.aimed.length > 6) O.aimed.shift();
+  return p;
+}
+// an engine blows on its pylon and is flung off it, burning and tumbling, to land on p after T seconds
+function blowEngine(E) {
+  const O = air, ch = O.ch;
+  explode(E.x, E.z, 1.6, E.h, null, ch);
+  for (let i = 0; i < 22; i++) { const a = rand(0, 6.28), sp = rand(3, 10); addPart({ k: 'fire', nf: 1, x: E.x, z: E.z, h: E.h, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.6 - rand(0, 4), vh: rand(1, 8), r: rand(1.2, 2.2), grow: 1.1, drag: 2.2, life: rand(0.6, 1.1), heat: 1.1, f: 1 + (i % 2) }); }
+  addPart({ k: 'glow', nf: 1, x: E.x, z: E.z, h: E.h, vx: 0, vz: 0, vh: 0, r: 9, life: 0.35, c: [2.4, 1.1, 0.35], a: 1 });
+  for (let i = 0; i < 6; i++) addPart({ k: 'smoke', nf: 1, x: E.x, z: E.z, h: E.h + 1, vx: rand(-1.5, 1.5), vz: rand(-1, 1), vh: rand(2, 4), r: rand(1.4, 2), grow: 1.1, drag: 0.6, life: rand(2, 3), a: 0.5, warm: 0.8 });
+  O.engMat.emissive.setRGB(0.32, 0.1, 0.02);
+  for (let i = 0; i < 4; i++) addChunk({ x: E.x, z: E.z, h: E.h + 0.5, vx: rand(-6, 6), vz: rand(-8, 2), vh: rand(6, 12), sx: rand(0.5, 1.1), sy: 0.05, sz: rand(0.4, 0.9), c: CH.paint, life: rand(2, 2.8), hot: 0.6 });
+  const p = engTarget(O), T = rand(ENG_FLY[0], ENG_FLY[1]) * (O.fast ? 0.8 : 1);
+  Object.assign(E, { state: 'fly', t: 0, vx: (p.x - E.x) / T, vz: (p.z - E.z) / T, vh: (JET.engR - E.h + 0.5 * ENG_G * T * T) / T });
+  const d = Math.hypot(E.vx, E.vz) || 1, spin = rand(3, 5) * (Math.random() < 0.5 ? 1 : -1);
+  E.w.set(-E.vz / d * spin * 0.4 + rand(-1, 1), rand(-3, 3), -E.vx / d * spin);
+  O.smoke[E.i] = 0;
+}
+function flyEngine(E, dt) {
+  E.t += dt; E.vh -= ENG_G * dt;
+  E.x += E.vx * dt; E.z += E.vz * dt; E.h += E.vh * dt;
+  _jv.copy(E.w).multiplyScalar(dt);
+  const ang = _jv.length();
+  if (ang > 1e-6) E.q.premultiply(_jq.setFromAxisAngle(_jv.divideScalar(ang), ang));
+  const nf = E.z > 32 ? 1 : 0;
+  for (let i = 0, n = Math.round(dt * 70) || (Math.random() < dt * 70 ? 1 : 0); i < n; i++) addPart({ k: 'fire', nf, x: E.x + rand(-0.5, 0.5), z: E.z + rand(-0.5, 0.5), h: E.h + rand(-0.4, 0.4), vx: rand(-0.6, 0.6), vz: rand(-0.6, 0.6), vh: rand(0.5, 2), r: rand(0.8, 1.4), grow: 0.8, drag: 2, life: rand(0.35, 0.6), heat: 1.15, f: 1 + (Math.random() * 2 | 0) });
+  if (Math.random() < dt * 22) addPart({ k: 'smoke', nf, x: E.x, z: E.z, h: E.h, vx: 0, vz: 0, vh: rand(0.4, 1), r: rand(0.8, 1.2), grow: 1, drag: 0.8, life: rand(1.1, 1.6), a: 0.45, warm: 0.6 });
+  if ((E.vh < 0 && E.h <= JET.engR) || E.z < ENG_MIN - 2 || E.t > 4) slamEngine(E);
+}
+// it comes down: everything under it is crushed, grit and sparks blast out from under it, the taxiway shakes
+function slamEngine(E) {
+  const O = air, ch = O.ch;
+  E.state = 'slam'; E.t = 0; E.h = JET.engR; E.z = Math.max(ENG_MIN - 2, E.z); E.vh = 0; E.vx *= 0.25; E.vz *= 0.25;
+  // on its side on the ground, turned the way it came down
+  _jv.set(0, 0, 1).applyQuaternion(E.q);
+  const yaw = Math.atan2(_jv.x, _jv.z), ax = Math.sin(yaw), az = -Math.cos(yaw), hl = E.len / 2 + 0.4;
+  E.q.setFromEuler(_je.set(0, yaw, rand(0, 6.28)));
+  let k = 0;
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.type === 'boss' || o.ride) continue;
+    const dx = o.x - E.x, dz = o.z - E.z, al = dx * ax + dz * az, ac = -dx * az + dz * ax;
+    if (Math.abs(al) > hl || Math.abs(ac) > JET.engR + 0.5) continue;
+    killZombie(o, { dx: Math.sign(ac) * 0.5, dz: 0.3, d: 0.6, f: 0.5, power: 0.8, ch }); k++;
+  }
+  if (k && running) registerKills(k, E.x, E.z, jaEn('エンジン直撃!', 'ENGINE DROP!'), true, ch);
+  for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.hypot(c.x - E.x, c.z - E.z) < hl + 1) carBoom(c, 0.05, ch);
+  for (let i = 0; i < 14; i++) { const a = rand(0, 6.28), sp = rand(2, 6); addPart({ k: 'dust', x: E.x + Math.cos(a), z: E.z + Math.sin(a), h: 0.3, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.8, vh: rand(0.3, 1.5), r: rand(0.5, 0.9), grow: 1.3, drag: 2, life: rand(0.9, 1.4), a: 0.45, f: 4 }); }
+  for (let i = 0; i < 12; i++) addPart({ k: 'spark', nf: 1, x: E.x, z: E.z, h: 0.2, vx: rand(-7, 7), vz: rand(-4, 6), vh: rand(1, 6), g: 12, r: rand(0.04, 0.06), life: rand(0.4, 0.7), streak: 0.05 });
+  const near = Math.min(1.4, 16 / E.z);
+  shake = Math.max(shake, 10 * near); boom(1.1, E.z); thud(); clang();
+  if (E.z < 20) buzz([40, 30, 60], 2);
+  if (!reduceMotion) hitstop = Math.max(hitstop, 0.04);
+}
+// then it goes off: the blast, its cowling and fan blades flying
+function burstEngine(E) {
+  const ch = air.ch, x = E.x, z = E.z;
+  E.state = 'gone';
+  fxSoft = z < ENG_NEAR; explode(x, z, ENG_BLAST, 0.8, null, ch); fxSoft = false;
+  for (let i = 0; i < 8; i++) addChunk({ x: x + rand(-1, 1), z: z + rand(-1, 1), h: rand(0.5, 1.5), vx: rand(-7, 7), vz: rand(-2, 7), vh: rand(5, 13), sx: rand(0.5, 1.1), sy: 0.05, sz: rand(0.4, 0.9), c: i % 3 ? CH.paint : CH.asphalt, life: rand(2.2, 3), bounce: 0.2, hot: i % 3 ? 0 : 0.6 });
+  for (let i = 0; i < 6; i++) addChunk({ x, z, h: 0.9, vx: rand(-9, 9), vz: rand(-3, 6), vh: rand(4, 10), sx: 0.6, sy: 0.03, sz: 0.12, c: CH.asphalt2, life: rand(1.6, 2.4), bounce: 0.3 });
+}
+// the centre tank: the biggest blast of the game. The wings come off burning, the fin keels over, the skin goes black; the nose
+// section breaks off and comes at us
+function blowTank() {
+  const O = air, ch = O.ch, c = jetAt(0, JET.HC, 20);
+  O.state = 'down'; O.tankT = 0;
+  explode(c.x, c.z, 3, JET.HC, null, ch);
+  const fx = parts.length > 1300 * LOD ? 0.6 : 1;
+  // the fireball swells over the whole jet and climbs: a column of fire, a black cap over it
+  for (let i = 0, N = Math.round(64 * fx); i < N; i++) {
+    const a = rand(0, 6.28), e = rand(-0.1, 1.1), sp = rand(4, 13), s = rand(4, 34), p = jetAt(rand(-6, 6), JET.HC, s, _ja);
+    addPart({ k: 'fire', nf: 1, x: p.x, z: p.z, h: rand(1.5, 5), vx: Math.cos(a) * Math.cos(e) * sp, vz: Math.sin(a) * Math.cos(e) * sp * 0.6, vh: Math.sin(e) * sp + 5, r: rand(2.6, 4.6), grow: rand(0.8, 1.3), drag: 1.8, life: rand(1.1, 1.8), heat: rand(1.1, 1.4), f: 1 + (Math.random() * 2 | 0), cool: rand(0.7, 1) });
+  }
+  for (let i = 0, N = Math.round(16 * fx); i < N; i++) { const u = i / N; addPart({ k: 'plume', nf: 1, x: c.x + rand(-2, 2), z: c.z + rand(-2, 2), h: JET.HC, vx: rand(-1, 1), vz: rand(-1, 1), vh: 12 + 22 * u, r: 3.4 - u * 1.4, grow: 0.6, drag: 1.4, life: rand(1, 1.4), heat: 1.25, f: 1 + (i % 2) }); }
+  for (let i = 0, N = Math.round(16 * fx); i < N; i++) { const a = rand(0, 6.28), sp = rand(1, 4); addPart({ k: 'cap', nf: 1, x: c.x, z: c.z, h: JET.HC + 13, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.6, vh: rand(6, 10), r: rand(3.4, 5), grow: 1.2, drag: 0.9, life: rand(2.6, 3.6), a: 0.6, warm: 0.9, f: 3 + (i % 2) }); }
+  addPart({ k: 'glow', nf: 1, x: c.x, z: c.z, h: JET.HC + 3, vx: 0, vz: 0, vh: 2, r: 18, life: 0.9, c: [1.6, 0.75, 0.25], a: 1 });
+  addPart({ k: 'core', nf: 1, x: c.x, z: c.z, h: JET.HC + 1, vx: 0, vz: 0, vh: 0, r: 9, life: 0.4 });
+  addPart({ k: 'shock', x: c.x, z: c.z, h: 0.3, vx: 0, vz: 0, vh: 0, r: 2, R: 34, life: 0.9, a: 0.5 });
+  for (let i = 0; i < 36; i++) { const a = i / 36 * 6.283, sp = rand(12, 20); addPart({ k: 'dust', x: c.x + Math.cos(a) * 6, z: c.z + Math.sin(a) * 6, h: 0.4, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vh: rand(0.5, 2), r: rand(1.2, 2), grow: 1.4, drag: 2.2, life: rand(1, 1.6), a: 0.4 }); }
+  // blasts run down its length a beat after, and the fuel round it burns on
+  for (let i = 0; i < 6; i++) { const p = jetAt(rand(-1.5, 1.5), JET.HC, 16 + i * 4.4); explosionsQ.push({ x: p.x, z: p.z, h: rand(2, 5), t: 0.12 + i * 0.09, power: rand(1.4, 1.9), ch }); }
+  for (let i = 0; i < 12; i++) { const p = jetAt(rand(-14, 14), 0, rand(12, 34)); addPart({ k: 'flame', x: p.x, z: p.z, h: 0, vx: 0, vz: 0, vh: 0, r: rand(1.2, 2), life: rand(6, 10) }); }
+  // burning wreckage over the horde, going off where it lands
+  for (let i = 0; i < 6; i++) {
+    const tx = rand(-1, 1) * halfX * 1.2, tz = rand(26, 46), Tt = rand(1.0, 1.5);
+    explosionsQ.push({ x: tx, z: tz, t: Tt, power: 0.8, ch, h: 0.4 });
+    addChunk({ x: c.x, z: c.z, h: JET.HC + 2, vx: (tx - c.x) / Tt, vz: (tz - c.z) / Tt, vh: (0.4 - JET.HC - 2 + 9 * Tt * Tt) / Tt, g: 18, sx: rand(0.8, 1.4), sy: 0.08, sz: rand(0.6, 1.1), c: CH.paint, life: Tt + 0.1, hot: 0.8, w: new THREE.Vector3(rand(-8, 8), rand(-8, 8), rand(-8, 8)) });
+  }
+  // what it is now
+  O.skin.color.copy(JET_BURNT); O.skin.emissiveIntensity = 0; O.noseSkin.color.setRGB(0.86, 0.84, 0.82); O.M.jet.color.copy(JET_BURNT); O.finMat.color.setRGB(0.4, 0.3, 0.3);
+  flashScreen = Math.max(flashScreen, 0.06); shake = 24; buzz(260, 3);
+  if (!reduceMotion) { zoom = Math.min(1.12, zoom + 0.08); slowmo = Math.max(slowmo, 0.55); }
+  boom(3, c.z); boom(2.4, c.z); rumble(); whoosh();
+  floaters.push({ sfx: true, nudged: true, x: W / 2, y: H * 0.36, text: jaEn('ズドドドォン!!', 'KA-BLAMMM!!'), rot: rand(-0.1, 0.1), life: 1.2, max: 1.2, size: Math.min(70, W * 0.085) });
+  // off comes the nose
+  const N = O.N, v0 = NOSE_V * (O.fast ? 1.25 : 1), tip = N.z - O.nMid * JC, go = Math.max(10, tip - (O.fast ? NOSE_STOP + 8 : NOSE_STOP));
+  Object.assign(N, { state: 'slide', t: 0, v: v0, v0, a: v0 * v0 / (2 * go), spin: (Math.random() < 0.5 ? -1 : 1) * rand(0.35, 0.55), patch: 0, lx: N.x, lz: N.z, said: false });
+  scrapeSnd(go / v0 * 2);
+}
+// the nose section on its belly, coming at us: everything in its path goes flying, the ones beside it catch fire, the fuel it
+// trails burns on, sparks pour out from under it
+function slideNose(dt) {
+  const O = air, N = O.N, ch = O.ch;
+  N.t += dt;
+  N.v = Math.max(0, N.v - N.a * dt);
+  N.z -= N.v * dt;
+  // called out once it is well on its way, clear of the fireball
+  if (!N.said && N.z < 60) { N.said = true; if (running && ch) floaters.push({ screen: true, x: W / 2, y: H * 0.5, text: jaEn('機首が突っ込む!!', 'INCOMING NOSE!!'), sub: '', life: 1.3, big: true }); }
+  N.x += (0.3 - N.x) * (1 - Math.exp(-dt * 1.2));
+  N.yaw += N.spin * dt * Math.min(1, N.v / 20); N.spin *= Math.exp(-dt * 0.4);
+  // its gear gone, down on its belly, rocking as it skids
+  const sk = N.v / N.v0;
+  N.h += (JET.R + 0.05 + 0.08 * sk * Math.abs(Math.sin(N.t * 13)) - N.h) * (1 - Math.exp(-dt * 12));
+  N.pitch = 0.025 * sk * Math.sin(N.t * 9); N.roll = 0.05 * sk * Math.sin(N.t * 6.5 + 1);
+  const fx = Math.sin(N.yaw), fz = Math.cos(N.yaw), half = O.nMid + 0.4;
+  // what it runs over: along its length and across it
+  for (const o of zombies) {
+    if (o.state !== 'walk' || o.gone || o.held || N.done.has(o)) continue;
+    const dx = o.x - N.x, dz = o.z - N.z, al = dx * fx + dz * fz, ac = dx * fz - dz * fx;
+    if (Math.abs(al) > half + 1) continue;
+    if (o.type === 'boss') { if (Math.abs(ac) < NOSE_HW + 0.6 * o.size) { N.done.add(o); damageBoss(140, ch, o); shake = Math.max(shake, 12); clang(); } continue; }
+    if (Math.abs(ac) < NOSE_HW) { N.done.add(o); killZombie(o, { dx: Math.sign(ac || 1) * 0.7, dz: -0.4, d: 0.8, f: 0.75, power: 1.05, ch }); N.k++; }
+    else if (Math.abs(ac) < NOSE_FIRE && Math.random() < dt * 12) igniteZombie(o, ch);
+  }
+  if ((N.kT -= dt) <= 0 || N.v <= 0) { N.kT = 0.3; if (N.k && running) registerKills(N.k, N.x, N.z, jaEn('はね飛ばした!', 'RUN DOWN!'), true, ch); N.k = 0; }
+  for (const c of cars) if ((c.state === 'park' || c.state === 'roll') && Math.abs((c.x - N.x) * fx + (c.z - N.z) * fz) < half + c.hl && Math.abs((c.x - N.x) * fz - (c.z - N.z) * fx) < NOSE_HW + c.hw) carBoom(c, 0.02, ch);
+  // its fuel left burning behind it, near enough to light whoever walks into it (56-flame.js)
+  N.patch += Math.hypot(N.x - N.lx, N.z - N.lz); N.lx = N.x; N.lz = N.z;
+  while (N.patch > 1.5) { N.patch -= 1.5; const rz = N.z + half * fz, rx = N.x + half * fx; for (const s of [-1, 1]) addPatch(rx + s * rand(0.6, 2.2) * fz, rz - s * rand(0.6, 2.2) * fx, ch); }
+  // sparks and fire from under it, smoke off its torn end
+  const sp = Math.min(1, N.v / 25), tx = N.x - (O.nMid - 1.5) * fx, tz = N.z - (O.nMid - 1.5) * fz, rx = N.x + O.nMid * fx, rz = N.z + O.nMid * fz;
+  for (let i = 0, n = Math.round(dt * 320 * sp); i < n; i++) {
+    const u = Math.random(), x = tx + (rx - tx) * u, z = tz + (rz - tz) * u;
+    addPart({ k: 'spark', nf: 1, x: x + rand(-1.4, 1.4), z, h: 0.1, vx: rand(-7, 7), vz: rand(3, 14), vh: rand(1.5, 8), g: 12, r: rand(0.07, 0.12), life: rand(0.35, 0.75), streak: 0.06 });
+  }
+  if (sp > 0.05) for (const u of [0.25, 0.75]) addPart({ k: 'glow', nf: 1, x: tx + (rx - tx) * u, z: tz + (rz - tz) * u, h: 0.3, vx: 0, vz: 0, vh: 0, r: 2.6 + 1.4 * sp, life: 0.05, c: [1.6 * sp, 0.8 * sp, 0.25 * sp], a: 1 });
+  if (Math.random() < dt * 40) addPart({ k: 'fire', x: rx + rand(-1.5, 1.5), z: rz + rand(-0.5, 0.5), h: rand(0.6, 3), vx: rand(-1, 1), vz: rand(0, 3) + N.v * 0.3, vh: rand(1, 3), r: rand(0.8, 1.4), grow: 0.9, drag: 2, life: rand(0.4, 0.7), heat: 1.2, f: 1 + (Math.random() * 2 | 0) });
+  if (Math.random() < dt * 16) addPart({ k: 'smoke', x: rx, z: rz, h: rand(1.5, 3.5), vx: rand(-0.5, 0.5), vz: N.v * 0.2, vh: rand(1, 2.5), r: rand(0.9, 1.3), grow: 1, drag: 0.6, life: rand(1.6, 2.4), a: 0.5, warm: 0.7 });
+  if (Math.random() < dt * 6 * sp) shake = Math.max(shake, 3 + 5 * Math.min(1, 30 / N.z));
+  if (N.v <= 0) { N.state = 'stop'; N.t = 0; thud(); clang(); shake = Math.max(shake, 8); }
+}
+// stopped: it lies there a moment, then blows apart and throws out the dead it was carrying
+function burstNose() {
+  const O = air, N = O.N, ch = O.ch;
+  N.state = 'gone'; O.nose.visible = false;
+  fxSoft = true; explode(N.x, N.z, 2, 1.6, null, ch); fxSoft = false;
+  const fx = Math.sin(N.yaw), fz = Math.cos(N.yaw);
+  for (let i = 0; i < 14; i++) { const u = rand(-1, 1) * O.nMid; addChunk({ x: N.x + fx * u, z: N.z + fz * u, h: rand(0.8, 3), vx: rand(-8, 8), vz: rand(-2, 8), vh: rand(6, 14), sx: rand(0.8, 1.6), sy: 0.06, sz: rand(0.6, 1.2), c: i % 4 ? CH.paint : CH.meat, life: rand(2.2, 3), bounce: 0.2, hot: i % 3 ? 0 : 0.5 }); }
+  for (let i = 0; i < 10; i++) addChunk({ x: N.x, z: N.z, h: 1.5, vx: rand(-6, 6), vz: rand(-1, 6), vh: rand(5, 11), sx: 0.4, sy: 0.3, sz: 0.25, c: pick([CH.meat, CH.asphalt2, CH.brass, CH.glass]), life: rand(1.8, 2.6), bounce: 0.35 });
+  for (let i = 0; i < 3; i++) explosionsQ.push({ x: N.x + fx * rand(-5, 5), z: N.z + fz * rand(-5, 5), h: rand(1, 3), t: 0.1 + i * 0.12, power: 1.1, ch });
+  for (let i = 0; i < NOSE_IN; i++) {
+    const u = rand(-0.8, 0.8) * O.nMid, zb = makeZombie(Math.random() < 0.3 ? 'runner' : 'walker', clamp(N.x + fx * u, -halfX * 1.2, halfX * 1.2), Math.max(Z_WALL + 2, N.z + fz * u));
+    zombies.push(zb);
+    killZombie(zb, { dx: rand(-1, 1), dz: rand(0.2, 1), d: 1, f: rand(0.6, 1), power: 1.15, ch });
+  }
+  if (running) registerKills(NOSE_IN, N.x, N.z, null, true, ch);
+  for (let i = 0; i < 6; i++) addPart({ k: 'flame', x: N.x + rand(-2, 2), z: N.z + rand(-4, 4), h: 0, vx: 0, vz: 0, vh: 0, r: rand(0.6, 1), life: rand(3, 5) });
+}
+// a turbine running away before it blows: a whine climbing, the roar under it
+function jetScream() {
+  if (!live()) return;
+  const t = actx.currentTime, bp = filt('bandpass', 1400, 4);
+  const o = osc('sawtooth', 600, t); o.frequency.exponentialRampToValueAtTime(2600, t + 0.7);
+  o.connect(bp); bp.connect(gain(t, 0.12, 0.25, 0.55)).connect(master);
+  o.start(t); o.stop(t + 0.85);
+  noiseSrc(t, 0.9).connect(filt('lowpass', 900)).connect(gain(t, 0.25, 0.3, 0.6)).connect(master);
+}
+// steel on concrete, dying away as it stops
+function scrapeSnd(dur) {
+  if (!live()) return;
+  const t = actx.currentTime, d = clamp(dur, 0.8, 3);
+  noiseSrc(t, d).connect(filt('bandpass', 2600, 3)).connect(gain(t, 0.22, 0.04, d)).connect(master);
+  const o = osc('sawtooth', 190, t); o.frequency.exponentialRampToValueAtTime(70, t + d);
+  o.connect(filt('lowpass', 900)).connect(gain(t, 0.1, 0.05, d)).connect(master);
+  o.start(t); o.stop(t + d + 0.1);
+}
+// ===== every frame =====
+function updateAir(dt) {
+  if (!onAir()) return;
+  const O = air;
+  O.flash = Math.max(0, O.flash - dt); O.jolt = Math.max(0, O.jolt - dt * 3);
+  // hit, it smokes from the engines the shots went near
+  O.smoke.forEach((s, i) => {
+    const E = O.E[i];
+    if (s <= 0 || E.state !== 'on' || Math.random() > dt * (6 + s)) return;
+    addPart({ k: 'smoke', nf: 1, x: E.x + rand(-0.4, 0.4), z: E.z + rand(-1, 1), h: E.h + 0.6, vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.6), vh: rand(1.2, 2.4), r: rand(0.5, 0.8), grow: 1, drag: 0.6, life: rand(1.4, 2.2), a: 0.45, warm: 0.4 });
+    if (s > 6 && Math.random() < 0.3) addPart({ k: 'fire', nf: 1, x: E.x, z: E.z - 2, h: E.h, vx: 0, vz: 0, vh: rand(0.5, 1.5), r: rand(0.4, 0.7), grow: 0.8, drag: 2, life: rand(0.3, 0.5), heat: 1.2, f: 1 });
+  });
+  if (O.state === 'stand') return;
+  O.t += dt;
+  const k = O.fast ? FAST : 1;
+  if (O.state === 'lit') {
+    ENG_ORDER.forEach((i, n) => { if (O.E[i].state === 'on' && O.t >= ENG_T[n] * k) blowEngine(O.E[i]); });
+    if (O.t >= TANK_T * k) blowTank();
+  }
+  for (const E of O.E) {
+    if (E.state === 'fly') flyEngine(E, dt);
+    else if (E.state === 'slam') {
+      E.t += dt; const f = Math.max(0, 1 - dt * 6); E.vx *= f; E.vz *= f; E.x += E.vx * dt; E.z = Math.max(ENG_MIN - 2, E.z + E.vz * dt);
+      if (E.t >= ENG_SLAM) burstEngine(E);
+    }
+  }
+  const N = O.N;
+  if (N.state === 'slide') slideNose(dt);
+  else if (N.state === 'stop') { N.t += dt; if (Math.random() < dt * 30) addPart({ k: 'fire', x: N.x + rand(-2, 2), z: N.z + rand(-5, 5), h: rand(0.5, 2.5), vx: 0, vz: 0, vh: rand(1, 3), r: rand(0.6, 1), grow: 0.8, drag: 2, life: rand(0.4, 0.6), heat: 1.2, f: 1 }); if (N.t >= NOSE_WAIT) burstNose(); }
+  if (O.state !== 'down') return;
+  O.tankT += dt;
+  // the wings drop off it, the fin keels over
+  O.wU = Math.min(1, O.tankT / 0.55); O.fU = Math.min(1, Math.max(0, O.tankT - 0.15) / 0.8);
+  if (O.wU >= 1 && !O.wDown) { O.wDown = true; for (const sd of [-1, 1]) { const p = jetAt(sd * 14, 0.3, 28); for (let i = 0; i < 10; i++) addPart({ k: 'dust', x: p.x + rand(-5, 5), z: p.z + rand(-3, 3), h: 0.3, vx: rand(-3, 3), vz: rand(-3, 3), vh: rand(0.5, 2), r: rand(1.2, 2), grow: 1.2, drag: 1.5, life: rand(1.4, 2), a: 0.4, f: 4 }); } boom(1.4, JET.z + 20); }
+  // what is left of it burns on, black smoke climbing off it
+  if ((O.burnT -= dt) <= 0) {
+    O.burnT = 0.05;
+    const p = Math.random() < 0.6 ? jetAt(rand(-1.5, 1.5), JET.HC + rand(-1, 1.5), rand(14, 42), _ja) : jetAt((Math.random() < 0.5 ? -1 : 1) * rand(2, 16), rand(0.5, 2.5), rand(18, 30), _ja);
+    addPart({ k: 'fire', nf: 1, x: p.x, z: p.z, h: p.h, vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vh: rand(2, 4.5), r: rand(1.2, 2.2), grow: 0.8, drag: 1.6, life: rand(0.5, 0.9), heat: 0.9, f: 1 + (Math.random() * 2 | 0) });
+    if (Math.random() < 0.35) addPart({ k: 'smoke', nf: 1, x: p.x, z: p.z, h: p.h + 2, vx: rand(-0.6, 0.6), vz: rand(-0.4, 0.4), vh: rand(2.5, 4.5), r: rand(1.6, 2.4), grow: 1.1, drag: 0.4, life: rand(2.6, 3.6), a: 0.5, warm: 0.5 });
+  }
+}
+// the jet's moving parts where they are, and its lights
+function drawAirParts() {
+  const O = air;
+  for (const E of O.E) { const m = O.engs[E.i]; m.visible = E.state !== 'gone'; m.position.set(E.x, E.h, -E.z); m.quaternion.copy(E.q); }
+  const N = O.N;
+  O.nose.position.set(N.x, N.h, -N.z); O.nose.rotation.set(N.pitch, -N.yaw, N.roll, 'YXZ');
+  // the wings: the root sinks as the box breaks, the tip goes down onto the apron
+  O.wings.forEach((w, i) => { const sd = i ? 1 : -1, u = O.wU * O.wU; w.position.y = O.wing0[i].y - 1.4 * u; w.rotation.z = -sd * 0.17 * u; });
+  // the fin goes over to the side, off the tail onto the tailplane
+  const f = O.fU * O.fU; O.fin.rotation.z = -1.15 * f; O.fin.position.x = O.fin0.x + 1.2 * f; O.fin.position.y = O.fin0.y - 1.4 * f;
+}
+function drawAir(raw) {
+  if (!onAir()) return;
+  const O = air, now = performance.now() / 1000;
+  drawAirParts();
+  const shud = O.jolt * 0.003 * Math.sin(now * 57);
+  O.g.rotation.set(shud, -JET.yaw, shud * 0.5, 'YXZ');
+  // its lights: steady, flickering as it goes, out after the tank; the nose's taxi lights stay on as it comes at us, flickering
+  const up = O.state === 'stand' || (O.state === 'lit' && Math.random() < 0.6), N = O.N;
+  O.pool.visible = up;
+  O.nLamps.visible = O.nCones.visible = N.state === 'on' ? up : N.state === 'slide' ? Math.random() < 0.8 : false;
+  if (O.nLamps.visible) {
+    const L = O.lights.taxi;
+    for (const [lx, ly, s] of L) {
+      if (N.state === 'on') { jetAt(lx, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 1.8, 0, 0, 10, 1.3, 1.25, 1.1, 0.9); }
+      else { const fx = Math.sin(N.yaw), fz = Math.cos(N.yaw), u = -(O.nMid - 4.3); ADD.push(N.x + fx * u + lx * fz, 0.7, -(N.z + fz * u - lx * fx), 2.6, 0, 0, 10, 1.6, 1.5, 1.3, 0.9); }
+    }
+  }
+  if (!up) return;
+  const L = O.lights;
+  for (const [lx, ly, s] of L.land) { jetAt(lx, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 1.6, 0, 0, 10, 1.1, 1.05, 0.9, 0.7); }
+  const b = now % 1.1;
+  L.beacon.forEach(([lx, ly, s], i) => { if (b > i * 0.55 && b < i * 0.55 + 0.12) { jetAt(lx, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 1.5, 0, 0, 10, 1.8, 0.15, 0.08, 1); } });
+  for (const [lx, ly, s, g] of L.nav) { jetAt(lx, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 1.1, 0, 0, 10, g ? 0.15 : 1.6, g ? 1.5 : 0.15, g ? 0.4 : 0.08, 0.9); }
+  const st = now % 1.3;
+  if (st < 0.05 || (st > 0.13 && st < 0.18)) for (const [lx, ly, s] of L.strobe) { jetAt(lx, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 1.7, 0, 0, 10, 1.7, 1.7, 1.9, 1); }
+  for (const [lx, ly, s] of L.logo) { jetAt(lx + 1.5, ly, s, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 5, 0, 0, 10, 0.3, 0.26, 0.22, 0.5); }
+  if (O.flash > 0) { jetAt(0, JET.HC, 20, _ja); ADD.push(_ja.x, _ja.h, -_ja.z, 8, 0, 0, 10, 0.45, 0.3, 0.1, 0.6); }
+}
+// ===== what the weapons ask =====
+// the jet's parts as boxes in its own frame [x0, y0, s0, x1, y1, s1]: the fuselage, the hump, each wing in three pieces along its
+// sweep, the engines, the tailplane, the fin
+const JET_BOXES = (() => {
+  const Bx = [[-JET.R, JET.HC - JET.R, 0.5, JET.R, JET.HC + JET.R + 0.2, JET.L - 0.8], [-1.3, JET.HC + 1, 2.8, 1.3, JET.HC + HUMP.y + HUMP.b, 12.6]];
+  const [rx, rs, rc, ry] = JET.root, [tx, ts, tc, ty] = JET.tip;
+  for (const sd of [-1, 1]) for (const [a, b] of [[rx, 8], [8, 14], [14, tx + 0.4]]) {
+    const ua = (a - rx) / (tx - rx), ub = (Math.min(b, tx) - rx) / (tx - rx);
+    const x0 = sd > 0 ? a : -b, x1 = sd > 0 ? b : -a;
+    Bx.push([x0, ry + (ty - ry) * ua - 0.45, rs + (ts - rs) * ua, x1, ry + (ty - ry) * ub + 0.45, rs + (ts - rs) * ub + rc + (tc - rc) * ub]);
+  }
+  for (const [ex, es, eh] of JET.eng) Bx.push([ex - JET.engR, eh - JET.engR, es, ex + JET.engR, eh + JET.engR, es + JET.engL + 0.9]);
+  Bx.push([-8.3, 4.6, 37.2, 8.3, 5.8, 44.3], [-0.3, 5.4, 34.2, 0.3, JET.finTop, 44]);
+  return Bx;
+})();
+// the jet is one target: the first of its boxes on the ray
+function rayAir(O, D) {
+  if (!onAir() || air.state !== 'stand') return null;
+  const ox = O.x - JET.x, oz = -O.z - JET.z, dx = D.x, dz = -D.z;
+  _jo.set(ox * JC - oz * JS, O.y, ox * JS + oz * JC); _jd.set(dx * JC - dz * JS, D.y, dx * JS + dz * JC);
+  let t = -1;
+  for (const b of JET_BOXES) { const u = rayBox(_jo, _jd, b[0], b[1], b[2], b[3], b[4], b[5]); if (u > 0 && (t < 0 || u < t)) t = u; }
+  return t > 0 ? { t, what: 'jet' } : null;
+}
+// how far a point (game x, h, z) is from the jet
+function jetDist(x, h, z) {
+  const p = jetFrom(x, h, z, _ja);
+  let d = Infinity;
+  for (const b of JET_BOXES) d = Math.min(d, Math.hypot(Math.max(0, b[0] - p.x, p.x - b[3]), Math.max(0, b[1] - p.y, p.y - b[4]), Math.max(0, b[2] - p.s, p.s - b[5])));
+  return d;
+}
+function airNear(x, h, z, r) {
+  if (!onAir() || air.state !== 'stand' || z < JET.z - 6) return null;
+  return jetDist(x, h, z) < r ? 'jet' : null;
+}
+function hitAir(what, dmg, ch, x, h, z) {
+  if (!onAir() || what !== 'jet' || air.state !== 'stand') return;
+  const O = air;
+  for (let i = 0; i < 4 + Math.min(10, dmg); i++) addPart({ k: 'spark', nf: 1, x, z, h, vx: rand(-4, 4), vz: rand(-4, 1), vh: rand(-2, 4), g: 12, r: 0.035, life: rand(0.15, 0.45) });
+  if (Math.random() < 0.4) clang();
+  O.hp -= dmg; O.flash = 0.06; O.jolt = Math.min(1, O.jolt + dmg * 0.05);
+  // the engine nearest the hit starts to smoke
+  let bi = 0, bd = Infinity;
+  O.E.forEach((E, i) => { const d = Math.hypot(E.x - x, E.z - z); if (d < bd) { bd = d; bi = i; } });
+  if (bd < 9) O.smoke[bi] += dmg;
+  if (dmg >= 8) pop(x, z, 0.9, h);
+  if (O.hp <= 0) lightJet(ch, false);
+}
+function airBlast(x, z, h, R, power, ch) {
+  if (!onAir() || air.state !== 'stand' || z < JET.z - R - 2) return;
+  const d = jetDist(x, h, z);
+  if (d < R) hitAir('jet', 14 * power * (1 - d / R) + 2, ch, x, h, z);
+}
+function airWave(near, ch) {
+  if (!onAir() || air.state !== 'stand') return;
+  for (const [lx, ly, s] of [[0, JET.HC, 3], [0, JET.HC, 20], [-6.6, 1.8, 18], [6.6, 1.8, 18], [0, JET.HC, 36]]) {
+    const p = jetAt(lx, ly, s, _ja);
+    if (near(p.x, p.z, p.h - 2, p.h + 2).d < waveReach(p.z) + 1.5) { lightJet(ch, false); return; }
+  }
+}
+function airFinale(at) {
+  if (onAir() && air.state === 'stand') at(0.45, () => lightJet(null, true));
+}
+// the results wait for the engines to land and go off and for the nose to come to a stop and blow
+const airBusy = () => onAir() && (air.state === 'lit' || air.N.state === 'slide' || air.N.state === 'stop' || air.E.some(E => E.state === 'fly' || E.state === 'slam'));
+
 // ===== 76-fest.js
 // ---------- 大スターマイン, the festival's grand finale (2026-10-30, kazu: one more stage) ----------
 // The launch stand across the path at 50 m holds nine mortars aimed our way and a big one behind them. Shoot it (a rocket, a
@@ -12553,7 +13689,7 @@ function drawWire(raw) {
 
 // ---------- the gas holder ----------
 const TANK_R = 2.1, TANK_LEG = 1.4, TANK_HP = 36, TANK_WAVE = 23, TANK_REACH = 34;
-const TANK_AT = { avenue: [4.4, 36.5], hwy: [-4.4, 37], park: [-4.4, 37], fest: [-4.4, 37], port: [4.4, 36.5] };
+const TANK_AT = { avenue: [4.4, 36.5], hwy: [-4.4, 37], park: [-4.4, 37], fest: [-4.4, 37], port: [4.4, 36.5], air: [4.4, 37.5] };
 let gtank = null;
 function makeGasTankTex() {
   const S = 1024, [c, g] = canvas(S, S / 2);
@@ -13777,13 +14913,14 @@ function drawPark(raw) {
 }
 // ===== what the weapons ask =====
 // the first thing of the park's on the ray: a car of the train, or the wheel. These calls serve the festival's launch stand and
-// the expressway's overpass and the port's crane too (76-fest.js, 76-hwy.js, 76-port.js), so the weapons need not know which stage they are on
+// the expressway's overpass, the port's crane and the airport's jumbo too (76-fest.js, 76-hwy.js, 76-port.js, 76-air.js), so the weapons need not know which stage they are on
 // (the street's contraptions, 76-gim.js, stand in front of these: rayPark, parkNear, hitPark, parkBlast, parkWave and
 // parkFinale there ask them first, then these)
 function rayPark0(O, D) {
   if (onFest()) return rayFest(O, D);
   if (onHwy()) return rayHwy(O, D);
   if (onPort()) return rayPort(O, D);
+  if (onAir()) return rayAir(O, D);
   if (!onPark()) return null;
   let best = null;
   const Wh = park.wheel, T = park.train;
@@ -13803,6 +14940,7 @@ function parkNear0(x, h, z, r) {
   if (onFest()) return festNear(x, h, z, r);
   if (onHwy()) return hwyNear(x, h, z, r);
   if (onPort()) return portNear(x, h, z, r);
+  if (onAir()) return airNear(x, h, z, r);
   if (!onPark()) return null;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') for (const c of T.cars) if (c.z < TRAIN_SEEN && Math.abs(c.x - x) < TRAIN_HW + r && Math.abs(c.z - z) < TRAIN_HL + r && h > c.h - r && h < c.h + TRAIN_TOP + r) return 'train';
@@ -13813,6 +14951,7 @@ function hitPark0(what, dmg, ch, x, h, z) {
   if (onFest()) { hitFest(what, dmg, ch, x, h, z); return; }
   if (onHwy()) { hitHwy(what, dmg, ch, x, h, z); return; }
   if (onPort()) { hitPort(what, dmg, ch, x, h, z); return; }
+  if (onAir()) { hitAir(what, dmg, ch, x, h, z); return; }
   if (!onPark() || !what) return;
   const Wh = park.wheel, T = park.train;
   if (what === 'train' && T.state !== 'run') return;
@@ -13829,6 +14968,7 @@ function parkBlast0(x, z, h, R, power, ch) {
   if (onFest()) { festBlast(x, z, h, R, power, ch); return; }
   if (onHwy()) { hwyBlast(x, z, h, R, power, ch); return; }
   if (onPort()) { portBlast(x, z, h, R, power, ch); return; }
+  if (onAir()) { airBlast(x, z, h, R, power, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run') {
@@ -13851,6 +14991,7 @@ function parkWave0(near, ch) {
   if (onFest()) { festWave(near, ch); return; }
   if (onHwy()) { hwyWave(near, ch); return; }
   if (onPort()) { portWave(near, ch); return; }
+  if (onAir()) { airWave(near, ch); return; }
   if (!onPark()) return;
   const Wh = park.wheel, T = park.train;
   if (T.state === 'run' && T.cars.some(c => c.z < TRAIN_SEEN && near(c.x, c.z, c.h, c.h + TRAIN_TOP).d < waveReach(c.z) + 1)) derailTrain(ch);
@@ -13861,6 +15002,7 @@ function parkFinale0(at) {
   if (onFest()) { festFinale(at); return; }
   if (onHwy()) { hwyFinale(at); return; }
   if (onPort()) { portFinale(at); return; }
+  if (onAir()) { airFinale(at); return; }
   if (!onPark()) return;
   if (park.train.state === 'run' && park.train.cars[0].z < TRAIN_SEEN) at(0.35, () => derailTrain(null));
   if (park.wheel.state === 'stand') at(0.5, () => toppleWheel(null));
@@ -16137,14 +17279,14 @@ try { const s = localStorage.getItem('zb3d-stage'); if (s === 'auto' || STAGES[s
 // stage comes again (each round in a row scores a little more, 76-surprise.js, which helps). After the last stage, the lot
 // again from the first: a lap (周), every 合格点 up by LAP_K. A stage already cleared can be picked to play again, without a
 // 合格点; the ones ahead are locked. Kept in localStorage zb3d-prog: { at: the stage being played for, lap, tries at it }.
-const PROG = ['avenue', 'park', 'fest', 'hwy', 'port'];
+const PROG = ['avenue', 'park', 'fest', 'hwy', 'port', 'air'];
 // The 合格点: bot rounds of 20 s (botx.mjs, 16 a style over the four stages) score 6.9M to 14.9M tapping like a newcomer
 // (casual) and 10.4M to 16.1M firing at random (mash); and each round played straight after the last scores ×1.1 more, so the
 // k-th stage, mostly played as the k-th round in a row, needs about PASS / (1 + 0.1 (k - 1)) of its own: 5M, 7.3M, 9.2M, 10.8M.
 // The first stage is cleared by nearly anyone, the newcomer bot clears the next ones nine times in ten down to three in four.
 // The port, fifth (2026-11-09, 8 rounds a style): 10.0M to 14.2M by the newcomer, who never brings the crane down, and 10.5M
 // to 15.5M firing at random; 16M wants 11.4M of its own, which the newcomer gets three times in four.
-const PASS = { avenue: 5000000, park: 8000000, fest: 11000000, hwy: 14000000, port: 16000000 };
+const PASS = { avenue: 5000000, park: 8000000, fest: 11000000, hwy: 14000000, port: 16000000, air: 18000000 };
 const LAP_K = 0.3, PROG_KEY = 'zb3d-prog';
 let prog = { at: 0, lap: 0, tries: 0 }, goal = 0, goalHit = false, goalRes = null;   // this round's 合格点 (0: none), reached
 if (CG) {
@@ -16195,6 +17337,7 @@ const PROG_TIPS = {
   fest: [jaEn('奥の打ち上げ台を撃つと大スターマイン', 'Shoot the launch stand at the back for a huge firework show')],
   hwy: [jaEn('奥の高架を撃つと渋滞の車が群れに降る', 'Shoot the overpass at the back: the traffic jam rains down')],
   port: [jaEn('奥のクレーンを撃つと倒れてコンテナが降ってくる', 'Shoot the crane at the back: down it comes, and containers rain')],
+  air: [jaEn('奥のジャンボ機を撃つと大爆発、機首が突っ込んでくる', 'Shoot the jumbo jet at the back: it blows, and its nose comes skidding in')],
   all: [
     jaEn('車やドラム缶を撃つと誘爆でまとめて吹き飛ぶ', 'Shoot cars and drums: the blasts set each other off'),
     jaEn('ラストボスを倒すと +3,000,000', 'Drop the final boss for +3,000,000'),
@@ -16501,7 +17644,7 @@ rankInit();
 // ===== 82-ach.js
 // ---------- 実績 and 称号 (2026-11-09, kazu: 「何回もプレイしてもらえるよう実績一覧を表示できるようにしたいです / また周回することで
 // 実績解除できるものが欲しいです / 後1周クリアするごとに称号のようなものを与えたいです」) ----------
-// On CrazyGames, where the stages come in laps (80-stage.js): 30 achievements in six groups, each got once and kept in this
+// On CrazyGames, where the stages come in laps (80-stage.js): 31 achievements in six groups (the jumbo's 2026-11-09), each got once and kept in this
 // browser (localStorage zb3d-ach), like the medals. One got mid-round pops the note under the HUD (drawMissionToast,
 // 77-mission.js) with 実績解除!; the results name the round's; a button on the title and the results opens the list, the ones
 // still to get showing what they take and, where it adds up, how far along. Every lap of the stages cleared gives a 称号
@@ -16539,6 +17682,7 @@ const ACHS = [
   ['mine', 'stage', '🎆', jaEn('大スターマインを上げる', 'Set off the big fireworks'), jaEn('夏祭りで奥の打ち上げ台を撃つ', 'Shoot the launch stand at the festival'), () => running && onFest() && fest.state !== 'ready'],
   ['over', 'stage', '🌉', jaEn('高架を崩落させる', 'Bring down the overpass'), jaEn('高速道路で奥の高架を撃つ', 'Shoot the overpass on the highway'), () => running && onHwy() && hwy.state !== 'stand'],
   ['crane', 'stage', '🏗️', jaEn('クレーンを倒す', 'Topple the crane'), jaEn('埠頭で奥のクレーンを撃つ', 'Shoot the crane at the port'), () => running && onPort() && port.state !== 'stand'],
+  ['jumbo', 'stage', '🛬', jaEn('ジャンボ機を爆破', 'Blow up the jumbo jet'), jaEn('空港で奥のジャンボ機を撃つ', 'Shoot the jumbo jet at the airport'), () => running && onAir() && air.state !== 'stand'],
   ['bld5', 'stage', '🏢', jaEn('1回でビルを5棟倒す', '5 buildings in a round'), jaEn('ビルは撃ち続けると崩れる', 'Keep shooting a building and down it comes'), () => running && bldDown >= 5],
   ...[[5000, '💀'], [30000, '☠️'], [100000, '⚰️']].map(([n, ic]) => ['kills' + n, 'total', ic, jaEn(`累計${(n / 10000 >= 1 ? n / 10000 + '万' : n.toLocaleString())}体`, `${n.toLocaleString('en-US')} kills in all`),
     jaEn('倒した数は回をまたいで積み上がる', 'Kills add up round after round'), () => killsAll() >= n, () => [killsAll(), n]]),
